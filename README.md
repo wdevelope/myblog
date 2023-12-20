@@ -25,38 +25,38 @@
 
 ### user (유저)
 
-1. 회원가입 (POST) = /user/register
-2. 로그인 (POST) = /user/login
-3. 회원정보 (GET) = /user/userInfo
-4. 유저상태 수정 (PUT) = /user/status
-5. 로그아웃 (post) = /user/logout
-6. 로그아웃 확인 (GET) = /user/check
+1. 회원가입 (POST) = api/user/register
+2. 로그인 (POST) = api/user/login
+3. 회원정보 (GET) = api/user/userInfo
+4. 유저상태 수정 (PUT) = api/user/status
+5. 로그아웃 (post) = api/user/logout
+6. 로그아웃 확인 (GET) = api/user/check
 
 ### category (게시판 카테고리)
 
-1. 생성 (POST) = /category
-2. 조회 (GET) = 전체 : /category , 특정 : /category/:id
-3. 수정 (PUT) = /category/:id
-4. 삭제 (DELETE) = /category/:id
+1. 생성 (POST) = api/category
+2. 조회 (GET) = 전체 : api/category , 특정 : api/category/:id
+3. 수정 (PUT) = api/category/:id
+4. 삭제 (DELETE) = api/category/:id
 
 ### subcategory (카테고리 내 서브카테고리)
 
-1. 생성 (POST) = /subCategory
-2. 조회 (GET) = 전체 : /subCategory , 특정 : /subCategory/:categoryId
-3. 수정 (PUT) = /subCategory/:id
-4. 삭제 (DELETE) = /subCategory/:id
+1. 생성 (POST) = api/subCategory
+2. 조회 (GET) = 전체 : /subCategory , 특정 : api/subCategory/:categoryId
+3. 수정 (PUT) = api/subCategory/:id
+4. 삭제 (DELETE) = api/subCategory/:id
 
 ### post (게시글)
 
-1. 생성 (POST) = /post
-2. 조회 (GET) = 전체 : /post , 특정 : /post/:id
-3. 수정 (PUT) = /post/:id
-4. 삭제 (DELETE) = /post/:id
+1. 생성 (POST) = api/post
+2. 조회 (GET) = 전체 : /post , 특정 : api/post/:id
+3. 수정 (PUT) = api/post/:id
+4. 삭제 (DELETE) = api/post/:id
 
 ### image (이미지)
 
-1. 업로드 (POST) = /image
-2. 불러오기 (GET) = /:id
+1. 업로드 (POST) = api/image
+2. 불러오기 (GET) = api/:id
 
 <br>
 
