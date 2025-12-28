@@ -13,6 +13,7 @@ export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const canSubmit = useMemo(
@@ -22,21 +23,38 @@ export default function LoginForm() {
 
   async function submit() {
     setError(null);
+    setNotice(null);
     const supabase = createSupabaseBrowserClient();
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail) return;
 
-    const result =
-      mode === "login"
-        ? await supabase.auth.signInWithPassword({
-            email: trimmedEmail,
-            password,
-          })
-        : await supabase.auth.signUp({ email: trimmedEmail, password });
+    const result = await (mode === "login"
+      ? supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password,
+        })
+      : supabase.auth.signUp({
+          email: trimmedEmail,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+              from.startsWith("/") ? from : "/",
+            )}`,
+          },
+        }));
 
     if (result.error) {
       setError(result.error.message);
+      return;
+    }
+
+    const hasSession = Boolean(result.data?.session);
+    if (!hasSession && mode === "signup") {
+      setNotice(
+        "가입 확인 이메일을 보냈어요. 메일의 링크를 클릭하면 로그인됩니다.",
+      );
+      setMode("login");
       return;
     }
 
@@ -112,6 +130,7 @@ export default function LoginForm() {
           </label>
 
           {error ? <p className="text-sm text-red-500">{error}</p> : null}
+          {notice ? <p className="text-sm text-emerald-600">{notice}</p> : null}
 
           <button
             type="button"
@@ -126,4 +145,3 @@ export default function LoginForm() {
     </div>
   );
 }
-
