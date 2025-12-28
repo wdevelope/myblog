@@ -7,8 +7,8 @@
 # ✅ PHASE 0. 사전 결정 (설계 고정)
 
 - [ ] 프론트: **Next.js (TypeScript, App Router)**
-- [ ] 백엔드: **AWS Lambda (Node.js + TypeScript)**
-- [ ] DB: **DynamoDB (On-Demand)**
+- [ ] 백엔드: **Next.js Route Handlers + Supabase**
+- [ ] DB: **Supabase Postgres**
 - [ ] 기능 스펙 고정
   - [ ] 글 타입: `blog` / `feed` / `diary`
   - [ ] 공개 범위(모든 글 공통): `public` / `private` (선택 가능)
@@ -18,153 +18,81 @@
 - [ ] 배포:
 
   - Front → **AWS Amplify Hosting(Next.js SSR/ISR 지원)** ✅ (선택 확정)
-  - API → API Gateway + Lambda
+  - API → Next.js + Supabase
 
 ---
 
-# 🟦 PHASE 1. AWS 기본 세팅
+# 🟦 PHASE 1. Supabase 기본 세팅
 
-### 계정 / 보안
+### 프로젝트 생성 / 환경변수
 
-- [ ] AWS 계정 생성
-- [ ] MFA 활성화
-- [ ] IAM 사용자 생성 (Admin or PowerUser)
-- [ ] AWS CLI 설치 & 로그인
+- [ ] Supabase 프로젝트 생성
+- [ ] `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 설정
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` 설정(서버 전용)
+- [ ] `ADMIN_EMAILS` 설정(관리자 이메일 목록)
 
-### 기본 리전 결정
+### Auth 설정
 
-- [ ] 리전 선택 (예: ap-northeast-2)
-
-### Cognito(User Pool) 인증 세팅 ✅ (선택 확정)
-
-- [ ] Cognito User Pool 생성
-  - [ ] 로그인 방식: Email(권장) 또는 Username
-  - [ ] 셀프 회원가입: 필요 없으면 OFF(나만/소수 운영 시 권장)
-  - [ ] MFA: 초기엔 OFF(비용/복잡도↓), 필요 시 TOTP로 확장(SMS는 비용 증가 가능)
-- [ ] App Client 생성
-  - [ ] (권장) OAuth 2.0 + PKCE 활성화
-  - [ ] Callback/Logout URL: Amplify 도메인 기준으로 등록
-- [ ] (권장) 그룹 생성: `admin` (관리자 권한)
-- [ ] 초기 사용자 생성(관리자) + `admin` 그룹 할당
-- [ ] (선택) 커스텀 도메인 연결(Cognito Hosted UI 쓸 경우)
+- [ ] Supabase Auth 활성화(Email/Password)
+- [ ] (선택) 이메일 확인/비밀번호 정책 설정
+- [ ] 관리자/일반 사용자 역할 구분 전략 확정(기본: `ADMIN_EMAILS` 기반)
 
 ---
 
-# 🟦 PHASE 2. DynamoDB 설계 & 생성
+# 🟦 PHASE 2. DB(Postgres) 설계 & RLS
 
-### 테이블 설계 (블로그용 단일 테이블 추천)
+### 테이블 설계
 
-- [ ] 테이블명: `BlogTable`
-- [ ] Partition Key (PK)
-- [ ] Sort Key (SK)
+- [ ] `posts`
+- [ ] `comments`
 
 #### 데이터 모델 정의
 
 - [ ] Post (`blog/feed/diary` 공통)
-- [ ] Comment (`blog/feed`만)
-- [ ] Category (`blog`용)
-- [ ] Slug 인덱스(슬러그로 글 찾기)
-
-```ts
-PK = "POST#<postId>";
-SK = "META";
-
-PK = "POST#<postId>";
-SK = "COMMENT#<commentId>";
-```
+- [ ] Comment (`blog/feed`만, 로그인 사용자만 작성/조회)
 
 #### 조회 패턴(필수) → 키 설계에 반영
 
 - [ ] 타입별 최신 글 목록: `blog/feed/diary` 각각 `createdAt desc`
 - [ ] 카테고리별 최신 글 목록: `blog`에서 `categorySlug + createdAt desc`
-- [ ] slug로 글 상세 조회: `slug -> postId` 빠르게
-- [ ] 댓글 목록: `postId + createdAt asc/desc` (blog/feed만)
-- [ ] 비공개 글 접근 제어: `public`은 무인증 조회, `private`은 인증 필요
+- [ ] slug로 글 상세 조회: `slug` unique index
+- [ ] 댓글 목록: `post_id + createdAt asc`
+- [ ] 비공개 글: **admin만 조회**
 
-#### GSI(예시)
+### RLS 정책
 
-- [ ] `GSI1`: 타입/공개범위별 최신 목록
-  - `GSI1PK = "TYPE#<blog|feed|diary>#VIS#<public|private>"`
-  - `GSI1SK = "CREATED#<ISO>#POST#<postId>"`
-- [ ] `GSI2`: 카테고리/공개범위별 최신 목록
-  - `GSI2PK = "CAT#<categorySlug>#VIS#<public|private>"`
-  - `GSI2SK = "CREATED#<ISO>#POST#<postId>"`
-- [ ] (선택) `GSI3`: slug -> postId
-  - `GSI3PK = "SLUG#<slug>"`, `GSI3SK = "POST#<postId>"`
-
-### DynamoDB 생성
-
-- [ ] On-Demand 모드 선택
-- [ ] TTL 설정 (선택)
-- [ ] Free Tier 확인
+- [ ] Public 글: 무인증 조회 가능(`visibility = public`)
+- [ ] Private/Diary: admin만 조회/작성 가능
+- [ ] 댓글: 로그인 사용자만 조회/작성 가능(그리고 diary는 금지)
 
 ---
 
-# 🟦 PHASE 3. Lambda 프로젝트 세팅 (TypeScript)
+# 🟦 PHASE 3. API/서버 로직(Next.js)
 
-### 프로젝트 초기화
-
-- [ ] Node.js 18+ 사용
-- [ ] `npm init`
-- [ ] TypeScript 설정
-- [ ] esbuild / tsup 세팅
-
-### 폴더 구조
-
-```
-lambda/
- ├─ src/
- │   ├─ handlers/
- │   │   ├─ getPosts.ts
- │   │   ├─ getPost.ts
- │   │   └─ createPost.ts
- │   ├─ lib/
- │   │   └─ dynamo.ts
- │   └─ types/
- │       └─ post.ts
-```
+- [ ] `/api/posts` 목록/작성(admin)
+- [ ] `/api/posts/[slug]` 상세(public + private는 admin만)
+- [ ] `/api/comments` 조회/작성(로그인 사용자만, diary는 불가)
 
 ---
 
-# 🟦 PHASE 4. Lambda API 구현
+# 🟦 PHASE 4. 이미지(Supabase Storage)
 
-### 기본 API
-
-- [ ] GET /posts (글 목록)
-- [ ] GET /posts/{slug} (글 상세)
-- [ ] POST /posts (관리자 글 작성)
-- [ ] POST /comments (선택)
-- [ ] 이미지 업로드
-  - [ ] POST /uploads (프리사인드 URL 발급)
-  - [ ] (선택) GET /uploads/{key} (비공개 이미지용 서명 URL 발급)
-
-### 인증/인가
-
-- [ ] 인증 방식 결정: (권장) Cognito(JWT) / (최소) 단일 관리자 API Key
-- [ ] 공개 글: 무인증 조회 가능
-- [ ] 비공개 글: 인증된 사용자만 조회 가능
-- [ ] 글 작성/수정/삭제, 이미지 업로드, 댓글 삭제: 인증 필수
-
-### DynamoDB 연동
-
-- [ ] AWS SDK v3 사용
-- [ ] Query 기반 조회만 사용
-- [ ] Scan ❌
+- [ ] 버킷 생성
+  - [ ] `post-images-public` (public read)
+  - [ ] `post-images-private` (admin만 read)
+- [ ] 업로드 정책(RLS)
+  - [ ] admin만 업로드 가능
+- [ ] 비공개 이미지 접근
+  - [ ] `/api/images?bucket=...&path=...` → signed URL 리다이렉트(admin 전용)
 
 ---
 
-# 🟦 PHASE 5. API Gateway 연결
+# 🟦 PHASE 5. Supabase Auth 연동(Next.js)
 
-- [ ] HTTP API 생성
-- [ ] Lambda 함수 연결
-- [ ] CORS 설정
-- [ ] JWT Authorizer 설정(Cognito User Pool)
-  - [ ] 공개 엔드포인트: Authorizer 없음
-  - [ ] 비공개 엔드포인트: Authorizer 적용
-- [ ] Stage 배포
-- [ ] API URL 확보
-
----
+- [x] `/login` 구현(로그인/회원가입)
+- [x] `/logout` 구현
+- [x] admin 판별: `ADMIN_EMAILS` 기반
+- [x] 보호 섹션: `/diary`, `/admin` (admin only)
 
 # 🟦 PHASE 6. Next.js 프론트엔드
 
@@ -189,12 +117,13 @@ lambda/
 ### 데이터 패칭
 
 - [ ] SSG / ISR 사용
-- [ ] Lambda API 호출
+- [ ] Supabase 기반 API 호출
 - [ ] SEO 메타 자동 생성
-- [ ] 인증 연동(Cognito)
-  - [ ] 로그인 UI: **Cognito Hosted UI(OAuth 2.0 + PKCE)** ✅ (선택 확정)
-  - [x] Callback/Logout 라우트 준비 (예: `/auth/callback`, `/auth/logout`)
-  - [x] 로그인 상태에서만 접근 가능한 섹션: `/diary`, `/admin`
+- [ ] 인증 연동(Supabase Auth)
+  - [x] 로그인 UI: `/login`
+  - [x] 로그아웃: `/logout`
+  - [x] 댓글: 로그인 사용자만 작성/조회
+  - [x] Private/Diary/Admin: admin만 접근
 
 ---
 
@@ -219,9 +148,7 @@ lambda/
 - [x] `/api/posts` (목록/작성)
 - [x] `/api/posts/[slug]` (상세)
 - [x] `/api/comments` (조회/작성: blog/feed만)
-- [x] `/api/uploads` (업로드 URL 발급)
-- [x] `/api/uploads/put` (파일 업로드)
-- [x] `/api/uploads/get` (비공개 파일 다운로드: 로그인 필요)
+- [x] `/api/images` (비공개 이미지 signed URL: admin only)
 
 # 🟦 PHASE 8. 프론트 배포 (AWS Amplify Hosting)
 

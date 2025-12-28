@@ -24,7 +24,7 @@
 
 - 프론트: Next.js (TypeScript, App Router)
 - 스타일: Tailwind CSS
-- 인증: Cognito **Hosted UI** (OAuth 2.0 + PKCE)
+- 인증: Supabase Auth (Email/Password)
 - 배포(프론트): **AWS Amplify Hosting** (SSR/ISR 지원)
 - 백엔드: AWS Lambda (Node.js + TypeScript) + API Gateway
 - DB: DynamoDB (단일 테이블, Query 기반)
@@ -80,11 +80,11 @@
 ## 5) 실행/환경변수
 
 - 로컬 실행: `npm i && npm run dev`
-- Cognito 연동을 확인하려면 `.env.local`을 만들고 `/.env.example`을 참고해 값 설정
-  - `NEXT_PUBLIC_COGNITO_DOMAIN`
-  - `NEXT_PUBLIC_COGNITO_CLIENT_ID`
-  - `NEXT_PUBLIC_COGNITO_REDIRECT_URI`
-  - `NEXT_PUBLIC_COGNITO_LOGOUT_REDIRECT_URI`
+- Supabase 연동을 위해 `.env.local`을 만들고 `/.env.example`을 참고해 값 설정
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `ADMIN_EMAILS`
 - `NEXT_PUBLIC_API_BASE_URL`은 선택(미설정 시 같은 origin의 `/api` 사용)
 
 ---
@@ -93,4 +93,3 @@
 
 - 전체 진행 단계/우선순위: `tasklist.md`
 - 문서/온보딩: `README.md`
-

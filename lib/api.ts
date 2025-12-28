@@ -62,7 +62,11 @@ async function fetchJson<T>(path: string, options: FetchJsonOptions = {}) {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`API ${response.status}: ${text}`);
+    const error = new Error(`API ${response.status}: ${text}`) as Error & {
+      status?: number;
+    };
+    error.status = response.status;
+    throw error;
   }
 
   return (await response.json()) as T;

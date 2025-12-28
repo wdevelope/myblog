@@ -2,9 +2,10 @@ import { getComments, getPostBySlug } from "@/lib/api";
 import CommentForm from "@/app/_components/CommentForm";
 import PostImages from "@/app/_components/PostImages";
 import Markdown from "@/app/_components/Markdown";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Badge, Card, CardBody } from "@/app/_components/ui";
+import { getCurrentUser } from "@/lib/server/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,19 @@ export default async function FeedPostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const post = await getPostBySlug({ slug });
+  let post: Awaited<ReturnType<typeof getPostBySlug>>;
+  try {
+    post = await getPostBySlug({ slug });
+  } catch (e) {
+    const err = e as { status?: number };
+    if (err.status === 401)
+      redirect(`/login?from=${encodeURIComponent(`/feed/${slug}`)}`);
+    if (err.status === 403) redirect("/");
+    throw e;
+  }
   if (post.type !== "feed") notFound();
-  const comments = await getComments({ postId: post.id });
+  const user = await getCurrentUser();
+  const comments = user ? await getComments({ postId: post.id }) : [];
 
   return (
     <article className="mx-auto max-w-3xl space-y-8">
@@ -69,10 +80,23 @@ export default async function FeedPostPage({
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted">No comments yet.</p>
+              <p className="text-sm text-muted">
+                {user ? "No comments yet." : "로그인 후 댓글을 확인할 수 있어요."}
+              </p>
             )}
           </div>
-          <CommentForm postSlug={post.slug} />
+          {user ? (
+            <CommentForm postSlug={post.slug} />
+          ) : (
+            <div className="mt-6">
+              <Link
+                href={`/login?from=${encodeURIComponent(`/feed/${slug}`)}`}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+              >
+                Login to comment
+              </Link>
+            </div>
+          )}
         </CardBody>
       </Card>
     </article>

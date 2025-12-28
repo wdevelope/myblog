@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { isLoggedIn } from "@/lib/auth/session";
+import { getCurrentUser, isAdminEmail } from "@/lib/server/admin";
 
 function Brand() {
   return (
@@ -27,7 +27,9 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 }
 
 export default async function SiteHeader() {
-  const loggedIn = await isLoggedIn();
+  const user = await getCurrentUser();
+  const loggedIn = Boolean(user);
+  const isAdmin = isAdminEmail(user?.email);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/75 backdrop-blur-md">
@@ -41,7 +43,7 @@ export default async function SiteHeader() {
             <NavLink href="/diary">
               <span className="inline-flex items-center gap-1">Diary</span>
             </NavLink>
-            {loggedIn ? <NavLink href="/admin">Admin</NavLink> : null}
+            {isAdmin ? <NavLink href="/admin">Admin</NavLink> : null}
           </nav>
         </div>
 
@@ -62,14 +64,14 @@ export default async function SiteHeader() {
 
           {loggedIn ? (
             <Link
-              href="/auth/logout"
+              href="/logout"
               className="hidden h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-surface-2 sm:flex"
             >
               Logout
             </Link>
           ) : (
             <Link
-              href="/auth/login"
+              href="/login"
               className="hidden h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 sm:flex"
             >
               Login

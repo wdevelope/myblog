@@ -1,10 +1,21 @@
 import { NextResponse } from "next/server";
 import type { PostType, Visibility } from "@/lib/types";
-import { isLoggedIn } from "@/lib/server/auth";
-import { listPosts, upsertPost } from "@/lib/server/db";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { requireAdmin, isAdminEmail } from "@/lib/server/admin";
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
+}
+
+function slugify(input: string) {
+  return input
+    .trim()
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9\s-]/g, "")
+    .replaceAll(/\s+/g, "-")
+    .replaceAll(/-+/g, "-")
+    .replaceAll(/^-|-$/g, "");
 }
 
 export async function GET(request: Request) {
@@ -16,24 +27,47 @@ export async function GET(request: Request) {
     return badRequest("type must be one of: blog, feed, diary");
   }
 
-  const loggedIn = await isLoggedIn();
-  if (type === "diary" && !loggedIn) {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getUser();
+  const isAdmin = isAdminEmail(data.user?.email);
+
+  if (type === "diary" && !isAdmin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const posts = await listPosts({
-    type,
-    category,
-    includePrivate: loggedIn,
-  });
-  return NextResponse.json(posts, { status: 200 });
+  let query = supabase
+    .from("posts")
+    .select("*")
+    .eq("type", type)
+    .order("created_at", { ascending: false });
+
+  if (category) query = query.eq("category_slug", category);
+  if (!isAdmin) query = query.eq("visibility", "public");
+
+  const { data: posts, error } = await query;
+  if (error) {
+    return NextResponse.json({ error: "db_error", details: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(
+    posts.map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      type: p.type,
+      visibility: p.visibility,
+      title: p.title,
+      content: p.content,
+      categorySlug: p.category_slug,
+      createdAt: p.created_at,
+      updatedAt: p.updated_at ?? p.created_at,
+      imageKeys: p.image_keys ?? [],
+    })),
+    { status: 200 },
+  );
 }
 
 export async function POST(request: Request) {
-  const loggedIn = await isLoggedIn();
-  if (!loggedIn) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const user = await requireAdmin("/admin");
 
   const body = (await request.json()) as Partial<{
     id: string;
@@ -58,17 +92,57 @@ export async function POST(request: Request) {
     return badRequest("categorySlug is required for blog posts");
   }
 
-  const post = await upsertPost({
+  const baseSlug = body.slug?.trim() || slugify(body.title) || "post";
+  const service = createSupabaseServiceClient();
+
+  // ensure slug unique (best-effort)
+  let slug = baseSlug;
+  for (let i = 0; i < 5; i++) {
+    const { data: existing } = await service
+      .from("posts")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (!existing || (body.id && existing.id === body.id)) break;
+    slug = `${baseSlug}-${Math.random().toString(16).slice(2, 8)}`;
+  }
+
+  const payload = {
     id: body.id,
-    slug: body.slug,
+    slug,
     type: body.type,
     visibility: body.visibility,
     title: body.title,
     content: body.content,
-    categorySlug: body.categorySlug ?? null,
-    imageKeys: body.imageKeys ?? [],
-  });
+    category_slug: body.categorySlug ?? null,
+    image_keys: body.imageKeys ?? [],
+    author_id: user.id,
+  };
 
-  return NextResponse.json(post, { status: 200 });
+  const { data: saved, error } = await service
+    .from("posts")
+    .upsert(payload, { onConflict: "id" })
+    .select("*")
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: "db_error", details: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(
+    {
+      id: saved.id,
+      slug: saved.slug,
+      type: saved.type,
+      visibility: saved.visibility,
+      title: saved.title,
+      content: saved.content,
+      categorySlug: saved.category_slug,
+      createdAt: saved.created_at,
+      updatedAt: saved.updated_at ?? saved.created_at,
+      imageKeys: saved.image_keys ?? [],
+    },
+    { status: 200 },
+  );
 }
 

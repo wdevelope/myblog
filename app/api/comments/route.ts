@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
-import { isLoggedIn } from "@/lib/server/auth";
-import {
-  addComment,
-  getPostById,
-  getPostBySlug,
-  listComments,
-} from "@/lib/server/db";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isAdminEmail } from "@/lib/server/admin";
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
@@ -16,20 +11,51 @@ export async function GET(request: Request) {
   const postId = url.searchParams.get("postId");
   if (!postId) return badRequest("postId is required");
 
-  const post = await getPostById({ id: postId });
+  const supabase = await createSupabaseServerClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const isAdmin = isAdminEmail(auth.user.email);
+
+  const { data: post, error: postError } = await supabase
+    .from("posts")
+    .select("id,type,visibility")
+    .eq("id", postId)
+    .maybeSingle();
+  if (postError) {
+    return NextResponse.json({ error: "db_error", details: postError.message }, { status: 500 });
+  }
   if (!post) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (post.type === "diary") return badRequest("diary does not support comments");
-
-  const loggedIn = await isLoggedIn();
-  if (post.visibility === "private" && !loggedIn) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (post.visibility === "private" && !isAdmin) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const comments = await listComments({ postId });
-  return NextResponse.json(comments, { status: 200 });
+  const { data: comments, error } = await supabase
+    .from("comments")
+    .select("*")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true });
+  if (error) {
+    return NextResponse.json({ error: "db_error", details: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(
+    comments.map((c) => ({
+      id: c.id,
+      postId: c.post_id,
+      content: c.content,
+      createdAt: c.created_at,
+    })),
+    { status: 200 },
+  );
 }
 
 export async function POST(request: Request) {
+  const supabase = await createSupabaseServerClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const body = (await request.json()) as Partial<{
     postSlug: string;
     content: string;
@@ -38,15 +64,43 @@ export async function POST(request: Request) {
   if (!body.postSlug?.trim()) return badRequest("postSlug is required");
   if (!body.content?.trim()) return badRequest("content is required");
 
-  const post = await getPostBySlug({ slug: body.postSlug });
+  const { data: post, error: postError } = await supabase
+    .from("posts")
+    .select("id,type,visibility")
+    .eq("slug", body.postSlug)
+    .maybeSingle();
+  if (postError) {
+    return NextResponse.json({ error: "db_error", details: postError.message }, { status: 500 });
+  }
   if (!post) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (post.type === "diary") return badRequest("diary does not support comments");
 
-  const loggedIn = await isLoggedIn();
-  if (post.visibility === "private" && !loggedIn) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const isAdmin = isAdminEmail(auth.user.email);
+  if (post.visibility === "private" && !isAdmin) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const comment = await addComment({ postId: post.id, content: body.content });
-  return NextResponse.json(comment, { status: 200 });
+  const { data: created, error } = await supabase
+    .from("comments")
+    .insert({
+      post_id: post.id,
+      author_id: auth.user.id,
+      content: body.content.trim(),
+    })
+    .select("*")
+    .single();
+  if (error) {
+    return NextResponse.json({ error: "db_error", details: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(
+    {
+      id: created.id,
+      postId: created.post_id,
+      content: created.content,
+      createdAt: created.created_at,
+    },
+    { status: 200 },
+  );
 }
+

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getPosts } from "@/lib/api";
 import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
+import { requireAdmin } from "@/lib/server/admin";
 
 export const metadata = {
   title: "Diary | myblog",
@@ -9,6 +10,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function DiaryPage() {
+  await requireAdmin("/diary");
   const posts = await getPosts({ type: "diary" });
   const years = Array.from(
     new Set(posts.map((p) => new Date(p.createdAt).getFullYear())),
@@ -48,7 +50,7 @@ export default async function DiaryPage() {
         <div className="flex items-center gap-2 text-sm text-muted">
           <span>{posts.length} entries</span>
           <span className="h-1 w-1 rounded-full bg-muted/60" />
-          <Link href="/auth/logout" className="hover:text-foreground">
+          <Link href="/logout" className="hover:text-foreground">
             Logout
           </Link>
         </div>

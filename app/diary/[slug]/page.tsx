@@ -4,6 +4,7 @@ import Markdown from "@/app/_components/Markdown";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Badge, Card, CardBody } from "@/app/_components/ui";
+import { requireAdmin } from "@/lib/server/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ export default async function DiaryEntryPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  await requireAdmin("/diary");
   const { slug } = await params;
   const post = await getPostBySlug({ slug });
   if (post.type !== "diary") notFound();

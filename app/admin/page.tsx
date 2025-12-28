@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getPosts } from "@/lib/api";
 import AdminEditor from "@/app/admin/AdminEditor";
 import { Badge, Card, CardBody, ButtonLink } from "@/app/_components/ui";
+import { requireAdmin } from "@/lib/server/admin";
 
 export const metadata = {
   title: "Admin | myblog",
@@ -10,6 +11,8 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
+  await requireAdmin("/admin");
+
   const [blog, feed, diary] = await Promise.all([
     getPosts({ type: "blog" }),
     getPosts({ type: "feed" }),
@@ -35,7 +38,7 @@ export default async function AdminPage() {
           </button>
           <ButtonLink href="#editor">새 글 작성</ButtonLink>
           <Link
-            href="/auth/logout"
+            href="/logout"
             className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:bg-surface-2"
           >
             Logout

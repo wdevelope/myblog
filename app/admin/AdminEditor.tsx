@@ -4,13 +4,14 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PostType, Visibility } from "@/lib/types";
 import MarkdownClient from "@/app/_components/MarkdownClient";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-type UploadResult = {
-  key: string;
-  uploadUrl: string;
-  url: string | null;
-  downloadUrl: string | null;
-};
+function uuid() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function slugify(input: string) {
   return input
@@ -41,31 +42,19 @@ export default function AdminEditor() {
     setError(null);
     if (!files?.length) return;
 
+    const supabase = createSupabaseBrowserClient();
+    const bucket = visibility === "public" ? "post-images-public" : "post-images-private";
+
     for (const file of Array.from(files)) {
-      const metaRes = await fetch("/api/uploads", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ contentType: file.type, visibility }),
-      });
-      if (!metaRes.ok) {
-        const payload = (await metaRes.json().catch(() => null)) as
-          | { error?: string }
-          | null;
-        setError(payload?.error ?? "Failed to start upload");
+      const path = `${new Date().toISOString().slice(0, 10)}/${uuid()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (uploadError) {
+        setError(uploadError.message);
         return;
       }
-
-      const meta = (await metaRes.json()) as UploadResult;
-      const putRes = await fetch(meta.uploadUrl, {
-        method: "PUT",
-        body: file,
-      });
-      if (!putRes.ok) {
-        setError("Failed to upload file");
-        return;
-      }
-
-      setImageKeys((prev) => [...prev, meta.key]);
+      setImageKeys((prev) => [...prev, `${bucket}:${path}`]);
     }
   }
 

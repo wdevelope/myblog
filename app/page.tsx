@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getPosts } from "@/lib/api";
-import { isLoggedIn } from "@/lib/auth/session";
+import { isLoggedIn } from "@/lib/supabase/session";
 import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
 
 export default function Home() {
@@ -43,7 +43,7 @@ async function HomePage() {
                 Write
               </ButtonLink>
             ) : (
-              <ButtonLink href="/auth/login" variant="secondary">
+              <ButtonLink href="/login" variant="secondary">
                 Login
               </ButtonLink>
             )}
