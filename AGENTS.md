@@ -25,15 +25,13 @@
 - 프론트: Next.js (TypeScript, App Router)
 - 스타일: Tailwind CSS
 - 인증: Supabase Auth (Email/Password)
-- 배포(프론트): **AWS Amplify Hosting** (SSR/ISR 지원)
-- 백엔드: AWS Lambda (Node.js + TypeScript) + API Gateway
-- DB: DynamoDB (단일 테이블, Query 기반)
-- 이미지: S3 업로드 + (선택) CloudFront 서빙
-  - 공개 이미지: 캐시 가능
-  - 비공개 이미지: 서명 URL/서버 발급 방식으로 접근 제어
+- 배포: **Vercel** (Next.js SSR/ISR 지원)
+- DB: **Supabase Postgres**
+- 이미지: **Supabase Storage**
+  - 공개 이미지: public bucket
+  - 비공개 이미지: signed URL/서버 발급 방식으로 접근 제어
 
-> 참고: 현재 구현은 개발 속도를 위해 **로컬 목업 API(`app/api/*`) + 로컬 저장소(`.data/`, `public/uploads/`)**를 사용합니다.  
-> AWS(Lambda/DynamoDB/S3)로 교체하는 작업은 `tasklist.md` PHASE를 따라 진행합니다.
+> 참고: 현재 구현은 **Next.js Route Handlers + Supabase(Postgres/Storage/Auth)** 기반입니다.
 
 ---
 

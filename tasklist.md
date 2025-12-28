@@ -1,5 +1,5 @@
 ```
-기획 → AWS 인프라 → DB 설계 → Lambda API → Frontend → 배포 → 운영
+기획 → DB 설계 → API/Frontend → 배포 → 운영
 ```
 
 ---
@@ -17,8 +17,8 @@
   - [x] 카테고리: `blog`에만 필수(권장), `feed/diary`는 선택
 - [ ] 배포 계획:
 
-  - Front → **AWS Amplify Hosting(Next.js SSR/ISR 지원)** ✅ (선택 확정)
-  - API → Next.js + Supabase
+  - Front/API → **Vercel**
+  - DB/Auth/Storage → **Supabase**
 
 ---
 
@@ -147,24 +147,20 @@
 - [x] 이미지 첨부(`/api/images` 서버 업로드)
 - [ ] 댓글 관리(삭제/차단 등 최소 기능)
 
-# 🟦 PHASE 8. 프론트 배포 (AWS Amplify Hosting)
+# 🟦 PHASE 8. 배포 (Vercel)
 
-- [ ] Amplify Hosting 앱 생성
-- [ ] Git 리포지토리 연결 (자동 배포 파이프라인)
-- [ ] Next.js SSR/ISR 설정 확인 (Amplify Next.js 지원 템플릿/빌드 설정)
-- [ ] 환경변수 설정 (예: `NEXT_PUBLIC_API_BASE_URL`, 인증 관련 값 등)
+- [ ] Vercel 프로젝트 생성
+- [ ] Git 리포지토리 연결 (자동 배포)
+- [ ] 환경변수 설정 (`.env.example` 기준)
 - [ ] Preview/Prod 브랜치 전략(선택)
-- [ ] (이미지) S3 버킷 생성(업로드용) + (선택) CloudFront로 서빙
-  - [ ] 공개 이미지: CloudFront 캐시로 최적화
-  - [ ] 비공개 이미지: S3 private + 서명 URL(서버에서 발급)로 접근 제어
+- [ ] (선택) Vercel 도메인 연결
 
 ---
 
 # 🟦 PHASE 9. 도메인 & HTTPS
 
 - [ ] 도메인 구매
-- [ ] Route53 연결
-- [ ] CloudFront에 도메인 연결
+- [ ] DNS 연결(Vercel 권장 가이드)
 - [ ] HTTPS 확인
 
 ---
@@ -173,9 +169,8 @@
 
 ### 비용 관리
 
-- [ ] DynamoDB Free Tier 확인
-- [ ] Lambda 호출 수 모니터링
-- [ ] CloudWatch 로그 확인
+- [ ] Supabase 사용량 모니터링(쿼터/스토리지)
+- [ ] Vercel 사용량 모니터링(빌드/대역폭)
 
 ### 성능
 

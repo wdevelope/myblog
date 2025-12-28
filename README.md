@@ -9,7 +9,7 @@ Next.js(App Router) + Tailwind CSS 기반 개인 블로그.
 - 인증: Supabase Auth (Email/Password)
 
 > 현재는 **Next.js Route Handlers + Supabase(Postgres/Storage/Auth)** 기반으로 동작합니다.  
-> 추후 Lambda/DynamoDB/S3로 교체할 예정입니다.
+> 배포는 Vercel을 사용합니다.
 
 ## Getting Started
 
@@ -62,8 +62,8 @@ npm run build
 
 > 참고: 현재 실행 환경에서 Turbopack이 제한(os error 1)될 수 있어 `build`는 `webpack`으로 고정되어 있습니다.
 
-## 배포(AWS Amplify)
+## 배포(Vercel)
 
-- Amplify Hosting에 Git 리포지토리 연결
-- Amplify 환경변수에 `.env.example` 항목 설정
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_EMAILS`는 Amplify 환경변수로 반드시 설정
+- Vercel에 Git 리포지토리 연결
+- Project Settings → Environment Variables에 `.env.example` 항목 설정
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_EMAILS`는 Vercel 환경변수로 반드시 설정
