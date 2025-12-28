@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   }>;
 
   if (!body.postSlug?.trim()) return badRequest("postSlug is required");
-  if (!body.content?.trim()) return badRequest("content is required");
+  if (!body.content?.trim()) return badRequest("내용을 입력해주세요.");
 
   const { data: post, error: postError } = await supabase
     .from("posts")

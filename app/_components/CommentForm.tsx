@@ -24,7 +24,7 @@ export default function CommentForm({ postSlug }: { postSlug: string }) {
       const payload = (await response.json().catch(() => null)) as
         | { error?: string }
         | null;
-      setError(payload?.error ?? "Failed to post comment");
+      setError(payload?.error ?? "댓글 등록에 실패했어요.");
       return;
     }
 
@@ -35,14 +35,14 @@ export default function CommentForm({ postSlug }: { postSlug: string }) {
   return (
     <div className="mt-6 space-y-2">
       <label className="block text-sm font-semibold text-foreground">
-        Comment
+        댓글
       </label>
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={3}
         className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary/60"
-        placeholder="Write a comment…"
+        placeholder="댓글을 입력하세요…"
       />
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       <button
@@ -51,7 +51,7 @@ export default function CommentForm({ postSlug }: { postSlug: string }) {
         disabled={isPending}
         className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
       >
-        Post
+        등록
       </button>
     </div>
   );

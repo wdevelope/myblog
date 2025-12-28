@@ -69,7 +69,7 @@ export default function LoginForm() {
       <div className="rounded-2xl border border-border bg-surface shadow-lg shadow-black/20">
         <div className="border-b border-border px-6 py-5">
           <h1 className="text-xl font-black tracking-tight text-foreground">
-            {mode === "login" ? "Login" : "Sign up"}
+            {mode === "login" ? "로그인" : "회원가입"}
           </h1>
           <p className="mt-1 text-sm text-muted">
             댓글 작성은 로그인 사용자만 가능합니다.
@@ -86,9 +86,9 @@ export default function LoginForm() {
                 mode === "login"
                   ? "border-primary/40 bg-primary/15 text-primary"
                   : "border-border bg-surface text-muted hover:bg-surface-2 hover:text-foreground",
-              ].join(" ")}
+          ].join(" ")}
             >
-              Login
+              로그인
             </button>
             <button
               type="button"
@@ -100,12 +100,12 @@ export default function LoginForm() {
                   : "border-border bg-surface text-muted hover:bg-surface-2 hover:text-foreground",
               ].join(" ")}
             >
-              Sign up
+              회원가입
             </button>
           </div>
 
           <label className="space-y-2">
-            <span className="text-sm font-semibold text-foreground">Email</span>
+            <span className="text-sm font-semibold text-foreground">이메일</span>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -117,14 +117,14 @@ export default function LoginForm() {
 
           <label className="space-y-2">
             <span className="text-sm font-semibold text-foreground">
-              Password
+              비밀번호
             </span>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/60"
-              placeholder="At least 8 characters"
+              placeholder="8자 이상"
               autoComplete={mode === "login" ? "current-password" : "new-password"}
             />
           </label>
@@ -138,7 +138,7 @@ export default function LoginForm() {
             disabled={!canSubmit || isPending}
             className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
           >
-            {mode === "login" ? "Login" : "Create account"}
+            {mode === "login" ? "로그인" : "계정 만들기"}
           </button>
         </div>
       </div>

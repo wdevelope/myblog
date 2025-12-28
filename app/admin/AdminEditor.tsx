@@ -45,7 +45,7 @@ export default function AdminEditor() {
       const payload = (await response.json().catch(() => null)) as
         | { error?: string; details?: string }
         | null;
-      setError(payload?.details ?? payload?.error ?? "Upload failed");
+      setError(payload?.details ?? payload?.error ?? "업로드에 실패했어요.");
       return;
     }
 
@@ -58,10 +58,10 @@ export default function AdminEditor() {
     const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
 
-    if (!trimmedTitle) return setError("title is required");
-    if (!trimmedContent) return setError("content is required");
+    if (!trimmedTitle) return setError("제목을 입력해주세요.");
+    if (!trimmedContent) return setError("내용을 입력해주세요.");
     if (type === "blog" && !categorySlug.trim()) {
-      return setError("categorySlug is required for blog posts");
+      return setError("블로그 글은 카테고리가 필요해요.");
     }
 
     const response = await fetch("/api/posts", {
@@ -82,7 +82,7 @@ export default function AdminEditor() {
       const payload = (await response.json().catch(() => null)) as
         | { error?: string }
         | null;
-      setError(payload?.error ?? "Failed to save post");
+      setError(payload?.error ?? "글 저장에 실패했어요.");
       return;
     }
 
@@ -99,9 +99,9 @@ export default function AdminEditor() {
     <div className="overflow-hidden rounded-2xl border border-border bg-background">
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-muted">Editor</span>
+          <span className="text-sm font-semibold text-muted">에디터</span>
           <span className="text-xs text-muted">
-            {isPending ? "Saving..." : "Draft"}
+            {isPending ? "저장 중..." : "임시"}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -118,7 +118,7 @@ export default function AdminEditor() {
             disabled={isPending}
             className="h-9 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
           >
-            Publish
+            발행
           </button>
         </div>
       </div>
@@ -128,7 +128,7 @@ export default function AdminEditor() {
           <div className="space-y-5">
             <div className="space-y-2">
               <p className="text-xs font-bold uppercase tracking-wider text-muted">
-                Content Type
+                글 종류
               </p>
               <div className="grid gap-2">
                 <label className="cursor-pointer">
@@ -140,7 +140,7 @@ export default function AdminEditor() {
                     onChange={() => setType("blog")}
                   />
                   <div className="rounded-xl border border-border bg-surface px-3 py-3 text-sm font-semibold text-foreground hover:bg-surface-2">
-                    Blog Post
+                    블로그 글
                   </div>
                 </label>
                 <label className="cursor-pointer">
@@ -152,7 +152,7 @@ export default function AdminEditor() {
                     onChange={() => setType("feed")}
                   />
                   <div className="rounded-xl border border-border bg-surface px-3 py-3 text-sm font-semibold text-foreground hover:bg-surface-2">
-                    Feed Update
+                    피드 글
                   </div>
                 </label>
                 <label className="cursor-pointer">
@@ -164,7 +164,7 @@ export default function AdminEditor() {
                     onChange={() => setType("diary")}
                   />
                   <div className="rounded-xl border border-border bg-surface px-3 py-3 text-sm font-semibold text-foreground hover:bg-surface-2">
-                    Diary Entry
+                    일기
                   </div>
                 </label>
               </div>
@@ -172,31 +172,31 @@ export default function AdminEditor() {
 
             <div className="grid gap-3">
               <label className="space-y-1 text-sm">
-                <span className="font-semibold text-foreground">Visibility</span>
+                <span className="font-semibold text-foreground">공개 범위</span>
                 <select
                   value={visibility}
                   onChange={(e) => setVisibility(e.target.value as Visibility)}
                   className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
                 >
-                  <option value="public">public</option>
-                  <option value="private">private</option>
+                  <option value="public">공개</option>
+                  <option value="private">비공개</option>
                 </select>
               </label>
 
               {type === "blog" ? (
                 <label className="space-y-1 text-sm">
-                  <span className="font-semibold text-foreground">Category</span>
+                  <span className="font-semibold text-foreground">카테고리</span>
                   <input
                     value={categorySlug}
                     onChange={(e) => setCategorySlug(e.target.value)}
                     className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
-                    placeholder="e.g. frontend, backend"
+                    placeholder="예: frontend, backend"
                   />
                 </label>
               ) : null}
 
               <label className="space-y-1 text-sm">
-                <span className="font-semibold text-foreground">Cover Image</span>
+                <span className="font-semibold text-foreground">이미지</span>
                 <div className="rounded-2xl border-2 border-dashed border-border bg-surface-2 p-4">
                   <input
                     type="file"
@@ -206,11 +206,11 @@ export default function AdminEditor() {
                   />
                   {imageKeys.length ? (
                     <p className="mt-2 text-xs text-muted">
-                      Attached: {imageKeys.length}
+                      첨부됨: {imageKeys.length}
                     </p>
                   ) : (
                     <p className="mt-2 text-xs text-muted">
-                      Click to upload images
+                      클릭해서 이미지를 업로드하세요
                     </p>
                   )}
                 </div>
@@ -219,16 +219,16 @@ export default function AdminEditor() {
 
             <div className="space-y-2">
               <p className="text-xs font-bold uppercase tracking-wider text-muted">
-                Slug
+                슬러그
               </p>
               <input
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
                 className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
-                placeholder={slugify(title) || "auto-generated"}
+                placeholder={slugify(title) || "자동 생성"}
               />
               <p className="text-xs text-muted">
-                effective:{" "}
+                적용값:{" "}
                 <span className="font-mono text-foreground">
                   {effectiveSlug || "-"}
                 </span>
@@ -245,7 +245,7 @@ export default function AdminEditor() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full border-0 bg-transparent px-0 text-3xl font-black tracking-tight text-white placeholder:text-white/40 outline-none"
-              placeholder="Post Title"
+              placeholder="제목"
             />
           </div>
 
@@ -260,7 +260,7 @@ export default function AdminEditor() {
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   className="h-full w-full resize-none bg-transparent p-6 font-mono text-sm leading-relaxed text-[#d4d4d4] outline-none"
-                  placeholder="Write your story..."
+                  placeholder="내용을 입력하세요..."
                   spellCheck={false}
                 />
               )}
@@ -268,7 +268,7 @@ export default function AdminEditor() {
             <section className="hidden overflow-auto p-6 lg:block">
               <div className="rounded-2xl border border-border bg-surface p-5">
                 <p className="text-xs font-bold uppercase tracking-wider text-muted">
-                  Preview (Rendered)
+                  미리보기
                 </p>
                 <div className="mt-4">
                   <MarkdownClient content={content || " "} />

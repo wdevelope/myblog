@@ -4,8 +4,11 @@ import SiteHeader from "@/app/_components/SiteHeader";
 import SiteFooter from "@/app/_components/SiteFooter";
 
 export const metadata: Metadata = {
-  title: "DevLog",
-  description: "Developer blog & diary",
+  title: {
+    default: "인생일지",
+    template: "%s | 인생일지",
+  },
+  description: "삶과 기록을 담는 개인 블로그",
 };
 
 export default function RootLayout({

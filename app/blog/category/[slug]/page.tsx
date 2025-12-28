@@ -9,7 +9,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  return { title: `Category: ${slug} | myblog` };
+  return { title: `카테고리: ${slug}` };
 }
 
 export const revalidate = 60;
@@ -22,14 +22,14 @@ export default async function BlogCategoryPage({ params }: Props) {
       <header className="space-y-3">
         <p className="text-sm text-muted">
           <Link href="/blog" className="hover:text-foreground">
-            Blog
+            블로그
           </Link>{" "}
-          <span className="mx-2 text-muted/70">/</span> Category
+          <span className="mx-2 text-muted/70">/</span> 카테고리
         </p>
         <h1 className="text-3xl font-black tracking-tight md:text-4xl">
           {slug}
         </h1>
-        <p className="text-sm text-muted">{posts.length} posts</p>
+        <p className="text-sm text-muted">{posts.length}개의 글</p>
       </header>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -50,7 +50,7 @@ export default async function BlogCategoryPage({ params }: Props) {
                   <div className="flex items-center gap-2 text-xs text-muted">
                     <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                     <span className="h-1 w-1 rounded-full bg-muted/60" />
-                    <span>{post.visibility}</span>
+                    <span>{post.visibility === "public" ? "공개" : "비공개"}</span>
                   </div>
                   <h3 className="text-lg font-bold leading-tight text-foreground transition group-hover:text-primary">
                     {post.title}
@@ -65,7 +65,7 @@ export default async function BlogCategoryPage({ params }: Props) {
         ) : (
           <Card className="md:col-span-2">
             <CardBody>
-              <p className="text-sm text-muted">No posts in this category.</p>
+              <p className="text-sm text-muted">이 카테고리에 글이 없습니다.</p>
             </CardBody>
           </Card>
         )}

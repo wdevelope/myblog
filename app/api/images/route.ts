@@ -52,12 +52,15 @@ export async function POST(request: Request) {
         : null;
 
   if (!bucket) {
-    return NextResponse.json({ error: "visibility must be public|private" }, { status: 400 });
+    return NextResponse.json(
+      { error: "공개 범위(visibility)는 public 또는 private 이어야 합니다." },
+      { status: 400 },
+    );
   }
 
   const files = form.getAll("files").filter((v): v is File => v instanceof File);
   if (!files.length) {
-    return NextResponse.json({ error: "files is required" }, { status: 400 });
+    return NextResponse.json({ error: "업로드할 파일이 없습니다." }, { status: 400 });
   }
 
   const service = createSupabaseServiceClient();
@@ -65,7 +68,10 @@ export async function POST(request: Request) {
 
   for (const file of files) {
     if (!file.type.startsWith("image/")) {
-      return NextResponse.json({ error: "only image/* is supported" }, { status: 400 });
+      return NextResponse.json(
+        { error: "이미지 파일만 업로드할 수 있어요." },
+        { status: 400 },
+      );
     }
 
     const path = `${new Date().toISOString().slice(0, 10)}/${uuid()}-${file.name}`;

@@ -88,10 +88,10 @@ export async function POST(request: Request) {
   if (!body.visibility || !["public", "private"].includes(body.visibility)) {
     return badRequest("visibility must be public|private");
   }
-  if (!body.title?.trim()) return badRequest("title is required");
-  if (!body.content?.trim()) return badRequest("content is required");
+  if (!body.title?.trim()) return badRequest("제목을 입력해주세요.");
+  if (!body.content?.trim()) return badRequest("내용을 입력해주세요.");
   if (body.type === "blog" && !body.categorySlug?.trim()) {
-    return badRequest("categorySlug is required for blog posts");
+    return badRequest("블로그 글은 카테고리가 필요해요.");
   }
 
   const baseSlug = body.slug?.trim() || slugify(body.title) || "post";

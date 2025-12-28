@@ -8,9 +8,9 @@ function Brand() {
       className="group flex items-center gap-3 text-foreground transition-opacity hover:opacity-90"
     >
       <span className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20">
-        <span className="text-base font-black tracking-tight">D</span>
+        <span className="text-base font-black tracking-tight">인</span>
       </span>
-      <span className="text-base font-bold tracking-tight">DevLog</span>
+      <span className="text-base font-bold tracking-tight">인생일지</span>
     </Link>
   );
 }
@@ -37,26 +37,26 @@ export default async function SiteHeader() {
         <div className="flex items-center gap-8">
           <Brand />
           <nav className="hidden items-center gap-6 md:flex">
-            <NavLink href="/">Home</NavLink>
-            <NavLink href="/blog">Blog</NavLink>
-            <NavLink href="/feed">Feed</NavLink>
+            <NavLink href="/">홈</NavLink>
+            <NavLink href="/blog">블로그</NavLink>
+            <NavLink href="/feed">피드</NavLink>
             <NavLink href="/diary">
-              <span className="inline-flex items-center gap-1">Diary</span>
+              <span className="inline-flex items-center gap-1">일기</span>
             </NavLink>
-            {isAdmin ? <NavLink href="/admin">Admin</NavLink> : null}
+            {isAdmin ? <NavLink href="/admin">관리</NavLink> : null}
           </nav>
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-3">
           <label className="hidden w-full max-w-sm md:block">
-            <span className="sr-only">Search</span>
+            <span className="sr-only">검색</span>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted">
                 <span className="text-sm">⌕</span>
               </div>
               <input
                 type="text"
-                placeholder="Search posts…"
+                placeholder="게시글 검색…"
                 className="h-10 w-full rounded-xl border border-border bg-surface/70 pl-9 pr-3 text-sm text-foreground placeholder:text-muted outline-none ring-0 transition focus:border-primary/60 focus:bg-surface"
               />
             </div>
@@ -67,7 +67,7 @@ export default async function SiteHeader() {
               href="/admin"
               className="hidden h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 sm:flex"
             >
-              Write
+              글쓰기
             </Link>
           ) : null}
 
@@ -76,21 +76,21 @@ export default async function SiteHeader() {
               href="/logout"
               className="hidden h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-surface-2 sm:flex"
             >
-              Logout
+              로그아웃
             </Link>
           ) : (
             <Link
               href="/login"
               className="hidden h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 sm:flex"
             >
-              Login
+              로그인
             </Link>
           )}
 
           <button
             type="button"
             className="inline-flex size-10 items-center justify-center rounded-xl border border-border bg-surface text-foreground md:hidden"
-            aria-label="Menu"
+            aria-label="메뉴"
           >
             ☰
           </button>

@@ -1,0 +1,82 @@
+"use client";
+
+import { useState } from "react";
+import { Badge, Card, CardBody } from "@/app/_components/ui";
+
+interface Post {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  visibility: string;
+}
+
+export function FeedCard({ post }: { post: Post }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Card className="overflow-hidden transition hover:shadow-lg">
+      {/* Instagram-style header with avatar */}
+      <div className="flex items-center gap-3 border-b border-border p-4">
+        <div className="size-10 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-[2px]">
+          <div className="size-full rounded-full bg-surface flex items-center justify-center">
+            <div className="size-[34px] rounded-full bg-gradient-to-br from-primary/60 to-purple-500/40" />
+          </div>
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-foreground">인생일지</p>
+          <p className="text-xs text-muted">
+            {new Date(post.createdAt).toLocaleDateString("ko-KR", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+        </div>
+        <Badge variant={post.visibility === "public" ? "primary" : "warning"}>
+          {post.visibility === "public" ? "공개" : "비공개"}
+        </Badge>
+      </div>
+
+      {/* Image placeholder area */}
+      <div className="aspect-square w-full bg-gradient-to-br from-surface-2 via-surface to-surface-2 flex items-center justify-center">
+        <div className="text-center space-y-2 p-8">
+          <div className="mx-auto size-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <svg
+              className="size-8 text-primary"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-.75a.75.75 0 01-.75-.75v-.75a3.375 3.375 0 00-3.375-3.375H9.75a3.375 3.375 0 00-3.375 3.375v11.25A3.375 3.375 0 009.75 21h4.5a3.375 3.375 0 003.375-3.375v-.375"
+              />
+            </svg>
+          </div>
+          <p className="text-lg font-bold text-foreground">{post.title}</p>
+        </div>
+      </div>
+
+      {/* Content area */}
+      <CardBody className="space-y-3">
+        <p
+          className={`text-sm leading-relaxed text-muted ${
+            expanded ? "" : "line-clamp-3"
+          }`}
+        >
+          {post.content}
+        </p>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-sm font-semibold text-primary hover:opacity-80 transition"
+        >
+          {expanded ? "접기" : "더 보기"}
+        </button>
+      </CardBody>
+    </Card>
+  );
+}

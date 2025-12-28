@@ -5,7 +5,7 @@ import { Badge, Card, CardBody, ButtonLink } from "@/app/_components/ui";
 import { requireAdmin } from "@/lib/server/admin";
 
 export const metadata = {
-  title: "Admin | myblog",
+  title: "관리",
 };
 
 export const dynamic = "force-dynamic";
@@ -19,6 +19,17 @@ export default async function AdminPage() {
     getPosts({ type: "diary" }),
   ]);
 
+  function typeLabel(type: string) {
+    if (type === "blog") return "블로그";
+    if (type === "feed") return "피드";
+    if (type === "diary") return "일기";
+    return type;
+  }
+
+  function visibilityLabel(visibility: string) {
+    return visibility === "public" ? "공개" : "비공개";
+  }
+
   const recent = [...blog.slice(0, 3), ...feed.slice(0, 2), ...diary.slice(0, 1)]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 6);
@@ -27,21 +38,21 @@ export default async function AdminPage() {
     <div className="space-y-10">
       <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-2">
-          <h1 className="text-4xl font-black tracking-tight">Dashboard</h1>
+          <h1 className="text-4xl font-black tracking-tight">대시보드</h1>
           <p className="text-sm text-muted">
             오늘의 사이트 현황과 주요 지표입니다.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:bg-surface-2">
-            ↻ Refresh
+            ↻ 새로고침
           </button>
           <ButtonLink href="#editor">새 글 작성</ButtonLink>
           <Link
             href="/logout"
             className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:bg-surface-2"
           >
-            Logout
+            로그아웃
           </Link>
         </div>
       </header>
@@ -49,7 +60,7 @@ export default async function AdminPage() {
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardBody className="space-y-2">
-            <p className="text-sm font-medium text-muted">Total Posts</p>
+            <p className="text-sm font-medium text-muted">전체 글</p>
             <p className="text-3xl font-black tracking-tight text-foreground">
               {blog.length + feed.length + diary.length}
             </p>
@@ -58,7 +69,7 @@ export default async function AdminPage() {
         </Card>
         <Card>
           <CardBody className="space-y-2">
-            <p className="text-sm font-medium text-muted">Blog Posts</p>
+            <p className="text-sm font-medium text-muted">블로그</p>
             <p className="text-3xl font-black tracking-tight text-foreground">
               {blog.length}
             </p>
@@ -67,7 +78,7 @@ export default async function AdminPage() {
         </Card>
         <Card>
           <CardBody className="space-y-2">
-            <p className="text-sm font-medium text-muted">Feed Updates</p>
+            <p className="text-sm font-medium text-muted">피드</p>
             <p className="text-3xl font-black tracking-tight text-foreground">
               {feed.length}
             </p>
@@ -76,7 +87,7 @@ export default async function AdminPage() {
         </Card>
         <Card>
           <CardBody className="space-y-2">
-            <p className="text-sm font-medium text-muted">Diary Entries</p>
+            <p className="text-sm font-medium text-muted">일기</p>
             <p className="text-3xl font-black tracking-tight text-foreground">
               {diary.length}
             </p>
@@ -91,20 +102,20 @@ export default async function AdminPage() {
             <CardBody className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-bold text-foreground">
-                  Recent Activity
+                  최근 활동
                 </h2>
                 <Link href="/blog" className="text-sm font-semibold text-primary">
-                  View All
+                  전체 보기
                 </Link>
               </div>
               <div className="overflow-hidden rounded-xl border border-border">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-surface-2 text-xs uppercase tracking-wider text-muted">
                     <tr>
-                      <th className="px-4 py-3">Title</th>
-                      <th className="px-4 py-3">Type</th>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">제목</th>
+                      <th className="px-4 py-3">종류</th>
+                      <th className="px-4 py-3">날짜</th>
+                      <th className="px-4 py-3">공개</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -114,10 +125,10 @@ export default async function AdminPage() {
                           <p className="font-semibold text-foreground">
                             {p.title}
                           </p>
-                          <p className="text-xs text-muted">id: {p.id}</p>
+                          <p className="text-xs text-muted">ID: {p.id}</p>
                         </td>
                         <td className="px-4 py-3">
-                          <Badge variant="default">{p.type}</Badge>
+                          <Badge variant="default">{typeLabel(p.type)}</Badge>
                         </td>
                         <td className="px-4 py-3 text-muted">
                           {new Date(p.createdAt).toLocaleDateString()}
@@ -126,7 +137,7 @@ export default async function AdminPage() {
                           <Badge
                             variant={p.visibility === "public" ? "success" : "warning"}
                           >
-                            {p.visibility}
+                            {visibilityLabel(p.visibility)}
                           </Badge>
                         </td>
                       </tr>
@@ -148,31 +159,31 @@ export default async function AdminPage() {
         <div className="lg:col-span-5">
           <Card>
             <CardBody className="space-y-4">
-              <h2 className="text-lg font-bold text-foreground">Quick Links</h2>
+              <h2 className="text-lg font-bold text-foreground">바로가기</h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Link
                   href="/blog"
                   className="rounded-xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground hover:bg-surface-2"
                 >
-                  Blog
+                  블로그
                 </Link>
                 <Link
                   href="/feed"
                   className="rounded-xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground hover:bg-surface-2"
                 >
-                  Feed
+                  피드
                 </Link>
                 <Link
                   href="/diary"
                   className="rounded-xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground hover:bg-surface-2"
                 >
-                  Diary
+                  일기
                 </Link>
                 <Link
                   href="#editor"
                   className="rounded-xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground hover:bg-surface-2"
                 >
-                  Write
+                  글쓰기
                 </Link>
               </div>
             </CardBody>

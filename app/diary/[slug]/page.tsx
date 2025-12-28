@@ -22,21 +22,21 @@ export default async function DiaryEntryPage({
     <article className="mx-auto max-w-3xl space-y-8">
       <nav className="text-sm text-muted">
         <Link href="/" className="hover:text-foreground">
-          Home
+          홈
         </Link>
         <span className="mx-2">/</span>
         <Link href="/diary" className="hover:text-foreground">
-          Diary
+          일기
         </Link>
       </nav>
 
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-          <Badge variant="warning">DIARY</Badge>
+          <Badge variant="warning">일기</Badge>
           <span className="h-1 w-1 rounded-full bg-muted/60" />
           <span>{new Date(post.createdAt).toLocaleString()}</span>
           <span className="h-1 w-1 rounded-full bg-muted/60" />
-          <span>{post.visibility}</span>
+          <span>{post.visibility === "public" ? "공개" : "비공개"}</span>
         </div>
         <h1 className="text-4xl font-black tracking-tight md:text-5xl">
           {post.title}

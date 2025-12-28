@@ -12,6 +12,17 @@ export default function Home() {
 
 export const dynamic = "force-dynamic";
 
+function postTypeLabel(type: string) {
+  if (type === "blog") return "블로그";
+  if (type === "feed") return "피드";
+  if (type === "diary") return "일기";
+  return type.toUpperCase();
+}
+
+function visibilityLabel(visibility: string) {
+  return visibility === "public" ? "공개" : "비공개";
+}
+
 async function HomePage() {
   const user = await getCurrentUser();
   const loggedIn = Boolean(user);
@@ -29,28 +40,27 @@ async function HomePage() {
       <section className="grid items-center gap-8 md:grid-cols-2">
         <div className="space-y-5">
           <h1 className="text-4xl font-black leading-tight tracking-tight md:text-5xl">
-            Hi. I&apos;m a Developer.
+            안녕하세요. 기록하는 사람입니다.
           </h1>
           <p className="max-w-xl text-sm leading-6 text-muted">
-            I write about code, life, and everything in between. Welcome to my
-            digital garden.
+            코드와 삶, 그리고 그 사이의 이야기를 기록합니다.
           </p>
           <div className="flex flex-wrap gap-3">
-            <ButtonLink href="/blog">Read latest posts →</ButtonLink>
+            <ButtonLink href="/blog">최신 글 보기 →</ButtonLink>
             <ButtonLink href="/feed" variant="secondary">
-              Subscribe
+              피드 보기
             </ButtonLink>
             {isAdmin ? (
               <ButtonLink href="/admin" variant="secondary">
-                Write
+                글쓰기
               </ButtonLink>
             ) : loggedIn ? (
               <ButtonLink href="/logout" variant="secondary">
-                Logout
+                로그아웃
               </ButtonLink>
             ) : (
               <ButtonLink href="/login" variant="secondary">
-                Login
+                로그인
               </ButtonLink>
             )}
           </div>
@@ -62,10 +72,10 @@ async function HomePage() {
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="rounded-2xl bg-surface/20 px-6 py-4 text-center ring-1 ring-border backdrop-blur">
                 <p className="text-sm font-semibold text-foreground">
-                  Blog · Feed · Diary
+                  블로그 · 피드 · 일기
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                  per-post visibility & markdown
+                  게시글 공개 범위 · 마크다운
                 </p>
               </div>
             </div>
@@ -80,16 +90,16 @@ async function HomePage() {
               href="/"
               className="border-b-2 border-primary pb-3 text-sm font-bold text-primary"
             >
-              Latest
+              최신
             </Link>
             <Link href="/blog" className="pb-3 text-sm font-medium text-muted">
-              Blog
+              블로그
             </Link>
             <Link href="/feed" className="pb-3 text-sm font-medium text-muted">
-              Feed
+              피드
             </Link>
             <Link href="/diary" className="pb-3 text-sm font-medium text-muted">
-              Diary
+              일기
             </Link>
           </div>
         </div>
@@ -112,13 +122,13 @@ async function HomePage() {
                   <div className="flex flex-1 flex-col justify-between gap-3">
                     <div className="flex items-center gap-2 text-xs text-muted">
                       <Badge variant="primary">
-                        {post.type.toUpperCase()}
+                        {postTypeLabel(post.type)}
                       </Badge>
                       <span>•</span>
                       <span>{new Date(post.createdAt).toLocaleString()}</span>
                       <span className="flex-1" />
                       <span className="text-muted">
-                        {post.visibility === "public" ? "Public" : "Private"}
+                        {visibilityLabel(post.visibility)}
                       </span>
                     </div>
                     <div className="space-y-2">
@@ -137,7 +147,7 @@ async function HomePage() {
                         href={href}
                         className="text-sm font-bold text-primary hover:opacity-90"
                       >
-                        Read →
+                        읽기 →
                       </Link>
                     </div>
                   </div>
