@@ -38,6 +38,9 @@ yarn-error.log*
 .data/
 public/uploads/
 
+# design references (do not commit)
+/Reference/
+
 # vercel
 .vercel
 

@@ -1,13 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f6f8;
+  --foreground: #0f172a;
+
+  --primary: #135bec;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --border: rgba(15, 23, 42, 0.08);
+  --muted: #64748b;
 }
 
 @theme inline {
+  --color-primary: var(--primary);
+
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji",
     "Segoe UI Emoji";
@@ -17,8 +31,14 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #101622;
+    --foreground: #e5e7eb;
+
+    --primary: #135bec;
+    --surface: #151a23;
+    --surface-2: #1c2333;
+    --border: #282e39;
+    --muted: #9da6b9;
   }
 }
 
@@ -26,4 +46,104 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+::selection {
+  background: color-mix(in oklab, var(--primary) 30%, transparent);
+  color: var(--foreground);
+}
+
+/* Markdown (react-markdown) baseline styles */
+.markdown {
+  line-height: 1.75;
+  color: var(--foreground);
+}
+
+.markdown > * + * {
+  margin-top: 1rem;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-top: 2.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.markdown h1 {
+  font-size: 1.875rem;
+}
+.markdown h2 {
+  font-size: 1.5rem;
+}
+.markdown h3 {
+  font-size: 1.25rem;
+}
+
+.markdown p {
+  color: var(--foreground);
+  opacity: 0.92;
+}
+
+.markdown a {
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+.markdown a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.markdown code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.5rem;
+  background: color-mix(in oklab, var(--surface-2) 70%, transparent);
+  border: 1px solid var(--border);
+}
+
+.markdown pre {
+  overflow: auto;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: #0d1117;
+}
+
+.markdown pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 0.9em;
+  color: #e5e7eb;
+}
+
+.markdown blockquote {
+  border-left: 4px solid color-mix(in oklab, var(--primary) 55%, transparent);
+  padding-left: 1rem;
+  color: var(--muted);
+  font-style: italic;
+  background: color-mix(in oklab, var(--primary) 8%, transparent);
+  border-radius: 0.75rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.markdown ul {
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.markdown ol {
+  padding-left: 1.25rem;
+  list-style: decimal;
+}
+
+.markdown li + li {
+  margin-top: 0.25rem;
 }

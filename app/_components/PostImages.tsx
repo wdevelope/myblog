@@ -2,7 +2,7 @@ export default function PostImages({ imageKeys }: { imageKeys?: string[] }) {
   if (!imageKeys?.length) return null;
 
   return (
-    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+    <div className="mt-6 grid gap-4 sm:grid-cols-2">
       {imageKeys.map((key) => {
         const src = key.startsWith("private/uploads/")
           ? `/api/uploads/get?key=${encodeURIComponent(key)}`
@@ -13,7 +13,7 @@ export default function PostImages({ imageKeys }: { imageKeys?: string[] }) {
             key={key}
             src={src}
             alt=""
-            className="h-auto w-full rounded-xl border border-black/5 dark:border-white/10"
+            className="h-auto w-full rounded-2xl border border-border bg-surface"
             loading="lazy"
           />
         );
@@ -21,4 +21,3 @@ export default function PostImages({ imageKeys }: { imageKeys?: string[] }) {
     </div>
   );
 }
-

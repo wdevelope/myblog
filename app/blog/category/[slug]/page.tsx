@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPosts } from "@/lib/api";
+import { Badge, Card, CardBody } from "@/app/_components/ui";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -15,41 +16,56 @@ export default async function BlogCategoryPage({ params }: Props) {
   const { slug } = await params;
   const posts = await getPosts({ type: "blog", category: slug });
   return (
-    <div className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Category: {slug}
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {posts.length} posts
+    <div className="space-y-8">
+      <header className="space-y-3">
+        <p className="text-sm text-muted">
+          <Link href="/blog" className="hover:text-foreground">
+            Blog
+          </Link>{" "}
+          <span className="mx-2 text-muted/70">/</span> Category
         </p>
+        <h1 className="text-3xl font-black tracking-tight md:text-4xl">
+          {slug}
+        </h1>
+        <p className="text-sm text-muted">{posts.length} posts</p>
       </header>
-      <div className="rounded-2xl border border-black/5 bg-white p-5 dark:border-white/10 dark:bg-zinc-950">
+
+      <div className="grid gap-6 md:grid-cols-2">
         {posts.length ? (
-          <ul className="space-y-3">
-            {posts.map((post) => (
-              <li key={post.id} className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <Link
-                    href={`/blog/${post.slug}`}
-                    className="font-medium underline underline-offset-4"
-                  >
-                    {post.title}
-                  </Link>
-                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                    {new Date(post.createdAt).toLocaleDateString()}
-                  </p>
+          posts.map((post) => (
+            <Card
+              key={post.id}
+              className="group overflow-hidden transition hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+            >
+              <Link href={`/blog/${post.slug}`} className="block">
+                <div className="relative aspect-video w-full overflow-hidden bg-surface-2">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent opacity-60 transition group-hover:opacity-40" />
+                  <div className="absolute left-4 top-4">
+                    <Badge variant="primary">{slug.toUpperCase()}</Badge>
+                  </div>
                 </div>
-                <span className="shrink-0 rounded-full border border-black/10 px-2 py-1 text-xs dark:border-white/15">
-                  {post.visibility}
-                </span>
-              </li>
-            ))}
-          </ul>
+                <CardBody className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs text-muted">
+                    <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                    <span className="h-1 w-1 rounded-full bg-muted/60" />
+                    <span>{post.visibility}</span>
+                  </div>
+                  <h3 className="text-lg font-bold leading-tight text-foreground transition group-hover:text-primary">
+                    {post.title}
+                  </h3>
+                  <p className="line-clamp-3 text-sm leading-6 text-muted">
+                    {post.content}
+                  </p>
+                </CardBody>
+              </Link>
+            </Card>
+          ))
         ) : (
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            No posts in this category.
-          </p>
+          <Card className="md:col-span-2">
+            <CardBody>
+              <p className="text-sm text-muted">No posts in this category.</p>
+            </CardBody>
+          </Card>
         )}
       </div>
     </div>

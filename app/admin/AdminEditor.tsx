@@ -112,118 +112,188 @@ export default function AdminEditor() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-semibold">새 글 작성</h2>
-        <button
-          type="button"
-          onClick={() => setPreview((p) => !p)}
-          className="rounded-full border border-black/10 bg-white px-3 py-1 text-sm hover:bg-zinc-50 dark:border-white/15 dark:bg-zinc-950 dark:hover:bg-zinc-900"
-        >
-          {preview ? "편집" : "미리보기"}
-        </button>
+    <div className="overflow-hidden rounded-2xl border border-border bg-background">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-semibold text-muted">Editor</span>
+          <span className="text-xs text-muted">
+            {isPending ? "Saving..." : "Draft"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPreview((p) => !p)}
+            className="h-9 rounded-xl border border-border bg-surface px-3 text-sm font-semibold text-foreground hover:bg-surface-2"
+          >
+            {preview ? "편집" : "미리보기"}
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={isPending}
+            className="h-9 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
+          >
+            Publish
+          </button>
+        </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="space-y-1 text-sm">
-          <span className="font-medium">Type</span>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as PostType)}
-            className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 outline-none dark:border-white/10 dark:bg-zinc-950"
-          >
-            <option value="blog">blog</option>
-            <option value="feed">feed</option>
-            <option value="diary">diary</option>
-          </select>
-        </label>
-        <label className="space-y-1 text-sm">
-          <span className="font-medium">Visibility</span>
-          <select
-            value={visibility}
-            onChange={(e) => setVisibility(e.target.value as Visibility)}
-            className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 outline-none dark:border-white/10 dark:bg-zinc-950"
-          >
-            <option value="public">public</option>
-            <option value="private">private</option>
-          </select>
-        </label>
-      </div>
+      <div className="grid gap-0 lg:grid-cols-[320px_1fr]">
+        <aside className="border-b border-border bg-background p-5 lg:border-b-0 lg:border-r">
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted">
+                Content Type
+              </p>
+              <div className="grid gap-2">
+                <label className="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="content_type"
+                    className="sr-only"
+                    checked={type === "blog"}
+                    onChange={() => setType("blog")}
+                  />
+                  <div className="rounded-xl border border-border bg-surface px-3 py-3 text-sm font-semibold text-foreground hover:bg-surface-2">
+                    Blog Post
+                  </div>
+                </label>
+                <label className="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="content_type"
+                    className="sr-only"
+                    checked={type === "feed"}
+                    onChange={() => setType("feed")}
+                  />
+                  <div className="rounded-xl border border-border bg-surface px-3 py-3 text-sm font-semibold text-foreground hover:bg-surface-2">
+                    Feed Update
+                  </div>
+                </label>
+                <label className="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="content_type"
+                    className="sr-only"
+                    checked={type === "diary"}
+                    onChange={() => setType("diary")}
+                  />
+                  <div className="rounded-xl border border-border bg-surface px-3 py-3 text-sm font-semibold text-foreground hover:bg-surface-2">
+                    Diary Entry
+                  </div>
+                </label>
+              </div>
+            </div>
 
-      <label className="space-y-1 text-sm">
-        <span className="font-medium">Title</span>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 outline-none dark:border-white/10 dark:bg-zinc-950"
-          placeholder="Post title"
-        />
-      </label>
+            <div className="grid gap-3">
+              <label className="space-y-1 text-sm">
+                <span className="font-semibold text-foreground">Visibility</span>
+                <select
+                  value={visibility}
+                  onChange={(e) => setVisibility(e.target.value as Visibility)}
+                  className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
+                >
+                  <option value="public">public</option>
+                  <option value="private">private</option>
+                </select>
+              </label>
 
-      <label className="space-y-1 text-sm">
-        <span className="font-medium">Slug (optional)</span>
-        <input
-          value={slug}
-          onChange={(e) => setSlug(e.target.value)}
-          className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 outline-none dark:border-white/10 dark:bg-zinc-950"
-          placeholder={slugify(title) || "auto-generated"}
-        />
-      </label>
+              {type === "blog" ? (
+                <label className="space-y-1 text-sm">
+                  <span className="font-semibold text-foreground">Category</span>
+                  <input
+                    value={categorySlug}
+                    onChange={(e) => setCategorySlug(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
+                    placeholder="e.g. frontend, backend"
+                  />
+                </label>
+              ) : null}
 
-      {type === "blog" ? (
-        <label className="space-y-1 text-sm">
-          <span className="font-medium">Category slug</span>
-          <input
-            value={categorySlug}
-            onChange={(e) => setCategorySlug(e.target.value)}
-            className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 outline-none dark:border-white/10 dark:bg-zinc-950"
-            placeholder="e.g. dev, life, notes"
-          />
-        </label>
-      ) : null}
+              <label className="space-y-1 text-sm">
+                <span className="font-semibold text-foreground">Cover Image</span>
+                <div className="rounded-2xl border-2 border-dashed border-border bg-surface-2 p-4">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => void uploadFiles(e.target.files)}
+                  />
+                  {imageKeys.length ? (
+                    <p className="mt-2 text-xs text-muted">
+                      Attached: {imageKeys.length}
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-xs text-muted">
+                      Click to upload images
+                    </p>
+                  )}
+                </div>
+              </label>
+            </div>
 
-      <label className="space-y-1 text-sm">
-        <span className="font-medium">Content (Markdown)</span>
-        {preview ? (
-          <div className="rounded-xl border border-black/10 bg-white px-3 py-2 dark:border-white/10 dark:bg-zinc-950">
-            <MarkdownClient content={content || " "} />
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted">
+                Slug
+              </p>
+              <input
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
+                placeholder={slugify(title) || "auto-generated"}
+              />
+              <p className="text-xs text-muted">
+                effective:{" "}
+                <span className="font-mono text-foreground">
+                  {effectiveSlug || "-"}
+                </span>
+              </p>
+            </div>
+
+            {error ? <p className="text-sm text-red-500">{error}</p> : null}
           </div>
-        ) : (
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={10}
-            className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 outline-none dark:border-white/10 dark:bg-zinc-950"
-            placeholder="Write something…"
-          />
-        )}
-      </label>
+        </aside>
 
-      <label className="space-y-1 text-sm">
-        <span className="font-medium">Images</span>
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => void uploadFiles(e.target.files)}
-        />
-        {imageKeys.length ? (
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
-            Attached: {imageKeys.length}
-          </p>
-        ) : null}
-      </label>
+        <main className="min-w-0 bg-[#0f1115]">
+          <div className="border-b border-border px-6 py-5">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full border-0 bg-transparent px-0 text-3xl font-black tracking-tight text-white placeholder:text-white/40 outline-none"
+              placeholder="Post Title"
+            />
+          </div>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-      <button
-        type="button"
-        onClick={submit}
-        disabled={isPending}
-        className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
-      >
-        Publish
-      </button>
+          <div className="grid min-h-[520px] gap-0 lg:grid-cols-2">
+            <section className="border-b border-border lg:border-b-0 lg:border-r">
+              {preview ? (
+                <div className="h-full overflow-auto p-6 text-white">
+                  <MarkdownClient content={content || " "} />
+                </div>
+              ) : (
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="h-full w-full resize-none bg-transparent p-6 font-mono text-sm leading-relaxed text-[#d4d4d4] outline-none"
+                  placeholder="Write your story..."
+                  spellCheck={false}
+                />
+              )}
+            </section>
+            <section className="hidden overflow-auto p-6 lg:block">
+              <div className="rounded-2xl border border-border bg-surface p-5">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted">
+                  Preview (Rendered)
+                </p>
+                <div className="mt-4">
+                  <MarkdownClient content={content || " "} />
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

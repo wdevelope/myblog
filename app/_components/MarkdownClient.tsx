@@ -5,9 +5,8 @@ import remarkGfm from "remark-gfm";
 
 export default function MarkdownClient({ content }: { content: string }) {
   return (
-    <div className="prose prose-zinc max-w-none dark:prose-invert">
+    <div className="markdown">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   );
 }
-
