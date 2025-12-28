@@ -91,7 +91,7 @@ export async function POST(request: Request) {
   if (!body.title?.trim()) return badRequest("제목을 입력해주세요.");
   if (!body.content?.trim()) return badRequest("내용을 입력해주세요.");
   if (body.type === "blog" && !body.categorySlug?.trim()) {
-    return badRequest("블로그 글은 카테고리가 필요해요.");
+    return badRequest("아티클은 카테고리가 필요해요.");
   }
 
   const baseSlug = body.slug?.trim() || slugify(body.title) || "post";

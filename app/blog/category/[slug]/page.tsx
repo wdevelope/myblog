@@ -22,7 +22,7 @@ export default async function BlogCategoryPage({ params }: Props) {
       <header className="space-y-3">
         <p className="text-sm text-muted">
           <Link href="/blog" className="hover:text-foreground">
-            블로그
+            아티클
           </Link>{" "}
           <span className="mx-2 text-muted/70">/</span> 카테고리
         </p>

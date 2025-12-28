@@ -211,9 +211,17 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
               </button>
             ) : null}
           </div>
-          <p className="text-sm font-semibold text-muted">
-            {distinctDayCount}일의 기록
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-sm font-semibold text-muted">
+              {distinctDayCount}일의 기록
+            </p>
+            <Link
+              href="/admin?type=diary#editor"
+              className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+            >
+              일기 쓰기
+            </Link>
+          </div>
         </div>
 
         <div className="divide-y divide-border">

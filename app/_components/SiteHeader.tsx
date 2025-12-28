@@ -8,14 +8,20 @@ function Brand() {
       className="group flex items-center gap-3 text-foreground transition-opacity hover:opacity-90"
     >
       <span className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20">
-        <span className="text-base font-black tracking-tight">인</span>
+        <span className="text-base font-black tracking-tight">W</span>
       </span>
       <span className="text-base font-bold tracking-tight">인생일지</span>
     </Link>
   );
 }
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+function NavLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
   return (
     <Link
       href={href}
@@ -37,13 +43,9 @@ export default async function SiteHeader() {
         <div className="flex items-center gap-8">
           <Brand />
           <nav className="hidden items-center gap-6 md:flex">
-            <NavLink href="/">홈</NavLink>
-            <NavLink href="/blog">블로그</NavLink>
             <NavLink href="/feed">피드</NavLink>
-            <NavLink href="/diary">
-              <span className="inline-flex items-center gap-1">일기</span>
-            </NavLink>
-            {isAdmin ? <NavLink href="/admin">관리</NavLink> : null}
+            <NavLink href="/blog">아티클</NavLink>
+            <NavLink href="/diary">일기</NavLink>
           </nav>
         </div>
 
@@ -67,7 +69,7 @@ export default async function SiteHeader() {
               href="/admin"
               className="hidden h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 sm:flex"
             >
-              글쓰기
+              관리
             </Link>
           ) : null}
 

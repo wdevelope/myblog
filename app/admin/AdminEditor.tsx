@@ -15,9 +15,9 @@ function slugify(input: string) {
     .replaceAll(/^-|-$/g, "");
 }
 
-export default function AdminEditor() {
+export default function AdminEditor({ initialType }: { initialType?: PostType }) {
   const router = useRouter();
-  const [type, setType] = useState<PostType>("blog");
+  const [type, setType] = useState<PostType>(() => initialType ?? "blog");
   const [visibility, setVisibility] = useState<Visibility>("public");
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -61,7 +61,7 @@ export default function AdminEditor() {
     if (!trimmedTitle) return setError("제목을 입력해주세요.");
     if (!trimmedContent) return setError("내용을 입력해주세요.");
     if (type === "blog" && !categorySlug.trim()) {
-      return setError("블로그 글은 카테고리가 필요해요.");
+      return setError("아티클은 카테고리가 필요해요.");
     }
 
     const response = await fetch("/api/posts", {
@@ -140,7 +140,7 @@ export default function AdminEditor() {
                     onChange={() => setType("blog")}
                   />
                   <div className="rounded-xl border border-border bg-surface px-3 py-3 text-sm font-semibold text-foreground hover:bg-surface-2">
-                    블로그 글
+                    아티클
                   </div>
                 </label>
                 <label className="cursor-pointer">

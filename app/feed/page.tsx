@@ -1,6 +1,7 @@
 import { getPublicPosts } from "@/lib/server/publicPosts";
-import { Card, CardBody } from "@/app/_components/ui";
+import { ButtonLink, Card, CardBody } from "@/app/_components/ui";
 import { FeedCard } from "./FeedCard";
+import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 
 export const metadata = {
   title: "피드",
@@ -10,13 +11,26 @@ export const revalidate = 60;
 
 export default async function FeedPage() {
   const posts = await getPublicPosts({ type: "feed" });
+
+  const user = await getCurrentUser();
+  const isAdmin = await isAdminDb(user);
+
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <header className="space-y-2 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">피드</h1>
-        <p className="text-sm text-muted">
-          짧은 생각과 기록을 모아둔 타임라인.
-        </p>
+      <header className="space-y-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold tracking-tight">피드</h1>
+            <p className="text-sm text-muted">
+              짧은 생각과 기록을 모아둔 타임라인.
+            </p>
+          </div>
+          {isAdmin ? (
+            <ButtonLink href="/admin?type=feed#editor" variant="secondary">
+              피드 쓰기
+            </ButtonLink>
+          ) : null}
+        </div>
       </header>
 
       <div className="space-y-6">

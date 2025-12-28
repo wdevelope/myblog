@@ -1,14 +1,76 @@
 import Link from "next/link";
 import { getPublicPosts } from "@/lib/server/publicPosts";
+import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 
 export const metadata = {
-  title: "블로그",
+  title: "아티클",
 };
 
 export const revalidate = 60;
 
+function coverSrcFromImageKey(key: string) {
+  const [bucket, ...rest] = key.split(":");
+  const objectPath = rest.join(":");
+  const looksLikeSupabaseKey = Boolean(bucket && objectPath);
+  if (!looksLikeSupabaseKey) return key;
+
+  if (bucket === "post-images-public") {
+    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!base) return null;
+    const path = encodeURIComponent(objectPath).replaceAll("%2F", "/");
+    return `${base}/storage/v1/object/public/${bucket}/${path}`;
+  }
+
+  return `/api/images?bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(objectPath)}`;
+}
+
+function LockIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className ?? "size-5"}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+      />
+    </svg>
+  );
+}
+
+function PublishedIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className ?? "size-5"}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M19.5 12c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7c.85 0 1.664.15 2.417.425"
+      />
+    </svg>
+  );
+}
+
 export default async function BlogIndexPage() {
   const posts = await getPublicPosts({ type: "blog" });
+  const user = await getCurrentUser();
+  const isAdmin = await isAdminDb(user);
+
   const categoryCounts = posts.reduce<Record<string, number>>((acc, post) => {
     const key = post.categorySlug?.trim();
     if (!key) return acc;
@@ -21,88 +83,106 @@ export default async function BlogIndexPage() {
     <div className="grid gap-8 lg:grid-cols-12">
       {/* Main content - Post list */}
       <main className="lg:col-span-8 lg:col-start-5 xl:col-span-9 xl:col-start-4">
-        <div className="divide-y divide-border">
-          {posts.length ? (
-            posts.map((post) => (
-              <article key={post.id} className="py-6 first:pt-0">
+        <header className="mb-6 flex items-end justify-between gap-4 border-b border-border pb-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-black tracking-tight text-foreground">
+              아티클
+            </h1>
+            <p className="text-sm text-muted">조금 긴 글과 정리된 기록.</p>
+          </div>
+          {isAdmin ? (
+            <Link
+              href="/admin?type=blog#editor"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+            >
+              아티클 쓰기
+            </Link>
+          ) : null}
+        </header>
+        {posts.length ? (
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {posts.map((post) => {
+              const createdAt = new Date(post.createdAt);
+              const dateLabel = createdAt.toISOString().slice(0, 10);
+              const coverSrc = post.imageKeys?.[0]
+                ? coverSrcFromImageKey(post.imageKeys[0])
+                : null;
+
+              return (
                 <Link
+                  key={post.id}
                   href={`/blog/${post.slug}`}
-                  className="group block space-y-2"
+                  className="group block"
                 >
-                  <h2 className="text-lg font-bold text-foreground group-hover:text-primary transition">
-                    {post.title}
-                  </h2>
-                  <p className="text-sm leading-relaxed text-muted line-clamp-2">
-                    {post.content}
-                  </p>
+                  <article className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10">
+                    <div className="p-5">
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex rounded-xl bg-primary/15 px-3 py-1 text-xs font-bold text-primary ring-1 ring-primary/20">
+                          {dateLabel}
+                        </span>
+                        <div className="text-muted/80">
+                          {post.visibility === "private" ? (
+                            <LockIcon className="size-5" />
+                          ) : (
+                            <PublishedIcon className="size-5 text-emerald-400/80" />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface-2">
+                        {coverSrc ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={coverSrc}
+                            alt=""
+                            className="h-44 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="h-44 w-full bg-[radial-gradient(70%_70%_at_50%_35%,rgba(19,91,236,0.35)_0%,rgba(147,51,234,0.18)_50%,rgba(16,22,34,0)_100%)]" />
+                        )}
+                      </div>
+
+                      <div className="mt-4 space-y-2">
+                        <h2 className="text-xl font-black leading-snug text-foreground transition group-hover:text-primary">
+                          {post.title}
+                        </h2>
+                        <p className="line-clamp-3 text-sm leading-6 text-muted">
+                          {post.content}
+                        </p>
+                      </div>
+
+                      <div className="mt-5 flex items-center justify-between gap-3 text-xs text-muted">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={[
+                              "size-2 rounded-full",
+                              post.visibility === "private"
+                                ? "bg-amber-400/80"
+                                : "bg-emerald-400/80",
+                            ].join(" ")}
+                          />
+                          <span>
+                            {post.visibility === "private" ? "비공개" : "게시됨"}
+                          </span>
+                        </div>
+                        {post.categorySlug ? (
+                          <span className="truncate font-semibold text-muted/90">
+                            {post.categorySlug}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </article>
                 </Link>
-                <div className="mt-3 flex items-center gap-4 text-xs text-muted">
-                  <span>
-                    {new Date(post.createdAt)
-                      .toLocaleDateString("ko-KR", {
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit",
-                      })
-                      .replace(/\. /g, ".")
-                      .replace(/\.$/, "")}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <svg
-                      className="size-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M6.633 10.5c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75A2.25 2.25 0 0116.5 4.5c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23H5.904M14.25 9h2.25M5.904 18.75c.083.205.173.405.27.602.197.4-.078.898-.523.898h-.908c-.889 0-1.713-.518-1.972-1.368a12 12 0 01-.521-3.507c0-1.553.295-3.036.831-4.398C3.387 10.203 4.167 9.75 5 9.75h1.053c.472 0 .745.556.5.96a8.958 8.958 0 00-1.302 4.665c0 1.194.232 2.333.654 3.375z"
-                      />
-                    </svg>
-                    <span>0</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <svg
-                      className="size-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z"
-                      />
-                    </svg>
-                    <span>0</span>
-                  </div>
-                  {post.visibility === "private" && (
-                    <svg
-                      className="size-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-                      />
-                    </svg>
-                  )}
-                </div>
-              </article>
-            ))
-          ) : (
-            <div className="py-12 text-center">
-              <p className="text-sm text-muted">아직 글이 없습니다.</p>
-            </div>
-          )}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="py-16 text-center">
+            <p className="text-sm text-muted">아직 아티클이 없습니다.</p>
+          </div>
+        )}
       </main>
 
       {/* Left sidebar - Categories */}

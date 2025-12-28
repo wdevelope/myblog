@@ -38,7 +38,7 @@ export default async function BlogPostPage({
         </Link>
         <span className="mx-2">/</span>
         <Link href="/blog" className="hover:text-foreground">
-          블로그
+          아티클
         </Link>
         {post.categorySlug ? (
           <>
@@ -55,7 +55,7 @@ export default async function BlogPostPage({
 
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-          <Badge variant="primary">블로그</Badge>
+          <Badge variant="primary">아티클</Badge>
           {post.categorySlug ? (
             <Badge variant="default">{post.categorySlug}</Badge>
           ) : null}

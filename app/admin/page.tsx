@@ -3,6 +3,7 @@ import { getPosts } from "@/lib/api";
 import AdminEditor from "@/app/admin/AdminEditor";
 import { Badge, Card, CardBody, ButtonLink } from "@/app/_components/ui";
 import { requireAdmin } from "@/lib/server/admin";
+import type { PostType } from "@/lib/types";
 
 export const metadata = {
   title: "관리",
@@ -10,8 +11,20 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage() {
+type Props = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function parseInitialType(raw: unknown): PostType | undefined {
+  if (raw === "blog" || raw === "feed" || raw === "diary") return raw;
+  return undefined;
+}
+
+export default async function AdminPage({ searchParams }: Props) {
   await requireAdmin("/admin");
+
+  const sp = (await searchParams) ?? {};
+  const initialType = parseInitialType(Array.isArray(sp.type) ? sp.type[0] : sp.type);
 
   const [blog, feed, diary] = await Promise.all([
     getPosts({ type: "blog" }),
@@ -19,8 +32,8 @@ export default async function AdminPage() {
     getPosts({ type: "diary" }),
   ]);
 
-  function typeLabel(type: string) {
-    if (type === "blog") return "블로그";
+function typeLabel(type: string) {
+    if (type === "blog") return "아티클";
     if (type === "feed") return "피드";
     if (type === "diary") return "일기";
     return type;
@@ -69,11 +82,11 @@ export default async function AdminPage() {
         </Card>
         <Card>
           <CardBody className="space-y-2">
-            <p className="text-sm font-medium text-muted">블로그</p>
+            <p className="text-sm font-medium text-muted">아티클</p>
             <p className="text-3xl font-black tracking-tight text-foreground">
               {blog.length}
             </p>
-            <p className="text-sm text-muted">블로그 글</p>
+            <p className="text-sm text-muted">아티클 글</p>
           </CardBody>
         </Card>
         <Card>
@@ -165,7 +178,7 @@ export default async function AdminPage() {
                   href="/blog"
                   className="rounded-xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground hover:bg-surface-2"
                 >
-                  블로그
+                  아티클
                 </Link>
                 <Link
                   href="/feed"
@@ -192,7 +205,7 @@ export default async function AdminPage() {
       </section>
 
       <section id="editor" className="scroll-mt-24">
-        <AdminEditor />
+        <AdminEditor initialType={initialType} />
       </section>
     </div>
   );
