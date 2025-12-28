@@ -31,6 +31,21 @@ export async function ensureAdminSynced(user: { id: string; email?: string | nul
   }
 }
 
+export async function isAdminDb(user: { id: string; email?: string | null } | null | undefined) {
+  if (!user?.id) return false;
+  if (isAdminEmail(user.email)) await ensureAdminSynced(user);
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) return false;
+  return Boolean(data?.is_admin);
+}
+
 export async function requireLogin(from: string) {
   const user = await getCurrentUser();
   if (user) return user;
@@ -39,7 +54,6 @@ export async function requireLogin(from: string) {
 
 export async function requireAdmin(from: string) {
   const user = await requireLogin(from);
-  if (!isAdminEmail(user.email)) redirect("/");
-  await ensureAdminSynced(user);
+  if (!(await isAdminDb(user))) redirect("/");
   return user;
 }

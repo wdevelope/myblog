@@ -3,7 +3,7 @@ import { revalidateTag } from "next/cache";
 import type { PostType, Visibility } from "@/lib/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { requireAdmin, isAdminEmail, ensureAdminSynced } from "@/lib/server/admin";
+import { isAdminDb, requireAdmin } from "@/lib/server/admin";
 import { publicBlogCategoryTag, publicPostsTag } from "@/lib/server/publicPosts";
 
 function badRequest(message: string) {
@@ -31,8 +31,7 @@ export async function GET(request: Request) {
 
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
-  const isAdmin = isAdminEmail(data.user?.email);
-  if (isAdmin) await ensureAdminSynced(data.user);
+  const isAdmin = await isAdminDb(data.user);
 
   if (type === "diary" && !isAdmin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCurrentUser, isAdminEmail } from "@/lib/server/admin";
+import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 
 function Brand() {
   return (
@@ -29,7 +29,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 export default async function SiteHeader() {
   const user = await getCurrentUser();
   const loggedIn = Boolean(user);
-  const isAdmin = isAdminEmail(user?.email);
+  const isAdmin = await isAdminDb(user);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/75 backdrop-blur-md">
@@ -61,6 +61,15 @@ export default async function SiteHeader() {
               />
             </div>
           </label>
+
+          {isAdmin ? (
+            <Link
+              href="/admin"
+              className="hidden h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 sm:flex"
+            >
+              Write
+            </Link>
+          ) : null}
 
           {loggedIn ? (
             <Link

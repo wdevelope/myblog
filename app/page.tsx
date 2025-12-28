@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getPosts } from "@/lib/api";
-import { isLoggedIn } from "@/lib/supabase/session";
+import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
 
 export default function Home() {
@@ -13,7 +13,9 @@ export default function Home() {
 export const dynamic = "force-dynamic";
 
 async function HomePage() {
-  const loggedIn = await isLoggedIn();
+  const user = await getCurrentUser();
+  const loggedIn = Boolean(user);
+  const isAdmin = await isAdminDb(user);
   const [blog, feed] = await Promise.all([
     getPosts({ type: "blog" }),
     getPosts({ type: "feed" }),
@@ -38,9 +40,13 @@ async function HomePage() {
             <ButtonLink href="/feed" variant="secondary">
               Subscribe
             </ButtonLink>
-            {loggedIn ? (
+            {isAdmin ? (
               <ButtonLink href="/admin" variant="secondary">
                 Write
+              </ButtonLink>
+            ) : loggedIn ? (
+              <ButtonLink href="/logout" variant="secondary">
+                Logout
               </ButtonLink>
             ) : (
               <ButtonLink href="/login" variant="secondary">

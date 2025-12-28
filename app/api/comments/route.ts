@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { ensureAdminSynced, isAdminEmail } from "@/lib/server/admin";
+import { isAdminDb } from "@/lib/server/admin";
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
@@ -15,8 +15,7 @@ export async function GET(request: Request) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const isAdmin = isAdminEmail(auth.user.email);
-  if (isAdmin) await ensureAdminSynced(auth.user);
+  const isAdmin = await isAdminDb(auth.user);
 
   const { data: post, error: postError } = await supabase
     .from("posts")
@@ -76,8 +75,7 @@ export async function POST(request: Request) {
   if (!post) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (post.type === "diary") return badRequest("diary does not support comments");
 
-  const isAdmin = isAdminEmail(auth.user.email);
-  if (isAdmin) await ensureAdminSynced(auth.user);
+  const isAdmin = await isAdminDb(auth.user);
   if (post.visibility === "private" && !isAdmin) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { ensureAdminSynced, isAdminEmail } from "@/lib/server/admin";
+import { isAdminDb } from "@/lib/server/admin";
 
 export async function GET(
   _request: Request,
@@ -10,8 +10,7 @@ export async function GET(
   const supabase = await createSupabaseServerClient();
 
   const { data: authData } = await supabase.auth.getUser();
-  const isAdmin = isAdminEmail(authData.user?.email);
-  if (isAdmin) await ensureAdminSynced(authData.user);
+  const isAdmin = await isAdminDb(authData.user);
 
   const { data: post, error } = await supabase
     .from("posts")
