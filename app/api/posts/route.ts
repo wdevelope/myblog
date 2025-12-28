@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
   const isAdmin = isAdminEmail(data.user?.email);
-  if (isAdmin) await ensureAdminSynced(data.user?.email);
+  if (isAdmin) await ensureAdminSynced(data.user);
 
   if (type === "diary" && !isAdmin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

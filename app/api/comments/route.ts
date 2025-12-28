@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   if (!auth.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const isAdmin = isAdminEmail(auth.user.email);
-  if (isAdmin) await ensureAdminSynced(auth.user.email);
+  if (isAdmin) await ensureAdminSynced(auth.user);
 
   const { data: post, error: postError } = await supabase
     .from("posts")
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
   if (post.type === "diary") return badRequest("diary does not support comments");
 
   const isAdmin = isAdminEmail(auth.user.email);
-  if (isAdmin) await ensureAdminSynced(auth.user.email);
+  if (isAdmin) await ensureAdminSynced(auth.user);
   if (post.visibility === "private" && !isAdmin) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }

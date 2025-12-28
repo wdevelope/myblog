@@ -22,7 +22,7 @@ Next.js(App Router) + Tailwind CSS 기반 개인 블로그.
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (서버 전용: admin-only/private 이미지 signed URL 등에 사용)
-- `ADMIN_EMAILS` (admin 판별용 email 목록)
+- `ADMIN_EMAILS` (admin 판별용 email 목록: 로그인 시 `public.users.is_admin` 동기화에 사용)
 
 선택:
 

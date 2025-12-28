@@ -16,11 +16,16 @@ export function isAdminEmail(email: string | null | undefined) {
   return admins.includes(email.toLowerCase());
 }
 
-export async function ensureAdminSynced(email: string | null | undefined) {
-  if (!email) return;
+export async function ensureAdminSynced(user: { id: string; email?: string | null } | null | undefined) {
+  if (!user?.id) return;
   try {
     const service = createSupabaseServiceClient();
-    await service.from("admin_emails").upsert({ email: email.toLowerCase() });
+    await service
+      .from("users")
+      .upsert(
+        { id: user.id, email: user.email?.toLowerCase() ?? null, is_admin: true },
+        { onConflict: "id" },
+      );
   } catch {
     // best-effort: app can still rely on server-side guards even if sync fails
   }
@@ -35,6 +40,6 @@ export async function requireLogin(from: string) {
 export async function requireAdmin(from: string) {
   const user = await requireLogin(from);
   if (!isAdminEmail(user.email)) redirect("/");
-  await ensureAdminSynced(user.email);
+  await ensureAdminSynced(user);
   return user;
 }

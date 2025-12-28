@@ -11,7 +11,7 @@ export async function GET(
 
   const { data: authData } = await supabase.auth.getUser();
   const isAdmin = isAdminEmail(authData.user?.email);
-  if (isAdmin) await ensureAdminSynced(authData.user?.email);
+  if (isAdmin) await ensureAdminSynced(authData.user);
 
   const { data: post, error } = await supabase
     .from("posts")
