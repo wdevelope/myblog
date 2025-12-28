@@ -33,10 +33,13 @@ async function resolveCookieHeader() {
 
 async function fetchJson<T>(path: string, options: FetchJsonOptions = {}) {
   const apiBaseUrl = await resolveApiBaseUrl();
-  const url =
-    apiBaseUrl.startsWith("http")
-      ? new URL(path, apiBaseUrl)
-      : `${apiBaseUrl}${path}`;
+  const normalizedPath = path.replace(/^\/+/, "");
+  const url = apiBaseUrl.startsWith("http")
+    ? new URL(
+        normalizedPath,
+        apiBaseUrl.endsWith("/") ? apiBaseUrl : `${apiBaseUrl}/`,
+      )
+    : `${apiBaseUrl.replace(/\/$/, "")}/${normalizedPath}`;
 
   const cookieHeader = await resolveCookieHeader();
   const headers: Record<string, string> = {
