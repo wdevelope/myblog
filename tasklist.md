@@ -6,16 +6,16 @@
 
 # ✅ PHASE 0. 사전 결정 (설계 고정)
 
-- [ ] 프론트: **Next.js (TypeScript, App Router)**
-- [ ] 백엔드: **Next.js Route Handlers + Supabase**
-- [ ] DB: **Supabase Postgres**
-- [ ] 기능 스펙 고정
-  - [ ] 글 타입: `blog` / `feed` / `diary`
-  - [ ] 공개 범위(모든 글 공통): `public` / `private` (선택 가능)
-  - [ ] 이미지 첨부(모든 글 공통): O
-  - [ ] 댓글: `blog/feed`만 O, `diary`는 X
-  - [ ] 카테고리: `blog`에만 필수(권장), `feed/diary`는 선택
-- [ ] 배포:
+- [x] 프론트: **Next.js (TypeScript, App Router)**
+- [x] 백엔드: **Next.js Route Handlers + Supabase**
+- [x] DB: **Supabase Postgres**
+- [x] 기능 스펙 고정
+  - [x] 글 타입: `blog` / `feed` / `diary`
+  - [x] 공개 범위(모든 글 공통): `public` / `private`
+  - [x] 이미지 첨부(모든 글 공통): O
+  - [x] 댓글: `blog/feed`만 O, `diary`는 X
+  - [x] 카테고리: `blog`에만 필수(권장), `feed/diary`는 선택
+- [ ] 배포 계획:
 
   - Front → **AWS Amplify Hosting(Next.js SSR/ISR 지원)** ✅ (선택 확정)
   - API → Next.js + Supabase
@@ -29,13 +29,15 @@
 - [x] Supabase 프로젝트 생성
 - [ ] `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 설정
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` 설정(서버 전용)
-- [ ] `ADMIN_EMAILS` 설정(관리자 이메일 목록)
+- [ ] `ADMIN_EMAILS` 설정(관리자 이메일 목록: 최초 admin 부트스트랩용)
 
 ### Auth 설정
 
 - [ ] Supabase Auth 활성화(Email/Password)
 - [ ] (선택) 이메일 확인/비밀번호 정책 설정
-- [ ] 관리자/일반 사용자 역할 구분 전략 확정(기본: `ADMIN_EMAILS` 기반)
+- [x] 관리자/일반 사용자 역할 구분 전략 확정
+  - [x] 기본: 로그인 시 `ADMIN_EMAILS`에 포함된 사용자 → `public.users.is_admin=true`로 동기화(부트스트랩)
+  - [x] 이후 권한 체크: DB RLS는 `public.users.is_admin` 기준
 
 ---
 
@@ -45,11 +47,13 @@
 
 - [x] `posts`
 - [x] `comments`
+- [x] `users` (프로필/권한: `is_admin`)
 
 #### 데이터 모델 정의
 
 - [x] Post (`blog/feed/diary` 공통)
 - [x] Comment (`blog/feed`만, 로그인 사용자만 작성/조회)
+- [x] User (`auth.users`와 1:1, `public.users.is_admin`로 역할 관리)
 
 #### 조회 패턴(필수) → 키 설계에 반영
 
@@ -61,7 +65,8 @@
 
 ### RLS 정책
 
-- [x] Public 글: 무인증 조회 가능(`visibility = public`)
+- [x] `public.is_admin()` 함수로 admin 판별( `public.users.is_admin` 기반)
+- [x] Public 글: 무인증 조회 가능(`visibility = public`, `type != diary`)
 - [x] Private/Diary: admin만 조회/작성 가능
 - [x] 댓글: 로그인 사용자만 조회/작성 가능(그리고 diary는 금지)
 
@@ -80,8 +85,9 @@
 - [x] 버킷 생성
   - [x] `post-images-public` (public read)
   - [x] `post-images-private` (admin만 read)
-- [ ] 업로드 정책(RLS)
-  - [ ] admin만 업로드 가능
+- [x] 업로드 방식 확정/구현
+  - [x] `/api/images`(server)에서 service role로 업로드(admin only)
+  - [ ] (선택) Storage RLS로 direct upload 차단/허용 정책 정교화
 - [x] 비공개 이미지 접근
   - [x] `/api/images?bucket=...&path=...` → signed URL 리다이렉트(admin 전용)
 
@@ -91,7 +97,9 @@
 
 - [x] `/login` 구현(로그인/회원가입)
 - [x] `/logout` 구현
-- [x] admin 판별: `ADMIN_EMAILS` 기반
+- [x] admin 판별
+  - [x] 앱 레벨: `ADMIN_EMAILS` 기반
+  - [x] DB 레벨(RLS): `public.users.is_admin` 기반(로그인 시 동기화)
 - [x] 보호 섹션: `/diary`, `/admin` (admin only)
 
 # 🟦 PHASE 6. Next.js 프론트엔드
@@ -116,8 +124,8 @@
 
 ### 데이터 패칭
 
-- [x] SSG / ISR 사용
 - [x] Supabase 기반 API 호출
+- [x] 공개 목록 캐시(태그 + `revalidate=60`) 적용
 - [ ] SEO 메타 자동 생성
 - [ ] 인증 연동(Supabase Auth)
   - [x] 로그인 UI: `/login`
@@ -129,26 +137,15 @@
 
 # 🟦 PHASE 7. 관리자 기능 (최소)
 
-- [x] 관리자 인증 (API Key or Cognito)
+- [x] 관리자 인증 (Supabase Auth + `ADMIN_EMAILS`/`public.users.is_admin`)
 - [x] 글 작성 폼
 - [x] Markdown 입력
 - [x] 미리보기
 - [x] 공개범위 선택(`public/private`)
 - [x] 타입 선택(`blog/feed/diary`)
 - [x] 카테고리 선택/생성(`blog`용)
-- [x] 이미지 첨부(프리사인드 업로드)
+- [x] 이미지 첨부(`/api/images` 서버 업로드)
 - [ ] 댓글 관리(삭제/차단 등 최소 기능)
-
----
-
-# 🟦 PHASE 6.5. 로컬 개발용 API (목업) ✅
-
-> AWS(Lambda/DynamoDB) 붙이기 전에, 프론트 기능을 빠르게 검증하기 위한 로컬 API입니다.
-
-- [x] `/api/posts` (목록/작성)
-- [x] `/api/posts/[slug]` (상세)
-- [x] `/api/comments` (조회/작성: blog/feed만)
-- [x] `/api/images` (비공개 이미지 signed URL: admin only)
 
 # 🟦 PHASE 8. 프론트 배포 (AWS Amplify Hosting)
 
