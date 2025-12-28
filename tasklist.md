@@ -116,8 +116,8 @@
 
 ### 데이터 패칭
 
-- [ ] SSG / ISR 사용
-- [ ] Supabase 기반 API 호출
+- [x] SSG / ISR 사용
+- [x] Supabase 기반 API 호출
 - [ ] SEO 메타 자동 생성
 - [ ] 인증 연동(Supabase Auth)
   - [x] 로그인 UI: `/login`

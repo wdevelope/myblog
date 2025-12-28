@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { getPosts } from "@/lib/api";
+import { getPublicPosts } from "@/lib/server/publicPosts";
 import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
 
 export const metadata = {
   title: "Feed | myblog",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function FeedPage() {
-  const posts = await getPosts({ type: "feed" });
+  const posts = await getPublicPosts({ type: "feed" });
   return (
     <div className="space-y-10">
       <header className="space-y-3">

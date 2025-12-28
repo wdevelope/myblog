@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getPosts } from "@/lib/api";
+import { getPublicPosts } from "@/lib/server/publicPosts";
 import { Badge, Card, CardBody } from "@/app/_components/ui";
 
 type Props = {
@@ -12,9 +12,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: `Category: ${slug} | myblog` };
 }
 
+export const revalidate = 60;
+
 export default async function BlogCategoryPage({ params }: Props) {
   const { slug } = await params;
-  const posts = await getPosts({ type: "blog", category: slug });
+  const posts = await getPublicPosts({ type: "blog", category: slug });
   return (
     <div className="space-y-8">
       <header className="space-y-3">

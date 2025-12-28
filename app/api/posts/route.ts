@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import type { PostType, Visibility } from "@/lib/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { requireAdmin, isAdminEmail, ensureAdminSynced } from "@/lib/server/admin";
+import { publicBlogCategoryTag, publicPostsTag } from "@/lib/server/publicPosts";
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
@@ -128,6 +130,11 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.json({ error: "db_error", details: error.message }, { status: 500 });
+  }
+
+  revalidateTag(publicPostsTag(saved.type), "default");
+  if (saved.type === "blog" && saved.category_slug) {
+    revalidateTag(publicBlogCategoryTag(saved.category_slug), "default");
   }
 
   return NextResponse.json(

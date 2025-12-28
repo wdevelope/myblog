@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { getPosts } from "@/lib/api";
+import { getPublicPosts } from "@/lib/server/publicPosts";
 import { Badge, Card, CardBody } from "@/app/_components/ui";
 
 export const metadata = {
   title: "Blog | myblog",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function BlogIndexPage() {
-  const posts = await getPosts({ type: "blog" });
+  const posts = await getPublicPosts({ type: "blog" });
   const categoryCounts = posts.reduce<Record<string, number>>((acc, post) => {
     const key = post.categorySlug?.trim();
     if (!key) return acc;
