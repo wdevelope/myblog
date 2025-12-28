@@ -68,6 +68,11 @@ export async function getPostBySlug(params: {
   return db.posts.find((post) => post.slug === params.slug) ?? null;
 }
 
+export async function getPostById(params: { id: string }): Promise<Post | null> {
+  const db = await readDb();
+  return db.posts.find((post) => post.id === params.id) ?? null;
+}
+
 export async function upsertPost(input: {
   id?: string;
   slug?: string;
@@ -141,4 +146,3 @@ export async function addComment(input: {
   await writeDb({ ...db, comments: [...db.comments, comment] });
   return comment;
 }
-
