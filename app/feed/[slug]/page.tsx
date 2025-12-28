@@ -1,6 +1,8 @@
 import { getComments, getPostBySlug } from "@/lib/api";
 import CommentForm from "@/app/_components/CommentForm";
 import PostImages from "@/app/_components/PostImages";
+import Markdown from "@/app/_components/Markdown";
+import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,7 @@ export default async function FeedPostPage({
 }) {
   const { slug } = await params;
   const post = await getPostBySlug({ slug });
+  if (post.type !== "feed") notFound();
   const comments = await getComments({ postId: post.id });
 
   return (
@@ -22,9 +25,7 @@ export default async function FeedPostPage({
         <h1 className="text-3xl font-semibold tracking-tight">{post.title}</h1>
       </header>
 
-      <div className="prose prose-zinc max-w-none dark:prose-invert">
-        <p className="whitespace-pre-wrap">{post.content}</p>
-      </div>
+      <Markdown content={post.content} />
 
       <PostImages imageKeys={post.imageKeys} />
 
@@ -54,4 +55,3 @@ export default async function FeedPostPage({
     </article>
   );
 }
-

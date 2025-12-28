@@ -1,5 +1,7 @@
 import { getPostBySlug } from "@/lib/api";
 import PostImages from "@/app/_components/PostImages";
+import Markdown from "@/app/_components/Markdown";
+import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +12,7 @@ export default async function DiaryEntryPage({
 }) {
   const { slug } = await params;
   const post = await getPostBySlug({ slug });
+  if (post.type !== "diary") notFound();
 
   return (
     <article className="space-y-6">
@@ -20,12 +23,9 @@ export default async function DiaryEntryPage({
         <h1 className="text-3xl font-semibold tracking-tight">{post.title}</h1>
       </header>
 
-      <div className="prose prose-zinc max-w-none dark:prose-invert">
-        <p className="whitespace-pre-wrap">{post.content}</p>
-      </div>
+      <Markdown content={post.content} />
 
       <PostImages imageKeys={post.imageKeys} />
     </article>
   );
 }
-

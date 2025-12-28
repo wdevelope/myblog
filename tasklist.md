@@ -202,8 +202,8 @@ lambda/
 
 - [x] 관리자 인증 (API Key or Cognito)
 - [x] 글 작성 폼
-- [ ] Markdown 입력
-- [ ] 미리보기
+- [x] Markdown 입력
+- [x] 미리보기
 - [x] 공개범위 선택(`public/private`)
 - [x] 타입 선택(`blog/feed/diary`)
 - [x] 카테고리 선택/생성(`blog`용)

@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PostType, Visibility } from "@/lib/types";
+import MarkdownClient from "@/app/_components/MarkdownClient";
 
 type UploadResult = {
   key: string;
@@ -29,6 +30,7 @@ export default function AdminEditor() {
   const [slug, setSlug] = useState("");
   const [categorySlug, setCategorySlug] = useState("");
   const [content, setContent] = useState("");
+  const [preview, setPreview] = useState(false);
   const [imageKeys, setImageKeys] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -111,6 +113,17 @@ export default function AdminEditor() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-semibold">새 글 작성</h2>
+        <button
+          type="button"
+          onClick={() => setPreview((p) => !p)}
+          className="rounded-full border border-black/10 bg-white px-3 py-1 text-sm hover:bg-zinc-50 dark:border-white/15 dark:bg-zinc-950 dark:hover:bg-zinc-900"
+        >
+          {preview ? "편집" : "미리보기"}
+        </button>
+      </div>
+
       <div className="grid gap-3 md:grid-cols-2">
         <label className="space-y-1 text-sm">
           <span className="font-medium">Type</span>
@@ -170,14 +183,20 @@ export default function AdminEditor() {
       ) : null}
 
       <label className="space-y-1 text-sm">
-        <span className="font-medium">Content</span>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={8}
-          className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 outline-none dark:border-white/10 dark:bg-zinc-950"
-          placeholder="Write something…"
-        />
+        <span className="font-medium">Content (Markdown)</span>
+        {preview ? (
+          <div className="rounded-xl border border-black/10 bg-white px-3 py-2 dark:border-white/10 dark:bg-zinc-950">
+            <MarkdownClient content={content || " "} />
+          </div>
+        ) : (
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={10}
+            className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 outline-none dark:border-white/10 dark:bg-zinc-950"
+            placeholder="Write something…"
+          />
+        )}
       </label>
 
       <label className="space-y-1 text-sm">
@@ -208,4 +227,3 @@ export default function AdminEditor() {
     </div>
   );
 }
-
