@@ -4,6 +4,13 @@ import { requireAdmin } from "@/lib/server/admin";
 
 export const runtime = "nodejs";
 
+function uuid() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const bucket = url.searchParams.get("bucket");
@@ -31,3 +38,48 @@ export async function GET(request: Request) {
   return NextResponse.redirect(data.signedUrl);
 }
 
+export async function POST(request: Request) {
+  const url = new URL(request.url);
+  await requireAdmin(url.pathname);
+
+  const form = await request.formData();
+  const visibility = (form.get("visibility") ?? "").toString();
+  const bucket =
+    visibility === "public"
+      ? "post-images-public"
+      : visibility === "private"
+        ? "post-images-private"
+        : null;
+
+  if (!bucket) {
+    return NextResponse.json({ error: "visibility must be public|private" }, { status: 400 });
+  }
+
+  const files = form.getAll("files").filter((v): v is File => v instanceof File);
+  if (!files.length) {
+    return NextResponse.json({ error: "files is required" }, { status: 400 });
+  }
+
+  const service = createSupabaseServiceClient();
+  const keys: string[] = [];
+
+  for (const file of files) {
+    if (!file.type.startsWith("image/")) {
+      return NextResponse.json({ error: "only image/* is supported" }, { status: 400 });
+    }
+
+    const path = `${new Date().toISOString().slice(0, 10)}/${uuid()}-${file.name}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const { error } = await service.storage
+      .from(bucket)
+      .upload(path, buffer, { contentType: file.type, upsert: false });
+
+    if (error) {
+      return NextResponse.json({ error: "upload_failed", details: error.message }, { status: 500 });
+    }
+
+    keys.push(`${bucket}:${path}`);
+  }
+
+  return NextResponse.json({ keys }, { status: 200 });
+}

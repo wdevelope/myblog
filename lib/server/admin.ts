@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { getAdminEmails } from "@/lib/supabase/env";
 
 export async function getCurrentUser() {
@@ -15,6 +16,16 @@ export function isAdminEmail(email: string | null | undefined) {
   return admins.includes(email.toLowerCase());
 }
 
+export async function ensureAdminSynced(email: string | null | undefined) {
+  if (!email) return;
+  try {
+    const service = createSupabaseServiceClient();
+    await service.from("admin_emails").upsert({ email: email.toLowerCase() });
+  } catch {
+    // best-effort: app can still rely on server-side guards even if sync fails
+  }
+}
+
 export async function requireLogin(from: string) {
   const user = await getCurrentUser();
   if (user) return user;
@@ -24,6 +35,6 @@ export async function requireLogin(from: string) {
 export async function requireAdmin(from: string) {
   const user = await requireLogin(from);
   if (!isAdminEmail(user.email)) redirect("/");
+  await ensureAdminSynced(user.email);
   return user;
 }
-

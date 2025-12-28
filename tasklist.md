@@ -26,7 +26,7 @@
 
 ### 프로젝트 생성 / 환경변수
 
-- [ ] Supabase 프로젝트 생성
+- [x] Supabase 프로젝트 생성
 - [ ] `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 설정
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` 설정(서버 전용)
 - [ ] `ADMIN_EMAILS` 설정(관리자 이메일 목록)
@@ -43,47 +43,47 @@
 
 ### 테이블 설계
 
-- [ ] `posts`
-- [ ] `comments`
+- [x] `posts`
+- [x] `comments`
 
 #### 데이터 모델 정의
 
-- [ ] Post (`blog/feed/diary` 공통)
-- [ ] Comment (`blog/feed`만, 로그인 사용자만 작성/조회)
+- [x] Post (`blog/feed/diary` 공통)
+- [x] Comment (`blog/feed`만, 로그인 사용자만 작성/조회)
 
 #### 조회 패턴(필수) → 키 설계에 반영
 
-- [ ] 타입별 최신 글 목록: `blog/feed/diary` 각각 `createdAt desc`
-- [ ] 카테고리별 최신 글 목록: `blog`에서 `categorySlug + createdAt desc`
-- [ ] slug로 글 상세 조회: `slug` unique index
-- [ ] 댓글 목록: `post_id + createdAt asc`
-- [ ] 비공개 글: **admin만 조회**
+- [x] 타입별 최신 글 목록: `blog/feed/diary` 각각 `createdAt desc`
+- [x] 카테고리별 최신 글 목록: `blog`에서 `categorySlug + createdAt desc`
+- [x] slug로 글 상세 조회: `slug` unique index
+- [x] 댓글 목록: `post_id + createdAt asc`
+- [x] 비공개 글: **admin만 조회**
 
 ### RLS 정책
 
-- [ ] Public 글: 무인증 조회 가능(`visibility = public`)
-- [ ] Private/Diary: admin만 조회/작성 가능
-- [ ] 댓글: 로그인 사용자만 조회/작성 가능(그리고 diary는 금지)
+- [x] Public 글: 무인증 조회 가능(`visibility = public`)
+- [x] Private/Diary: admin만 조회/작성 가능
+- [x] 댓글: 로그인 사용자만 조회/작성 가능(그리고 diary는 금지)
 
 ---
 
 # 🟦 PHASE 3. API/서버 로직(Next.js)
 
-- [ ] `/api/posts` 목록/작성(admin)
-- [ ] `/api/posts/[slug]` 상세(public + private는 admin만)
-- [ ] `/api/comments` 조회/작성(로그인 사용자만, diary는 불가)
+- [x] `/api/posts` 목록/작성(admin)
+- [x] `/api/posts/[slug]` 상세(public + private는 admin만)
+- [x] `/api/comments` 조회/작성(로그인 사용자만, diary는 불가)
 
 ---
 
 # 🟦 PHASE 4. 이미지(Supabase Storage)
 
-- [ ] 버킷 생성
-  - [ ] `post-images-public` (public read)
-  - [ ] `post-images-private` (admin만 read)
+- [x] 버킷 생성
+  - [x] `post-images-public` (public read)
+  - [x] `post-images-private` (admin만 read)
 - [ ] 업로드 정책(RLS)
   - [ ] admin만 업로드 가능
-- [ ] 비공개 이미지 접근
-  - [ ] `/api/images?bucket=...&path=...` → signed URL 리다이렉트(admin 전용)
+- [x] 비공개 이미지 접근
+  - [x] `/api/images?bucket=...&path=...` → signed URL 리다이렉트(admin 전용)
 
 ---
 

@@ -4,14 +4,6 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PostType, Visibility } from "@/lib/types";
 import MarkdownClient from "@/app/_components/MarkdownClient";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-
-function uuid() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
 
 function slugify(input: string) {
   return input
@@ -42,20 +34,23 @@ export default function AdminEditor() {
     setError(null);
     if (!files?.length) return;
 
-    const supabase = createSupabaseBrowserClient();
-    const bucket = visibility === "public" ? "post-images-public" : "post-images-private";
-
+    const form = new FormData();
+    form.set("visibility", visibility);
     for (const file of Array.from(files)) {
-      const path = `${new Date().toISOString().slice(0, 10)}/${uuid()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(path, file, { contentType: file.type, upsert: false });
-      if (uploadError) {
-        setError(uploadError.message);
-        return;
-      }
-      setImageKeys((prev) => [...prev, `${bucket}:${path}`]);
+      form.append("files", file);
     }
+
+    const response = await fetch("/api/images", { method: "POST", body: form });
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; details?: string }
+        | null;
+      setError(payload?.details ?? payload?.error ?? "Upload failed");
+      return;
+    }
+
+    const payload = (await response.json()) as { keys: string[] };
+    setImageKeys((prev) => [...prev, ...(payload.keys ?? [])]);
   }
 
   async function submit() {

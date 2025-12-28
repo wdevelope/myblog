@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { PostType, Visibility } from "@/lib/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { requireAdmin, isAdminEmail } from "@/lib/server/admin";
+import { requireAdmin, isAdminEmail, ensureAdminSynced } from "@/lib/server/admin";
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
@@ -30,6 +30,7 @@ export async function GET(request: Request) {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
   const isAdmin = isAdminEmail(data.user?.email);
+  if (isAdmin) await ensureAdminSynced(data.user?.email);
 
   if (type === "diary" && !isAdmin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -145,4 +146,3 @@ export async function POST(request: Request) {
     { status: 200 },
   );
 }
-

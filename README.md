@@ -8,7 +8,7 @@ Next.js(App Router) + Tailwind CSS 기반 개인 블로그.
 - 이미지 첨부: 모든 글 타입 지원
 - 인증: Supabase Auth (Email/Password)
 
-> 현재는 프론트 기능을 빠르게 검증하기 위해 **로컬 목업 API(`app/api/*`) + 파일 저장소(`.data/`, `public/uploads/`)**로 동작합니다.  
+> 현재는 **Next.js Route Handlers + Supabase(Postgres/Storage/Auth)** 기반으로 동작합니다.  
 > 추후 Lambda/DynamoDB/S3로 교체할 예정입니다.
 
 ## Getting Started
@@ -51,6 +51,7 @@ npm run dev
 - `GET /api/comments?postId=...` (로그인 필요)
 - `POST /api/comments` (`diary`는 불가, 로그인 필요)
 - `GET /api/images?bucket=...&path=...` (admin 전용 signed URL 리다이렉트)
+- `POST /api/images` (admin 전용 이미지 업로드: `multipart/form-data`)
 
 ## 빌드/검증
 
