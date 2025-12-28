@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# myblog
+
+Next.js(App Router) + Tailwind CSS 기반 개인 블로그.
+
+- 글 타입: `blog` / `feed` / `diary`
+- 공개 범위: `public` / `private` (글 단위 선택)
+- 댓글: `blog/feed`만 지원, `diary`는 미지원
+- 이미지 첨부: 모든 글 타입 지원
+- 인증: Cognito Hosted UI (OAuth 2.0 + PKCE)
+
+> 현재는 프론트 기능을 빠르게 검증하기 위해 **로컬 목업 API(`app/api/*`) + 파일 저장소(`.data/`, `public/uploads/`)**로 동작합니다.  
+> 추후 Lambda/DynamoDB/S3로 교체할 예정입니다.
 
 ## Getting Started
 
-First, run the development server:
+### 1) 환경 변수 준비
+
+로컬에서 Cognito 연동을 확인하려면 `.env.local`을 만들고 `/.env.example`을 참고해 값을 채워주세요.
+
+필수:
+
+- `NEXT_PUBLIC_COGNITO_DOMAIN`
+- `NEXT_PUBLIC_COGNITO_CLIENT_ID`
+- `NEXT_PUBLIC_COGNITO_REDIRECT_URI` (예: `http://localhost:3000/auth/callback`)
+- `NEXT_PUBLIC_COGNITO_LOGOUT_REDIRECT_URI` (예: `http://localhost:3000/`)
+
+선택:
+
+- `NEXT_PUBLIC_API_BASE_URL` (미설정 시 자동으로 같은 origin의 `/api`를 사용)
+
+### 2) 실행
 
 ```bash
+npm i
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 `http://localhost:3000` 접속.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 주요 라우트
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- 공개 섹션: `/`, `/blog`, `/feed`
+- 보호 섹션(로그인 필요): `/diary`, `/admin`
+- 인증: `/auth/login`, `/auth/callback`, `/auth/logout`
 
-## Learn More
+## 로컬 목업 API
 
-To learn more about Next.js, take a look at the following resources:
+- `GET /api/posts?type=blog|feed|diary`
+- `POST /api/posts` (로그인 필요)
+- `GET /api/posts/[slug]`
+- `GET /api/comments?postId=...`
+- `POST /api/comments` (`diary`는 불가)
+- `POST /api/uploads` → 업로드 URL 발급(로그인 필요)
+- `PUT /api/uploads/put?key=...` → 파일 업로드(로그인 필요)
+- `GET /api/uploads/get?key=...` → 비공개 파일 다운로드(로그인 필요)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 빌드/검증
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run lint
+npm run build
+```
 
-## Deploy on Vercel
+> 참고: 현재 실행 환경에서 Turbopack이 제한(os error 1)될 수 있어 `build`는 `webpack`으로 고정되어 있습니다.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 배포(AWS Amplify)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Amplify Hosting에 Git 리포지토리 연결
+- Amplify 환경변수에 `.env.example` 항목 설정
+- Cognito App Client의 Callback/Logout URL을 Amplify 도메인 기준으로 등록
