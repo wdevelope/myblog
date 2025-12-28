@@ -1,17 +1,3 @@
-좋아요 👍
-그럼 **“Next.js(프론트) + AWS Lambda(Node.js/TypeScript) + DynamoDB”** 조합 기준으로
-👉 **실제로 따라 하면 완성되는 Task List**를 단계별로 만들어줄게요.
-
----
-
-# 🧭 전체 로드맵 한눈에 보기
-
-![Image](https://serverlessland.com/assets/images/repos/nextjs-serverless-architecture.png)
-
-![Image](https://d2908q01vomqb2.cloudfront.net/887309d048beef83ad3eabf2a79a64a389ab1c9f/2020/01/22/Golang-6.jpg)
-
-![Image](https://d1tcczg8b21j1t.cloudfront.net/strapi-assets/s3_diagram_cloudfront_acm_route53_c2a411d6a4.png)
-
 ```
 기획 → AWS 인프라 → DB 설계 → Lambda API → Frontend → 배포 → 운영
 ```
@@ -23,9 +9,15 @@
 - [ ] 프론트: **Next.js (TypeScript, App Router)**
 - [ ] 백엔드: **AWS Lambda (Node.js + TypeScript)**
 - [ ] DB: **DynamoDB (On-Demand)**
+- [ ] 기능 스펙 고정
+  - [ ] 글 타입: `blog` / `feed` / `diary`
+  - [ ] 공개 범위(모든 글 공통): `public` / `private` (선택 가능)
+  - [ ] 이미지 첨부(모든 글 공통): O
+  - [ ] 댓글: `blog/feed`만 O, `diary`는 X
+  - [ ] 카테고리: `blog`에만 필수(권장), `feed/diary`는 선택
 - [ ] 배포:
 
-  - Front → S3 + CloudFront
+  - Front → **AWS Amplify Hosting(Next.js SSR/ISR 지원)** ✅ (선택 확정)
   - API → API Gateway + Lambda
 
 ---
@@ -43,6 +35,19 @@
 
 - [ ] 리전 선택 (예: ap-northeast-2)
 
+### Cognito(User Pool) 인증 세팅 ✅ (선택 확정)
+
+- [ ] Cognito User Pool 생성
+  - [ ] 로그인 방식: Email(권장) 또는 Username
+  - [ ] 셀프 회원가입: 필요 없으면 OFF(나만/소수 운영 시 권장)
+  - [ ] MFA: 초기엔 OFF(비용/복잡도↓), 필요 시 TOTP로 확장(SMS는 비용 증가 가능)
+- [ ] App Client 생성
+  - [ ] (권장) OAuth 2.0 + PKCE 활성화
+  - [ ] Callback/Logout URL: Amplify 도메인 기준으로 등록
+- [ ] (권장) 그룹 생성: `admin` (관리자 권한)
+- [ ] 초기 사용자 생성(관리자) + `admin` 그룹 할당
+- [ ] (선택) 커스텀 도메인 연결(Cognito Hosted UI 쓸 경우)
+
 ---
 
 # 🟦 PHASE 2. DynamoDB 설계 & 생성
@@ -55,9 +60,10 @@
 
 #### 데이터 모델 정의
 
-- [ ] Post
-- [ ] Comment
-- [ ] Tag (선택)
+- [ ] Post (`blog/feed/diary` 공통)
+- [ ] Comment (`blog/feed`만)
+- [ ] Category (`blog`용)
+- [ ] Slug 인덱스(슬러그로 글 찾기)
 
 ```ts
 PK = "POST#<postId>";
@@ -66,6 +72,25 @@ SK = "META";
 PK = "POST#<postId>";
 SK = "COMMENT#<commentId>";
 ```
+
+#### 조회 패턴(필수) → 키 설계에 반영
+
+- [ ] 타입별 최신 글 목록: `blog/feed/diary` 각각 `createdAt desc`
+- [ ] 카테고리별 최신 글 목록: `blog`에서 `categorySlug + createdAt desc`
+- [ ] slug로 글 상세 조회: `slug -> postId` 빠르게
+- [ ] 댓글 목록: `postId + createdAt asc/desc` (blog/feed만)
+- [ ] 비공개 글 접근 제어: `public`은 무인증 조회, `private`은 인증 필요
+
+#### GSI(예시)
+
+- [ ] `GSI1`: 타입/공개범위별 최신 목록
+  - `GSI1PK = "TYPE#<blog|feed|diary>#VIS#<public|private>"`
+  - `GSI1SK = "CREATED#<ISO>#POST#<postId>"`
+- [ ] `GSI2`: 카테고리/공개범위별 최신 목록
+  - `GSI2PK = "CAT#<categorySlug>#VIS#<public|private>"`
+  - `GSI2SK = "CREATED#<ISO>#POST#<postId>"`
+- [ ] (선택) `GSI3`: slug -> postId
+  - `GSI3PK = "SLUG#<slug>"`, `GSI3SK = "POST#<postId>"`
 
 ### DynamoDB 생성
 
@@ -109,6 +134,16 @@ lambda/
 - [ ] GET /posts/{slug} (글 상세)
 - [ ] POST /posts (관리자 글 작성)
 - [ ] POST /comments (선택)
+- [ ] 이미지 업로드
+  - [ ] POST /uploads (프리사인드 URL 발급)
+  - [ ] (선택) GET /uploads/{key} (비공개 이미지용 서명 URL 발급)
+
+### 인증/인가
+
+- [ ] 인증 방식 결정: (권장) Cognito(JWT) / (최소) 단일 관리자 API Key
+- [ ] 공개 글: 무인증 조회 가능
+- [ ] 비공개 글: 인증된 사용자만 조회 가능
+- [ ] 글 작성/수정/삭제, 이미지 업로드, 댓글 삭제: 인증 필수
 
 ### DynamoDB 연동
 
@@ -123,6 +158,9 @@ lambda/
 - [ ] HTTP API 생성
 - [ ] Lambda 함수 연결
 - [ ] CORS 설정
+- [ ] JWT Authorizer 설정(Cognito User Pool)
+  - [ ] 공개 엔드포인트: Authorizer 없음
+  - [ ] 비공개 엔드포인트: Authorizer 적용
 - [ ] Stage 배포
 - [ ] API URL 확보
 
@@ -132,41 +170,69 @@ lambda/
 
 ### 프로젝트 생성
 
-- [ ] `npx create-next-app`
-- [ ] TypeScript 활성화
-- [ ] App Router 사용
+- [x] `npx create-next-app`
+- [x] TypeScript 활성화
+- [x] App Router 사용
 
 ### 페이지 구성
 
-- [ ] `/` (홈)
-- [ ] `/blog` (글 목록)
-- [ ] `/blog/[slug]` (글 상세)
-- [ ] `/admin` (관리자)
+- [x] `/` (홈)
+- [x] `/blog` (글 목록)
+- [x] `/blog/[slug]` (글 상세)
+- [x] `/blog/category/[slug]` (카테고리별 목록)
+- [x] `/feed` (피드 목록)
+- [x] `/feed/[slug]` (피드 상세, 필요 시)
+- [x] `/diary` (일기 목록: 로그인 필요)
+- [x] `/diary/[slug]` (일기 상세: 로그인 필요)
+- [x] `/admin` (관리자)
 
 ### 데이터 패칭
 
 - [ ] SSG / ISR 사용
 - [ ] Lambda API 호출
 - [ ] SEO 메타 자동 생성
+- [ ] 인증 연동(Cognito)
+  - [ ] 로그인 UI: **Cognito Hosted UI(OAuth 2.0 + PKCE)** ✅ (선택 확정)
+  - [x] Callback/Logout 라우트 준비 (예: `/auth/callback`, `/auth/logout`)
+  - [x] 로그인 상태에서만 접근 가능한 섹션: `/diary`, `/admin`
 
 ---
 
 # 🟦 PHASE 7. 관리자 기능 (최소)
 
-- [ ] 관리자 인증 (API Key or Cognito)
-- [ ] 글 작성 폼
+- [x] 관리자 인증 (API Key or Cognito)
+- [x] 글 작성 폼
 - [ ] Markdown 입력
 - [ ] 미리보기
+- [x] 공개범위 선택(`public/private`)
+- [x] 타입 선택(`blog/feed/diary`)
+- [x] 카테고리 선택/생성(`blog`용)
+- [x] 이미지 첨부(프리사인드 업로드)
+- [ ] 댓글 관리(삭제/차단 등 최소 기능)
 
 ---
 
-# 🟦 PHASE 8. 프론트 배포 (S3 + CloudFront)
+# 🟦 PHASE 6.5. 로컬 개발용 API (목업) ✅
 
-- [ ] Next.js `output: export`
-- [ ] S3 버킷 생성
-- [ ] 정적 파일 업로드
-- [ ] CloudFront 연결
-- [ ] HTTPS 자동 적용
+> AWS(Lambda/DynamoDB) 붙이기 전에, 프론트 기능을 빠르게 검증하기 위한 로컬 API입니다.
+
+- [x] `/api/posts` (목록/작성)
+- [x] `/api/posts/[slug]` (상세)
+- [x] `/api/comments` (조회/작성: blog/feed만)
+- [x] `/api/uploads` (업로드 URL 발급)
+- [x] `/api/uploads/put` (파일 업로드)
+- [x] `/api/uploads/get` (비공개 파일 다운로드: 로그인 필요)
+
+# 🟦 PHASE 8. 프론트 배포 (AWS Amplify Hosting)
+
+- [ ] Amplify Hosting 앱 생성
+- [ ] Git 리포지토리 연결 (자동 배포 파이프라인)
+- [ ] Next.js SSR/ISR 설정 확인 (Amplify Next.js 지원 템플릿/빌드 설정)
+- [ ] 환경변수 설정 (예: `NEXT_PUBLIC_API_BASE_URL`, 인증 관련 값 등)
+- [ ] Preview/Prod 브랜치 전략(선택)
+- [ ] (이미지) S3 버킷 생성(업로드용) + (선택) CloudFront로 서빙
+  - [ ] 공개 이미지: CloudFront 캐시로 최적화
+  - [ ] 비공개 이미지: S3 private + 서명 URL(서버에서 발급)로 접근 제어
 
 ---
 
@@ -202,16 +268,3 @@ lambda/
 - [ ] HTTPS 적용
 - [ ] 월 비용 $0~1 확인
 - [ ] README 작성 (포트폴리오용)
-
----
-
-## ✅ 한 줄 요약
-
-> **이 Task List 그대로 가면
-> “실서비스 가능한 서버리스 개인 블로그” 완성됨**
-
----
-
-다음 단계로 추천 👇
-👉 **PHASE 2: DynamoDB 테이블 설계**부터 같이 상세하게 들어갈까요?
-(PK/SK 설계를 아주 깔끔하게 잡아줄게요)
