@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getPosts } from "@/lib/api";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
+import LogoutButton from "@/app/_components/LogoutButton";
 
 export default function Home() {
   // kept as server component without data to avoid extra load in local dev
@@ -62,9 +63,9 @@ async function HomePage() {
                 </ButtonLink>
               </>
             ) : loggedIn ? (
-              <ButtonLink href="/logout" variant="secondary">
+              <LogoutButton className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-bold text-foreground transition hover:bg-surface-2">
                 로그아웃
-              </ButtonLink>
+              </LogoutButton>
             ) : (
               <ButtonLink href="/login" variant="secondary">
                 로그인

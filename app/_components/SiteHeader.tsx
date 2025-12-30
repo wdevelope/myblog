@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/server/admin";
+import LogoutButton from "@/app/_components/LogoutButton";
 
 function Brand() {
   return (
@@ -64,12 +65,11 @@ export default async function SiteHeader() {
           </label>
 
           {loggedIn ? (
-            <Link
-              href="/logout"
+            <LogoutButton
               className="hidden h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-surface-2 sm:flex"
             >
               로그아웃
-            </Link>
+            </LogoutButton>
           ) : (
             <Link
               href="/login"

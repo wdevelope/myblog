@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/ToastProvider";
@@ -8,8 +8,20 @@ import { useToast } from "@/app/_components/ToastProvider";
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const from = searchParams.get("from") ?? "/";
   const { toast } = useToast();
+  const loggedOut = searchParams.get("logged_out") === "1";
+
+  useEffect(() => {
+    if (!loggedOut) return;
+    toast({ message: "로그아웃 완료", variant: "success" });
+
+    const next = new URLSearchParams(searchParamsString);
+    next.delete("logged_out");
+    const qs = next.toString();
+    router.replace(qs ? `/login?${qs}` : "/login");
+  }, [loggedOut, router, searchParamsString, toast]);
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -20,7 +32,7 @@ export default function LoginForm() {
 
   const canSubmit = useMemo(
     () => email.trim().length > 0 && password.length >= 8,
-    [email, password],
+    [email, password]
   );
 
   async function submit() {
@@ -40,8 +52,10 @@ export default function LoginForm() {
           email: trimmedEmail,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
-              from.startsWith("/") ? from : "/",
+            emailRedirectTo: `${
+              window.location.origin
+            }/auth/callback?next=${encodeURIComponent(
+              from.startsWith("/") ? from : "/"
             )}`,
           },
         }));
@@ -54,7 +68,7 @@ export default function LoginForm() {
     const hasSession = Boolean(result.data?.session);
     if (!hasSession && mode === "signup") {
       setNotice(
-        "가입 확인 이메일을 보냈어요. 메일의 링크를 클릭하면 로그인됩니다.",
+        "가입 확인 이메일을 보냈어요. 메일의 링크를 클릭하면 로그인됩니다."
       );
       toast({
         message:
@@ -97,7 +111,7 @@ export default function LoginForm() {
                 mode === "login"
                   ? "border-primary/40 bg-primary/15 text-primary"
                   : "border-border bg-surface text-muted hover:bg-surface-2 hover:text-foreground",
-          ].join(" ")}
+              ].join(" ")}
             >
               로그인
             </button>
@@ -115,8 +129,10 @@ export default function LoginForm() {
             </button>
           </div>
 
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-foreground">이메일</span>
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-semibold text-foreground">
+              이메일
+            </span>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -126,7 +142,7 @@ export default function LoginForm() {
             />
           </label>
 
-          <label className="space-y-2">
+          <label className="flex flex-col gap-2">
             <span className="text-sm font-semibold text-foreground">
               비밀번호
             </span>
@@ -136,7 +152,9 @@ export default function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/60"
               placeholder="8자 이상"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              autoComplete={
+                mode === "login" ? "current-password" : "new-password"
+              }
             />
           </label>
 
