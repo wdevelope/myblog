@@ -5,9 +5,7 @@ import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
 
 export default function Home() {
   // kept as server component without data to avoid extra load in local dev
-  return (
-    <HomePage />
-  );
+  return <HomePage />;
 }
 
 export const dynamic = "force-dynamic";
@@ -32,7 +30,7 @@ async function HomePage() {
     getPosts({ type: "feed" }),
   ]);
   const latest = [...blog.slice(0, 2), ...feed.slice(0, 2)].sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt),
+    b.createdAt.localeCompare(a.createdAt)
   );
 
   return (
@@ -40,20 +38,29 @@ async function HomePage() {
       <section className="grid items-center gap-8 md:grid-cols-2">
         <div className="space-y-5">
           <h1 className="text-4xl font-black leading-tight tracking-tight md:text-5xl">
-            안녕하세요. 기록하는 사람입니다.
+            안녕하세요. <br />
+            기록하는 사람입니다.
           </h1>
           <p className="max-w-xl text-sm leading-6 text-muted">
-            코드와 삶, 그리고 그 사이의 이야기를 기록합니다.
+            인생이야기를 기록합니다.
           </p>
           <div className="flex flex-wrap gap-3">
-            <ButtonLink href="/blog">최신 글 보기 →</ButtonLink>
+            <ButtonLink href="/article">최신 글 보기 →</ButtonLink>
             <ButtonLink href="/feed" variant="secondary">
               피드 보기
             </ButtonLink>
             {isAdmin ? (
-              <ButtonLink href="/admin" variant="secondary">
-                글쓰기
-              </ButtonLink>
+              <>
+                <ButtonLink href="/article/write" variant="secondary">
+                  아티클 쓰기
+                </ButtonLink>
+                <ButtonLink href="/feed/write" variant="secondary">
+                  피드 쓰기
+                </ButtonLink>
+                <ButtonLink href="/diary/write" variant="secondary">
+                  일기 쓰기
+                </ButtonLink>
+              </>
             ) : loggedIn ? (
               <ButtonLink href="/logout" variant="secondary">
                 로그아웃
@@ -92,7 +99,10 @@ async function HomePage() {
             >
               최신
             </Link>
-            <Link href="/blog" className="pb-3 text-sm font-medium text-muted">
+            <Link
+              href="/article"
+              className="pb-3 text-sm font-medium text-muted"
+            >
               아티클
             </Link>
             <Link href="/feed" className="pb-3 text-sm font-medium text-muted">
@@ -108,10 +118,10 @@ async function HomePage() {
           {latest.map((post) => {
             const href =
               post.type === "blog"
-                ? `/blog/${post.slug}`
+                ? `/article/${post.slug}`
                 : post.type === "feed"
-                  ? `/feed/${post.slug}`
-                  : `/diary/${post.slug}`;
+                ? `/feed/${post.slug}`
+                : `/diary/${post.slug}`;
 
             return (
               <Card
@@ -160,7 +170,7 @@ async function HomePage() {
             <Card>
               <CardBody>
                 <p className="text-sm text-muted">
-                  아직 글이 없어요. `/admin`에서 글을 작성해보세요.
+                  아직 글이 없어요. 글을 작성해보세요.
                 </p>
               </CardBody>
             </Card>

@@ -26,7 +26,7 @@ export default async function FeedPage() {
             </p>
           </div>
           {isAdmin ? (
-            <ButtonLink href="/admin?type=feed#editor" variant="secondary">
+            <ButtonLink href="/feed/write" variant="secondary">
               피드 쓰기
             </ButtonLink>
           ) : null}

@@ -69,7 +69,18 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const user = await requireAdmin("/admin");
+  const from = (() => {
+    const ref = request.headers.get("referer");
+    if (!ref) return "/";
+    try {
+      const url = new URL(ref);
+      return `${url.pathname}${url.search}`;
+    } catch {
+      return "/";
+    }
+  })();
+
+  const user = await requireAdmin(from);
 
   const body = (await request.json()) as Partial<{
     id: string;

@@ -21,7 +21,7 @@ export default async function BlogCategoryPage({ params }: Props) {
     <div className="space-y-8">
       <header className="space-y-3">
         <p className="text-sm text-muted">
-          <Link href="/blog" className="hover:text-foreground">
+          <Link href="/article" className="hover:text-foreground">
             아티클
           </Link>{" "}
           <span className="mx-2 text-muted/70">/</span> 카테고리
@@ -39,7 +39,7 @@ export default async function BlogCategoryPage({ params }: Props) {
               key={post.id}
               className="group overflow-hidden transition hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
             >
-              <Link href={`/blog/${post.slug}`} className="block">
+              <Link href={`/article/${post.slug}`} className="block">
                 <div className="relative aspect-video w-full overflow-hidden bg-surface-2">
                   <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent opacity-60 transition group-hover:opacity-40" />
                   <div className="absolute left-4 top-4">

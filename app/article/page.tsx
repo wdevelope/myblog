@@ -81,6 +81,46 @@ export default async function BlogIndexPage() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-12">
+      {/* Left sidebar - Categories */}
+      <aside className="lg:col-span-4 lg:col-start-1 lg:self-start lg:sticky lg:top-20 xl:col-span-3 xl:col-start-1">
+        <div className="space-y-4">
+          <h3 className="text-sm font-bold text-primary">전체 카테고리</h3>
+          <nav className="space-y-1">
+            <Link
+              href="/article"
+              className="flex items-center justify-between py-2 text-sm text-foreground hover:text-primary transition"
+            >
+              <span className="font-medium">전체 글</span>
+              <span className="text-xs text-muted">{posts.length}</span>
+            </Link>
+            {categories.map(([slug]) => (
+              <Link
+                key={slug}
+                href={`/article/category/${slug}`}
+                className="flex items-center justify-between py-2 text-sm text-muted hover:text-foreground transition"
+              >
+                <div className="flex items-center gap-2">
+                  <span>{slug}</span>
+                  <svg
+                    className="size-3.5 text-muted/60"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                    />
+                  </svg>
+                </div>
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </aside>
+
       {/* Main content - Post list */}
       <main className="lg:col-span-8 lg:col-start-5 xl:col-span-9 xl:col-start-4">
         <header className="mb-6 flex items-end justify-between gap-4 border-b border-border pb-4">
@@ -92,7 +132,7 @@ export default async function BlogIndexPage() {
           </div>
           {isAdmin ? (
             <Link
-              href="/admin?type=blog#editor"
+              href="/article/write"
               className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
             >
               아티클 쓰기
@@ -111,7 +151,7 @@ export default async function BlogIndexPage() {
               return (
                 <Link
                   key={post.id}
-                  href={`/blog/${post.slug}`}
+                  href={`/article/${post.slug}`}
                   className="group block"
                 >
                   <article className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10">
@@ -184,46 +224,6 @@ export default async function BlogIndexPage() {
           </div>
         )}
       </main>
-
-      {/* Left sidebar - Categories */}
-      <aside className="lg:col-span-4 lg:col-start-1 xl:col-span-3 xl:col-start-1">
-        <div className="sticky top-6 space-y-4">
-          <h3 className="text-sm font-bold text-primary">전체 카테고리</h3>
-          <nav className="space-y-1">
-            <Link
-              href="/blog"
-              className="flex items-center justify-between py-2 text-sm text-foreground hover:text-primary transition"
-            >
-              <span className="font-medium">전체 글</span>
-              <span className="text-xs text-muted">{posts.length}</span>
-            </Link>
-            {categories.map(([slug]) => (
-              <Link
-                key={slug}
-                href={`/blog/category/${slug}`}
-                className="flex items-center justify-between py-2 text-sm text-muted hover:text-foreground transition"
-              >
-                <div className="flex items-center gap-2">
-                  <span>{slug}</span>
-                  <svg
-                    className="size-3.5 text-muted/60"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-                    />
-                  </svg>
-                </div>
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </aside>
     </div>
   );
 }

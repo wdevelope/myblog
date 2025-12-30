@@ -22,7 +22,7 @@ export default async function BlogPostPage({
   } catch (e) {
     const err = e as { status?: number };
     if (err.status === 401)
-      redirect(`/login?from=${encodeURIComponent(`/blog/${slug}`)}`);
+      redirect(`/login?from=${encodeURIComponent(`/article/${slug}`)}`);
     if (err.status === 403) redirect("/");
     throw e;
   }
@@ -37,14 +37,14 @@ export default async function BlogPostPage({
           홈
         </Link>
         <span className="mx-2">/</span>
-        <Link href="/blog" className="hover:text-foreground">
+        <Link href="/article" className="hover:text-foreground">
           아티클
         </Link>
         {post.categorySlug ? (
           <>
             <span className="mx-2">/</span>
             <Link
-              href={`/blog/category/${post.categorySlug}`}
+              href={`/article/category/${post.categorySlug}`}
               className="hover:text-foreground"
             >
               {post.categorySlug}
@@ -105,7 +105,7 @@ export default async function BlogPostPage({
           ) : (
             <div className="mt-6">
               <Link
-                href={`/login?from=${encodeURIComponent(`/blog/${slug}`)}`}
+                href={`/login?from=${encodeURIComponent(`/article/${slug}`)}`}
                 className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
               >
                 로그인하고 댓글 쓰기

@@ -15,10 +15,23 @@ function slugify(input: string) {
     .replaceAll(/^-|-$/g, "");
 }
 
-export default function AdminEditor({ initialType }: { initialType?: PostType }) {
+function typeLabel(type: PostType) {
+  if (type === "blog") return "아티클";
+  if (type === "feed") return "피드";
+  return "일기";
+}
+
+export default function PostEditor({
+  type,
+  defaultVisibility,
+}: {
+  type: PostType;
+  defaultVisibility?: Visibility;
+}) {
   const router = useRouter();
-  const [type, setType] = useState<PostType>(() => initialType ?? "blog");
-  const [visibility, setVisibility] = useState<Visibility>("public");
+  const [visibility, setVisibility] = useState<Visibility>(
+    defaultVisibility ?? "public"
+  );
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [categorySlug, setCategorySlug] = useState("");
@@ -28,7 +41,10 @@ export default function AdminEditor({ initialType }: { initialType?: PostType })
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const effectiveSlug = useMemo(() => slug.trim() || slugify(title), [slug, title]);
+  const effectiveSlug = useMemo(
+    () => slug.trim() || slugify(title),
+    [slug, title]
+  );
 
   async function uploadFiles(files: FileList | null) {
     setError(null);
@@ -88,7 +104,7 @@ export default function AdminEditor({ initialType }: { initialType?: PostType })
 
     const created = (await response.json()) as { slug: string; type: PostType };
     startTransition(() => {
-      if (created.type === "blog") router.push(`/blog/${created.slug}`);
+      if (created.type === "blog") router.push(`/article/${created.slug}`);
       else if (created.type === "feed") router.push(`/feed/${created.slug}`);
       else router.push(`/diary/${created.slug}`);
       router.refresh();
@@ -99,7 +115,9 @@ export default function AdminEditor({ initialType }: { initialType?: PostType })
     <div className="overflow-hidden rounded-2xl border border-border bg-background">
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-muted">에디터</span>
+          <span className="text-sm font-semibold text-muted">
+            {typeLabel(type)} 글쓰기
+          </span>
           <span className="text-xs text-muted">
             {isPending ? "저장 중..." : "임시"}
           </span>
@@ -126,50 +144,6 @@ export default function AdminEditor({ initialType }: { initialType?: PostType })
       <div className="grid gap-0 lg:grid-cols-[320px_1fr]">
         <aside className="border-b border-border bg-background p-5 lg:border-b-0 lg:border-r">
           <div className="space-y-5">
-            <div className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted">
-                글 종류
-              </p>
-              <div className="grid gap-2">
-                <label className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="content_type"
-                    className="sr-only"
-                    checked={type === "blog"}
-                    onChange={() => setType("blog")}
-                  />
-                  <div className="rounded-xl border border-border bg-surface px-3 py-3 text-sm font-semibold text-foreground hover:bg-surface-2">
-                    아티클
-                  </div>
-                </label>
-                <label className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="content_type"
-                    className="sr-only"
-                    checked={type === "feed"}
-                    onChange={() => setType("feed")}
-                  />
-                  <div className="rounded-xl border border-border bg-surface px-3 py-3 text-sm font-semibold text-foreground hover:bg-surface-2">
-                    피드 글
-                  </div>
-                </label>
-                <label className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="content_type"
-                    className="sr-only"
-                    checked={type === "diary"}
-                    onChange={() => setType("diary")}
-                  />
-                  <div className="rounded-xl border border-border bg-surface px-3 py-3 text-sm font-semibold text-foreground hover:bg-surface-2">
-                    일기
-                  </div>
-                </label>
-              </div>
-            </div>
-
             <div className="grid gap-3">
               <label className="space-y-1 text-sm">
                 <span className="font-semibold text-foreground">공개 범위</span>
@@ -281,3 +255,4 @@ export default function AdminEditor({ initialType }: { initialType?: PostType })
     </div>
   );
 }
+

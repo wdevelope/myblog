@@ -216,7 +216,7 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
               {distinctDayCount}일의 기록
             </p>
             <Link
-              href="/admin?type=diary#editor"
+              href="/diary/write"
               className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
             >
               일기 쓰기
@@ -259,7 +259,7 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
               </p>
               <div className="mt-4">
                 <Link
-                  href="/admin#editor"
+                  href="/diary/write"
                   className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
                 >
                   오늘 일기 작성하기
@@ -343,7 +343,7 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
           </div>
 
           <Link
-            href="/admin#editor"
+            href="/diary/write"
             className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-background p-5 transition hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
           >
             <div className="flex items-center gap-4">

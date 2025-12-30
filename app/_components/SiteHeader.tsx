@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
+import { getCurrentUser } from "@/lib/server/admin";
 
 function Brand() {
   return (
@@ -35,7 +35,6 @@ function NavLink({
 export default async function SiteHeader() {
   const user = await getCurrentUser();
   const loggedIn = Boolean(user);
-  const isAdmin = await isAdminDb(user);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/75 backdrop-blur-md">
@@ -44,7 +43,7 @@ export default async function SiteHeader() {
           <Brand />
           <nav className="hidden items-center gap-6 md:flex">
             <NavLink href="/feed">피드</NavLink>
-            <NavLink href="/blog">아티클</NavLink>
+            <NavLink href="/article">아티클</NavLink>
             <NavLink href="/diary">일기</NavLink>
           </nav>
         </div>
@@ -63,15 +62,6 @@ export default async function SiteHeader() {
               />
             </div>
           </label>
-
-          {isAdmin ? (
-            <Link
-              href="/admin"
-              className="hidden h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 sm:flex"
-            >
-              관리
-            </Link>
-          ) : null}
 
           {loggedIn ? (
             <Link
