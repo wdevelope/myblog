@@ -10,6 +10,60 @@ function typeLabel(type: PostType) {
   return "일기";
 }
 
+function escapeHtml(input: string) {
+  return input
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function highlightMarkdown(input: string) {
+  const lines = input.split("\n");
+  let inFence = false;
+
+  const out = lines.map((rawLine) => {
+    const line = escapeHtml(rawLine);
+
+    if (/^\s*```/.test(rawLine)) {
+      inFence = !inFence;
+      return `<span class="text-muted">\`\`\`</span>${line.replace(/^\s*```/, "")}`;
+    }
+
+    if (inFence) {
+      return `<span class="text-emerald-700/80 dark:text-emerald-400/80">${line || "&nbsp;"}</span>`;
+    }
+
+    let html = line;
+
+    // headings: ## ...
+    html = html.replace(
+      /^(#{1,6})(\s+)/,
+      '<span class="text-primary/80 font-bold">$1</span>$2',
+    );
+    // blockquote: > ...
+    html = html.replace(
+      /^(\s*&gt;)(\s*)/,
+      '<span class="text-muted font-bold">$1</span>$2',
+    );
+    // lists: - / * / 1.
+    html = html.replace(
+      /^(\s*(?:[-*+]|\\d+\\.))(\s+)/,
+      '<span class="text-muted font-bold">$1</span>$2',
+    );
+    // inline code markers `
+    html = html.replace(/`/g, '<span class="text-primary/80 font-bold">`</span>');
+    // emphasis markers
+    html = html.replace(/\*\*/g, '<span class="text-primary/80 font-bold">**</span>');
+    html = html.replace(/~~/g, '<span class="text-primary/80 font-bold">~~</span>');
+
+    return html || "&nbsp;";
+  });
+
+  return out.join("\n");
+}
+
 export default function PostEditor({
   type,
   defaultVisibility,
@@ -42,6 +96,7 @@ export default function PostEditor({
   const [isPending, startTransition] = useTransition();
   const [categories, setCategories] = useState<string[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const highlightRef = useRef<HTMLPreElement | null>(null);
 
   const categoryOptions = useMemo(() => {
     const current = categorySlug.trim();
@@ -405,14 +460,29 @@ export default function PostEditor({
             />
           </div>
 
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="min-h-[540px] w-full resize-none bg-transparent p-7 font-mono text-sm leading-relaxed text-foreground outline-none"
-            placeholder="내용을 입력하세요..."
-            spellCheck={false}
-          />
+          <div className="relative">
+            <pre
+              ref={highlightRef}
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-0 min-h-[540px] w-full overflow-auto whitespace-pre-wrap break-words p-7 font-mono text-sm leading-relaxed text-foreground"
+              dangerouslySetInnerHTML={{ __html: highlightMarkdown(content) }}
+            />
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="relative z-10 min-h-[540px] w-full resize-none bg-transparent p-7 font-mono text-sm leading-relaxed text-transparent caret-foreground outline-none placeholder:text-muted"
+              placeholder="내용을 입력하세요..."
+              spellCheck={false}
+              onScroll={(e) => {
+                const target = e.currentTarget;
+                if (highlightRef.current) {
+                  highlightRef.current.scrollTop = target.scrollTop;
+                  highlightRef.current.scrollLeft = target.scrollLeft;
+                }
+              }}
+            />
+          </div>
         </main>
       </div>
     </div>
