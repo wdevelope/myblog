@@ -13,10 +13,12 @@ export async function createSupabaseServerClient() {
       },
       setAll(cookiesToSet) {
         for (const cookie of cookiesToSet) {
-          cookieStore.set(cookie.name, cookie.value, cookie.options);
+          try {
+            cookieStore.set(cookie.name, cookie.value, cookie.options);
+          } catch {
+          }
         }
       },
     },
   });
 }
-
