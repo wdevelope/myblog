@@ -5,6 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
+const REMEMBER_EMAIL_KEY = "myblog:remember_email";
+const SAVED_EMAIL_KEY = "myblog:saved_email";
+
+function getRememberedEmail() {
+  if (typeof window === "undefined") return { remember: false, email: "" };
+  const remember = window.localStorage.getItem(REMEMBER_EMAIL_KEY) === "1";
+  const saved = window.localStorage.getItem(SAVED_EMAIL_KEY) ?? "";
+  return { remember, email: remember ? saved : "" };
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,15 +33,22 @@ export default function LoginForm() {
   }, [loggedOut, router, searchParamsString]);
 
   const [mode, setMode] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => getRememberedEmail().email);
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [rememberEmail, setRememberEmail] = useState(
+    () => getRememberedEmail().remember
+  );
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const canSubmit = useMemo(
-    () => email.trim().length > 0 && password.length >= 8,
-    [email, password]
+    () =>
+      email.trim().length > 0 &&
+      password.length >= 8 &&
+      (mode === "login" || password === confirmPassword),
+    [confirmPassword, email, mode, password]
   );
 
   async function submit() {
@@ -41,6 +58,10 @@ export default function LoginForm() {
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail) return;
+    if (mode === "signup" && password !== confirmPassword) {
+      setError("비밀번호가 일치하지 않습니다.");
+      return;
+    }
 
     const result = await (mode === "login"
       ? supabase.auth.signInWithPassword({
@@ -77,6 +98,15 @@ export default function LoginForm() {
     }
 
     startTransition(() => {
+      if (mode === "login" && typeof window !== "undefined") {
+        if (rememberEmail) {
+          window.localStorage.setItem(REMEMBER_EMAIL_KEY, "1");
+          window.localStorage.setItem(SAVED_EMAIL_KEY, trimmedEmail);
+        } else {
+          window.localStorage.removeItem(REMEMBER_EMAIL_KEY);
+          window.localStorage.removeItem(SAVED_EMAIL_KEY);
+        }
+      }
       toast.success(mode === "login" ? "로그인 완료" : "회원가입 완료");
       router.replace(from.startsWith("/") ? from : "/");
       router.refresh();
@@ -151,6 +181,39 @@ export default function LoginForm() {
               }
             />
           </label>
+
+          {mode === "signup" ? (
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-semibold text-foreground">
+                비밀번호 확인
+              </span>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/60"
+                placeholder="비밀번호를 다시 입력"
+                autoComplete="new-password"
+              />
+            </label>
+          ) : (
+            <label className="flex items-center justify-between rounded-xl border border-border bg-background px-4 py-3">
+              <span className="text-sm font-semibold text-foreground">
+                아이디 저장
+              </span>
+              <span className="relative inline-flex items-center">
+                <input
+                  type="checkbox"
+                  checked={rememberEmail}
+                  onChange={(e) => setRememberEmail(e.target.checked)}
+                  className="peer sr-only"
+                  aria-label="아이디 저장"
+                />
+                <span className="h-6 w-11 rounded-full border border-border bg-surface-2 transition peer-checked:border-primary/30 peer-checked:bg-primary/20" />
+                <span className="absolute left-1 top-1 size-4 rounded-full bg-surface shadow-sm transition peer-checked:translate-x-5" />
+              </span>
+            </label>
+          )}
 
           {error ? <p className="text-sm text-red-500">{error}</p> : null}
           {notice ? <p className="text-sm text-emerald-600">{notice}</p> : null}
