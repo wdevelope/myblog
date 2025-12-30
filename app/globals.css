@@ -29,17 +29,15 @@
     "Liberation Mono", "Courier New", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #101622;
-    --foreground: #e5e7eb;
+.dark {
+  --background: #101622;
+  --foreground: #e5e7eb;
 
-    --primary: #135bec;
-    --surface: #151a23;
-    --surface-2: #1c2333;
-    --border: #282e39;
-    --muted: #9da6b9;
-  }
+  --primary: #135bec;
+  --surface: #151a23;
+  --surface-2: #1c2333;
+  --border: #282e39;
+  --muted: #9da6b9;
 }
 
 body {
@@ -112,7 +110,7 @@ body {
   padding: 1rem;
   border-radius: 1rem;
   border: 1px solid var(--border);
-  background: #0d1117;
+  background: var(--surface-2);
 }
 
 .markdown pre code {
@@ -120,7 +118,7 @@ body {
   border: none;
   padding: 0;
   font-size: 0.9em;
-  color: #e5e7eb;
+  color: var(--foreground);
 }
 
 .markdown blockquote {

@@ -199,14 +199,14 @@ export default function PostEditor({
           </div>
         </aside>
 
-        <main className="min-w-0 bg-[#0f1115]">
-          <div className="border-b border-border px-7 py-5">
+        <main className="min-w-0 bg-surface">
+          <div className="border-b border-border bg-surface px-7 py-5">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-1 rounded-2xl border border-white/10 bg-black/10 p-1">
+              <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-surface-2 p-1">
                 <button
                   type="button"
                   onClick={() => insertLinePrefix("# ")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
                   aria-label="제목 1"
                   title="제목 1"
                 >
@@ -215,7 +215,7 @@ export default function PostEditor({
                 <button
                   type="button"
                   onClick={() => insertLinePrefix("## ")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
                   aria-label="제목 2"
                   title="제목 2"
                 >
@@ -223,13 +223,13 @@ export default function PostEditor({
                 </button>
               </div>
 
-              <div className="h-6 w-px bg-white/10" />
+              <div className="h-6 w-px bg-border" />
 
-              <div className="inline-flex items-center gap-1 rounded-2xl border border-white/10 bg-black/10 p-1">
+              <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-surface-2 p-1">
                 <button
                   type="button"
                   onClick={() => applyMarkdown("**", "**")}
-                  className="h-9 rounded-xl px-3 text-sm font-black text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="h-9 rounded-xl px-3 text-sm font-black text-foreground/80 transition hover:bg-surface hover:text-foreground"
                   aria-label="굵게"
                   title="굵게"
                 >
@@ -238,7 +238,7 @@ export default function PostEditor({
                 <button
                   type="button"
                   onClick={() => applyMarkdown("*", "*")}
-                  className="h-9 rounded-xl px-3 text-sm font-black italic text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="h-9 rounded-xl px-3 text-sm font-black italic text-foreground/80 transition hover:bg-surface hover:text-foreground"
                   aria-label="기울임"
                   title="기울임"
                 >
@@ -247,7 +247,7 @@ export default function PostEditor({
                 <button
                   type="button"
                   onClick={() => applyMarkdown("~~", "~~")}
-                  className="h-9 rounded-xl px-3 text-sm font-black text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="h-9 rounded-xl px-3 text-sm font-black text-foreground/80 transition hover:bg-surface hover:text-foreground"
                   aria-label="취소선"
                   title="취소선"
                 >
@@ -255,13 +255,13 @@ export default function PostEditor({
                 </button>
               </div>
 
-              <div className="h-6 w-px bg-white/10" />
+              <div className="h-6 w-px bg-border" />
 
-              <div className="inline-flex items-center gap-1 rounded-2xl border border-white/10 bg-black/10 p-1">
+              <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-surface-2 p-1">
                 <button
                   type="button"
                   onClick={() => insertLinePrefix("- ")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
                   aria-label="불릿 리스트"
                   title="불릿 리스트"
                 >
@@ -270,7 +270,7 @@ export default function PostEditor({
                 <button
                   type="button"
                   onClick={() => insertLinePrefix("1. ")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
                   aria-label="번호 리스트"
                   title="번호 리스트"
                 >
@@ -279,7 +279,7 @@ export default function PostEditor({
                 <button
                   type="button"
                   onClick={() => insertLinePrefix("> ")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
                   aria-label="인용"
                   title="인용"
                 >
@@ -287,13 +287,13 @@ export default function PostEditor({
                 </button>
               </div>
 
-              <div className="h-6 w-px bg-white/10" />
+              <div className="h-6 w-px bg-border" />
 
-              <div className="inline-flex items-center gap-1 rounded-2xl border border-white/10 bg-black/10 p-1">
+              <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-surface-2 p-1">
                 <button
                   type="button"
                   onClick={() => applyMarkdown("`", "`")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
                   aria-label="인라인 코드"
                   title="인라인 코드"
                 >
@@ -302,7 +302,7 @@ export default function PostEditor({
                 <button
                   type="button"
                   onClick={() => applyMarkdown("\n```\n", "\n```\n")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
                   aria-label="코드 블록"
                   title="코드 블록"
                 >
@@ -315,7 +315,7 @@ export default function PostEditor({
                     if (!url) return;
                     applyMarkdown("[", `](${url})`);
                   }}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
                   aria-label="링크"
                   title="링크"
                 >
@@ -329,7 +329,7 @@ export default function PostEditor({
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full border-0 bg-transparent px-0 text-3xl font-black tracking-tight text-white placeholder:text-white/40 outline-none"
+              className="w-full border-0 bg-transparent px-0 text-3xl font-black tracking-tight text-foreground placeholder:text-muted outline-none"
               placeholder="제목"
             />
           </div>
@@ -338,7 +338,7 @@ export default function PostEditor({
             ref={textareaRef}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="min-h-[540px] w-full resize-none bg-transparent p-7 font-mono text-sm leading-relaxed text-[#d4d4d4] outline-none"
+            className="min-h-[540px] w-full resize-none bg-transparent p-7 font-mono text-sm leading-relaxed text-foreground outline-none"
             placeholder="내용을 입력하세요..."
             spellCheck={false}
           />
