@@ -22,7 +22,6 @@ Next.js(App Router) + Tailwind CSS 기반 개인 블로그.
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (서버 전용: admin-only/private 이미지 signed URL 등에 사용)
-- `ADMIN_EMAILS` (admin 판별용 email 목록: 로그인 시 `public.users.is_admin` 동기화에 사용)
 
 선택:
 
@@ -39,8 +38,8 @@ npm run dev
 
 ## 주요 라우트
 
-- 공개 섹션: `/`, `/blog`, `/feed`
-- 보호 섹션(로그인 필요): `/diary`, `/admin`
+- 공개 섹션: `/`, `/article`, `/feed`
+- 보호 섹션(admin 필요): `/diary`, `/article/write`, `/feed/write`, `/diary/write`
 - 인증: `/login` (로그인/회원가입), `/logout` (로그아웃)
 
 ## 로컬 목업 API
@@ -66,4 +65,4 @@ npm run build
 
 - Vercel에 Git 리포지토리 연결
 - Project Settings → Environment Variables에 `.env.example` 항목 설정
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_EMAILS`는 Vercel 환경변수로 반드시 설정
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`는 Vercel 환경변수로 반드시 설정

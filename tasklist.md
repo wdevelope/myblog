@@ -29,14 +29,14 @@
 - [x] Supabase 프로젝트 생성
 - [ ] `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 설정
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` 설정(서버 전용)
-- [ ] `ADMIN_EMAILS` 설정(관리자 이메일 목록: 최초 admin 부트스트랩용)
+- [ ] `public.users.is_admin`에 관리자 지정(최초 admin 부트스트랩)
 
 ### Auth 설정
 
 - [ ] Supabase Auth 활성화(Email/Password)
 - [ ] (선택) 이메일 확인/비밀번호 정책 설정
 - [x] 관리자/일반 사용자 역할 구분 전략 확정
-  - [x] 기본: 로그인 시 `ADMIN_EMAILS`에 포함된 사용자 → `public.users.is_admin=true`로 동기화(부트스트랩)
+  - [x] 기본: `public.users.is_admin=true`인 사용자를 admin으로 판별
   - [x] 이후 권한 체크: DB RLS는 `public.users.is_admin` 기준
 
 ---
@@ -98,9 +98,8 @@
 - [x] `/login` 구현(로그인/회원가입)
 - [x] `/logout` 구현
 - [x] admin 판별
-  - [x] 앱 레벨: `ADMIN_EMAILS` 기반
-  - [x] DB 레벨(RLS): `public.users.is_admin` 기반(로그인 시 동기화)
-- [x] 보호 섹션: `/diary`, `/admin` (admin only)
+  - [x] DB 레벨(RLS): `public.users.is_admin` 기반
+- [x] 보호 섹션: `/diary`, `/article/write`, `/feed/write`, `/diary/write` (admin only)
 
 # 🟦 PHASE 6. Next.js 프론트엔드
 
@@ -137,7 +136,7 @@
 
 # 🟦 PHASE 7. 관리자 기능 (최소)
 
-- [x] 관리자 인증 (Supabase Auth + `ADMIN_EMAILS`/`public.users.is_admin`)
+- [x] 관리자 인증 (Supabase Auth + `public.users.is_admin`)
 - [x] 글 작성 폼
 - [x] Markdown 입력
 - [x] 미리보기

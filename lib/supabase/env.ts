@@ -22,11 +22,3 @@ export function getSupabaseEnv() {
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   };
 }
-
-export function getAdminEmails() {
-  const raw = process.env.ADMIN_EMAILS ?? "";
-  return raw
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-}
