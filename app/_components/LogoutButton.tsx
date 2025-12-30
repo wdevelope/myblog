@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { useToast } from "@/app/_components/ToastProvider";
+import { toast } from "sonner";
 
 export default function LogoutButton({
   className,
@@ -12,7 +12,6 @@ export default function LogoutButton({
   children?: React.ReactNode;
 }) {
   const router = useRouter();
-  const { toast } = useToast();
 
   async function onLogout() {
     try {
@@ -20,7 +19,7 @@ export default function LogoutButton({
       await supabase.auth.signOut();
       await fetch("/logout", { redirect: "manual" }).catch(() => null);
     } finally {
-      toast({ message: "로그아웃 완료", variant: "success" });
+      toast.success("로그아웃 완료");
       router.replace("/login");
       router.refresh();
     }

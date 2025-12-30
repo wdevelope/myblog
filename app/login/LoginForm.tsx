@@ -3,25 +3,24 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { useToast } from "@/app/_components/ToastProvider";
+import { toast } from "sonner";
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const from = searchParams.get("from") ?? "/";
-  const { toast } = useToast();
   const loggedOut = searchParams.get("logged_out") === "1";
 
   useEffect(() => {
     if (!loggedOut) return;
-    toast({ message: "로그아웃 완료", variant: "success" });
+    toast.success("로그아웃 완료");
 
     const next = new URLSearchParams(searchParamsString);
     next.delete("logged_out");
     const qs = next.toString();
     router.replace(qs ? `/login?${qs}` : "/login");
-  }, [loggedOut, router, searchParamsString, toast]);
+  }, [loggedOut, router, searchParamsString]);
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -70,20 +69,15 @@ export default function LoginForm() {
       setNotice(
         "가입 확인 이메일을 보냈어요. 메일의 링크를 클릭하면 로그인됩니다."
       );
-      toast({
-        message:
-          "가입 확인 이메일을 보냈어요. 메일의 링크를 클릭하면 로그인됩니다.",
-        variant: "success",
-      });
+      toast.success(
+        "가입 확인 이메일을 보냈어요. 메일의 링크를 클릭하면 로그인됩니다."
+      );
       setMode("login");
       return;
     }
 
     startTransition(() => {
-      toast({
-        message: mode === "login" ? "로그인 완료" : "회원가입 완료",
-        variant: "success",
-      });
+      toast.success(mode === "login" ? "로그인 완료" : "회원가입 완료");
       router.replace(from.startsWith("/") ? from : "/");
       router.refresh();
     });
