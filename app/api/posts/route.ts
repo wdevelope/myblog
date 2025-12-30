@@ -107,6 +107,20 @@ export async function POST(request: Request) {
 
   const baseSlug = body.slug?.trim() || slugify(body.title) || "post";
   const service = createSupabaseServiceClient();
+  const categorySlug =
+    body.type === "blog" ? (body.categorySlug?.trim() ?? null) : null;
+
+  if (body.type === "blog" && categorySlug) {
+    const { error: categoryError } = await service
+      .from("categories")
+      .upsert({ slug: categorySlug }, { onConflict: "slug" });
+    if (categoryError) {
+      return NextResponse.json(
+        { error: "db_error", details: categoryError.message },
+        { status: 500 },
+      );
+    }
+  }
 
   // ensure slug unique (best-effort)
   let slug = baseSlug;
@@ -127,7 +141,7 @@ export async function POST(request: Request) {
     visibility: body.visibility,
     title: body.title,
     content: body.content,
-    category_slug: body.categorySlug ?? null,
+    category_slug: categorySlug,
     image_keys: body.imageKeys ?? [],
     author_id: user.id,
   };

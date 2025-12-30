@@ -1,8 +1,10 @@
 import Link from "next/link";
 import DeletePostButton from "@/app/_components/DeletePostButton";
+import CategorySettingsModal from "@/app/article/CategorySettingsModal";
 import { getPublicPosts } from "@/lib/server/publicPosts";
 import { getPosts } from "@/lib/api";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "아티클",
@@ -81,14 +83,29 @@ export default async function BlogIndexPage() {
     acc[key] = (acc[key] ?? 0) + 1;
     return acc;
   }, {});
-  const categories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
+
+  const supabase = await createSupabaseServerClient();
+  const { data: categoryRows } = await supabase
+    .from("categories")
+    .select("slug")
+    .order("slug", { ascending: true });
+  const categories = Array.from(
+    new Set([...(categoryRows ?? []).map((row) => row.slug), ...Object.keys(categoryCounts)]),
+  ).sort(
+    (a, b) =>
+      (categoryCounts[b] ?? 0) - (categoryCounts[a] ?? 0) ||
+      a.localeCompare(b, "ko"),
+  );
 
   return (
     <div className="grid gap-8 lg:grid-cols-12">
       {/* Left sidebar - Categories */}
       <aside className="lg:col-span-4 lg:col-start-1 lg:self-start lg:sticky lg:top-20 xl:col-span-3 xl:col-start-1">
         <div className="space-y-4">
-          <h3 className="text-sm font-bold text-primary">전체 카테고리</h3>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-bold text-primary">전체 카테고리</h3>
+            {isAdmin ? <CategorySettingsModal /> : null}
+          </div>
           <nav className="space-y-1">
             <Link
               href="/article"
@@ -97,7 +114,7 @@ export default async function BlogIndexPage() {
               <span className="font-medium">전체 글</span>
               <span className="text-xs text-muted">{posts.length}</span>
             </Link>
-            {categories.map(([slug]) => (
+            {categories.map((slug) => (
               <Link
                 key={slug}
                 href={`/article/category/${slug}`}
