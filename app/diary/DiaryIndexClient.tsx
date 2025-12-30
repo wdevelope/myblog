@@ -289,7 +289,7 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
       </section>
 
       <aside className="lg:col-span-4 xl:col-span-3">
-        <div className="sticky top-6 space-y-6">
+        <div className="space-y-6 lg:sticky lg:top-24">
           <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

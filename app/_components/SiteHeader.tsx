@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/server/admin";
 import LogoutButton from "@/app/_components/LogoutButton";
+import MobileNav from "@/app/_components/MobileNav";
 
 function Brand() {
   return (
@@ -78,14 +79,7 @@ export default async function SiteHeader() {
               로그인
             </Link>
           )}
-
-          <button
-            type="button"
-            className="inline-flex size-10 items-center justify-center rounded-xl border border-border bg-surface text-foreground md:hidden"
-            aria-label="메뉴"
-          >
-            ☰
-          </button>
+          <MobileNav loggedIn={loggedIn} />
         </div>
       </div>
     </header>
