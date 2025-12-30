@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { FiSettings } from "react-icons/fi";
 
 type Category = { slug: string; inUse?: number };
 
@@ -174,28 +175,11 @@ export default function CategorySettingsModal() {
       <button
         type="button"
         onClick={() => void open()}
-        className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-bold text-foreground transition hover:bg-surface-2"
+        aria-label="카테고리 설정"
+        title="카테고리 설정"
+        className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
       >
-        <svg
-          className="size-4 text-muted"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M11.42 2.17a.75.75 0 011.16 0l1.4 1.68a.75.75 0 00.61.27l2.17-.15a.75.75 0 01.82.82l-.15 2.17a.75.75 0 00.27.61l1.68 1.4a.75.75 0 010 1.16l-1.68 1.4a.75.75 0 00-.27.61l.15 2.17a.75.75 0 01-.82.82l-2.17-.15a.75.75 0 00-.61.27l-1.4 1.68a.75.75 0 01-1.16 0l-1.4-1.68a.75.75 0 00-.61-.27l-2.17.15a.75.75 0 01-.82-.82l.15-2.17a.75.75 0 00-.27-.61l-1.68-1.4a.75.75 0 010-1.16l1.68-1.4a.75.75 0 00.27-.61l-.15-2.17a.75.75 0 01.82-.82l2.17.15a.75.75 0 00.61-.27l1.4-1.68z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-        </svg>
-        설정
+        <FiSettings className="size-4 text-muted" aria-hidden />
       </button>
 
       <dialog
@@ -397,4 +381,3 @@ export default function CategorySettingsModal() {
     </>
   );
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PostType, Visibility } from "@/lib/types";
 
@@ -40,6 +40,38 @@ export default function PostEditor({
   const [imageKeys, setImageKeys] = useState<string[]>(initial?.imageKeys ?? []);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [categories, setCategories] = useState<string[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+
+  const categoryOptions = useMemo(() => {
+    const current = categorySlug.trim();
+    const list = categories.slice();
+    if (current && !list.includes(current)) list.unshift(current);
+    return list;
+  }, [categories, categorySlug]);
+
+  async function refreshCategories() {
+    if (type !== "blog") return;
+    setCategoriesLoading(true);
+    try {
+      const response = await fetch("/api/categories", { method: "GET" });
+      if (!response.ok) return;
+      const payload = (await response.json()) as {
+        categories: Array<{ slug: string } | { slug: string; inUse?: number }>;
+      };
+      const slugs = (payload.categories ?? [])
+        .map((c) => c.slug)
+        .filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+      setCategories(Array.from(new Set(slugs)));
+    } finally {
+      setCategoriesLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void refreshCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type]);
 
   const applyMarkdown = useCallback(
     (prefix: string, suffix = "") => {
@@ -178,12 +210,36 @@ export default function PostEditor({
               {type === "blog" ? (
                 <label className="space-y-1 text-sm">
                   <span className="font-semibold text-foreground">카테고리</span>
-                  <input
-                    value={categorySlug}
-                    onChange={(e) => setCategorySlug(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
-                    placeholder="예: frontend, backend"
-                  />
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={categorySlug}
+                      onChange={(e) => setCategorySlug(e.target.value)}
+                      className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
+                    >
+                      <option value="">카테고리를 선택해주세요</option>
+                      {categoryOptions.map((slug) => (
+                        <option key={slug} value={slug}>
+                          {slug}
+                          {categories.includes(slug) ? "" : " (삭제됨)"}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => void refreshCategories()}
+                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2 disabled:opacity-50"
+                      disabled={categoriesLoading}
+                      title="카테고리 새로고침"
+                      aria-label="카테고리 새로고침"
+                    >
+                      ↻
+                    </button>
+                  </div>
+                  {!categoriesLoading && categories.length === 0 ? (
+                    <p className="text-xs text-muted">
+                      먼저 아티클 페이지에서 카테고리를 생성해주세요.
+                    </p>
+                  ) : null}
                 </label>
               ) : null}
 
