@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import DeletePostButton from "@/app/_components/DeletePostButton";
 
 type DiaryPost = {
   id: string;
@@ -227,28 +228,45 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
         <div className="divide-y divide-border">
           {visiblePosts.length ? (
             visiblePosts.map((post) => (
-              <Link
-                key={post.id}
-                href={`/diary/${post.slug}`}
-                className="group block py-6 first:pt-0"
-              >
+              <div key={post.id} className="py-6 first:pt-0">
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 text-muted/80">
                     <LockIcon className="size-5" />
                   </div>
                   <div className="min-w-0 flex-1 space-y-2">
-                    <h2 className="truncate text-lg font-bold text-foreground transition group-hover:text-primary">
-                      {post.title}
-                    </h2>
+                    <Link
+                      href={`/diary/${post.slug}`}
+                      className="block min-w-0"
+                    >
+                      <h2 className="truncate text-lg font-bold text-foreground transition hover:text-primary">
+                        {post.title}
+                      </h2>
+                    </Link>
                     <p className="line-clamp-2 text-sm leading-6 text-muted">
                       {post.content}
                     </p>
-                    <p className="text-sm text-muted">
-                      {formatDateKorean(new Date(post.createdAt))}
-                    </p>
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <p className="text-sm text-muted">
+                        {formatDateKorean(new Date(post.createdAt))}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/diary/edit/${post.slug}`}
+                          className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
+                        >
+                          수정
+                        </Link>
+                        <DeletePostButton
+                          slug={post.slug}
+                          className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
+                        >
+                          삭제
+                        </DeletePostButton>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </Link>
+              </div>
             ))
           ) : (
             <div className="py-16 text-center">

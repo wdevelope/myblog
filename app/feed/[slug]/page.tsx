@@ -2,10 +2,12 @@ import { getComments, getPostBySlug } from "@/lib/api";
 import CommentForm from "@/app/_components/CommentForm";
 import PostImages from "@/app/_components/PostImages";
 import Markdown from "@/app/_components/Markdown";
+import BackButton from "@/app/_components/BackButton";
+import DeletePostButton from "@/app/_components/DeletePostButton";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Badge, Card, CardBody } from "@/app/_components/ui";
-import { getCurrentUser } from "@/lib/server/admin";
+import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +29,37 @@ export default async function FeedPostPage({
   }
   if (post.type !== "feed") notFound();
   const user = await getCurrentUser();
+  const isAdmin = await isAdminDb(user);
   const comments = user ? await getComments({ postId: post.id }) : [];
 
   return (
     <article className="mx-auto max-w-3xl space-y-8">
+      <div className="flex items-center justify-between gap-4">
+        <BackButton
+          fallbackHref="/feed"
+          className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
+        >
+          ← 뒤로
+        </BackButton>
+        {isAdmin ? (
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/feed/edit/${post.slug}`}
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
+            >
+              수정
+            </Link>
+            <DeletePostButton
+              slug={post.slug}
+              redirectTo="/feed"
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
+            >
+              삭제
+            </DeletePostButton>
+          </div>
+        ) : null}
+      </div>
+
       <nav className="text-sm text-muted">
         <Link href="/" className="hover:text-foreground">
           홈

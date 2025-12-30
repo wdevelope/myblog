@@ -1,5 +1,7 @@
 import Link from "next/link";
+import DeletePostButton from "@/app/_components/DeletePostButton";
 import { getPublicPosts } from "@/lib/server/publicPosts";
+import { getPosts } from "@/lib/api";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 
 export const metadata = {
@@ -67,9 +69,11 @@ function PublishedIcon({ className }: { className?: string }) {
 }
 
 export default async function BlogIndexPage() {
-  const posts = await getPublicPosts({ type: "blog" });
   const user = await getCurrentUser();
   const isAdmin = await isAdminDb(user);
+  const posts = isAdmin
+    ? await getPosts({ type: "blog" })
+    : await getPublicPosts({ type: "blog" });
 
   const categoryCounts = posts.reduce<Record<string, number>>((acc, post) => {
     const key = post.categorySlug?.trim();
@@ -149,72 +153,89 @@ export default async function BlogIndexPage() {
                 : null;
 
               return (
-                <Link
-                  key={post.id}
-                  href={`/article/${post.slug}`}
-                  className="group block"
-                >
-                  <article className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10">
-                    <div className="p-5">
-                      <div className="flex items-center justify-between">
-                        <span className="inline-flex rounded-xl bg-primary/15 px-3 py-1 text-xs font-bold text-primary ring-1 ring-primary/20">
-                          {dateLabel}
-                        </span>
-                        <div className="text-muted/80">
-                          {post.visibility === "private" ? (
-                            <LockIcon className="size-5" />
+                <div key={post.id} className="group">
+                  <Link href={`/article/${post.slug}`} className="block">
+                    <article className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10">
+                      <div className="p-5">
+                        <div className="flex items-center justify-between">
+                          <span className="inline-flex rounded-xl bg-primary/15 px-3 py-1 text-xs font-bold text-primary ring-1 ring-primary/20">
+                            {dateLabel}
+                          </span>
+                          <div className="text-muted/80">
+                            {post.visibility === "private" ? (
+                              <LockIcon className="size-5" />
+                            ) : (
+                              <PublishedIcon className="size-5 text-emerald-400/80" />
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface-2">
+                          {coverSrc ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={coverSrc}
+                              alt=""
+                              className="h-44 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                              loading="lazy"
+                            />
                           ) : (
-                            <PublishedIcon className="size-5 text-emerald-400/80" />
+                            <div className="h-44 w-full bg-[radial-gradient(70%_70%_at_50%_35%,rgba(19,91,236,0.35)_0%,rgba(147,51,234,0.18)_50%,rgba(16,22,34,0)_100%)]" />
                           )}
                         </div>
-                      </div>
 
-                      <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface-2">
-                        {coverSrc ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={coverSrc}
-                            alt=""
-                            className="h-44 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="h-44 w-full bg-[radial-gradient(70%_70%_at_50%_35%,rgba(19,91,236,0.35)_0%,rgba(147,51,234,0.18)_50%,rgba(16,22,34,0)_100%)]" />
-                        )}
-                      </div>
-
-                      <div className="mt-4 space-y-2">
-                        <h2 className="text-xl font-black leading-snug text-foreground transition group-hover:text-primary">
-                          {post.title}
-                        </h2>
-                        <p className="line-clamp-3 text-sm leading-6 text-muted">
-                          {post.content}
-                        </p>
-                      </div>
-
-                      <div className="mt-5 flex items-center justify-between gap-3 text-xs text-muted">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={[
-                              "size-2 rounded-full",
-                              post.visibility === "private"
-                                ? "bg-amber-400/80"
-                                : "bg-emerald-400/80",
-                            ].join(" ")}
-                          />
-                          <span>
-                            {post.visibility === "private" ? "비공개" : "게시됨"}
-                          </span>
+                        <div className="mt-4 space-y-2">
+                          <h2 className="text-xl font-black leading-snug text-foreground transition group-hover:text-primary">
+                            {post.title}
+                          </h2>
+                          <p className="line-clamp-3 text-sm leading-6 text-muted">
+                            {post.content}
+                          </p>
                         </div>
-                        {post.categorySlug ? (
-                          <span className="truncate font-semibold text-muted/90">
-                            {post.categorySlug}
-                          </span>
-                        ) : null}
+
+                        <div className="mt-5 flex items-center justify-between gap-3 text-xs text-muted">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={[
+                                "size-2 rounded-full",
+                                post.visibility === "private"
+                                  ? "bg-amber-400/80"
+                                  : "bg-emerald-400/80",
+                              ].join(" ")}
+                            />
+                            <span>
+                              {post.visibility === "private"
+                                ? "비공개"
+                                : "게시됨"}
+                            </span>
+                          </div>
+                          {post.categorySlug ? (
+                            <span className="truncate font-semibold text-muted/90">
+                              {post.categorySlug}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
+                    </article>
+                  </Link>
+
+                  {isAdmin ? (
+                    <div className="mt-3 flex items-center justify-end gap-2">
+                      <Link
+                        href={`/article/edit/${post.slug}`}
+                        className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
+                      >
+                        수정
+                      </Link>
+                      <DeletePostButton
+                        slug={post.slug}
+                        className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
+                      >
+                        삭제
+                      </DeletePostButton>
                     </div>
-                  </article>
-                </Link>
+                  ) : null}
+                </div>
               );
             })}
           </div>

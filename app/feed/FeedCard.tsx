@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { Post } from "@/lib/types";
 import { Badge, Card, CardBody } from "@/app/_components/ui";
+import DeletePostButton from "@/app/_components/DeletePostButton";
 
 function coverSrcFromImageKey(key: string) {
   const [bucket, ...rest] = key.split(":");
@@ -20,7 +22,7 @@ function coverSrcFromImageKey(key: string) {
   return `/api/images?bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(objectPath)}`;
 }
 
-export function FeedCard({ post }: { post: Post }) {
+export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const coverKey = post.imageKeys?.[0];
   const coverSrc = coverKey ? coverSrcFromImageKey(coverKey) : null;
@@ -90,6 +92,30 @@ export function FeedCard({ post }: { post: Post }) {
 
       {/* Content area */}
       <CardBody className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            href={`/feed/${post.slug}`}
+            className="text-sm font-bold text-foreground hover:text-primary transition"
+          >
+            상세보기 →
+          </Link>
+          {isAdmin ? (
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/feed/edit/${post.slug}`}
+                className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
+              >
+                수정
+              </Link>
+              <DeletePostButton
+                slug={post.slug}
+                className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
+              >
+                삭제
+              </DeletePostButton>
+            </div>
+          ) : null}
+        </div>
         <p
           className={`text-sm leading-relaxed text-muted ${
             expanded ? "" : "line-clamp-3"

@@ -13,19 +13,31 @@ function typeLabel(type: PostType) {
 export default function PostEditor({
   type,
   defaultVisibility,
+  initial,
 }: {
   type: PostType;
   defaultVisibility?: Visibility;
+  initial?: {
+    id: string;
+    slug: string;
+    title: string;
+    content: string;
+    visibility: Visibility;
+    categorySlug?: string | null;
+    imageKeys?: string[];
+  };
 }) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [visibility, setVisibility] = useState<Visibility>(
-    defaultVisibility ?? "public"
+    initial?.visibility ?? defaultVisibility ?? "public"
   );
-  const [title, setTitle] = useState("");
-  const [categorySlug, setCategorySlug] = useState("");
-  const [content, setContent] = useState("");
-  const [imageKeys, setImageKeys] = useState<string[]>([]);
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [categorySlug, setCategorySlug] = useState(
+    initial?.categorySlug?.trim() ?? ""
+  );
+  const [content, setContent] = useState(initial?.content ?? "");
+  const [imageKeys, setImageKeys] = useState<string[]>(initial?.imageKeys ?? []);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -96,6 +108,8 @@ export default function PostEditor({
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
+        id: initial?.id,
+        slug: initial?.slug,
         type,
         visibility,
         title: trimmedTitle,
@@ -140,7 +154,7 @@ export default function PostEditor({
             disabled={isPending}
             className="h-9 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
           >
-            발행
+            {initial ? "저장" : "발행"}
           </button>
         </div>
       </div>
