@@ -1,19 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PostType, Visibility } from "@/lib/types";
-import MarkdownClient from "@/app/_components/MarkdownClient";
-
-function slugify(input: string) {
-  return input
-    .trim()
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9\s-]/g, "")
-    .replaceAll(/\s+/g, "-")
-    .replaceAll(/-+/g, "-")
-    .replaceAll(/^-|-$/g, "");
-}
 
 function typeLabel(type: PostType) {
   if (type === "blog") return "아티클";
@@ -33,18 +22,11 @@ export default function PostEditor({
     defaultVisibility ?? "public"
   );
   const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
   const [categorySlug, setCategorySlug] = useState("");
   const [content, setContent] = useState("");
-  const [preview, setPreview] = useState(false);
   const [imageKeys, setImageKeys] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  const effectiveSlug = useMemo(
-    () => slug.trim() || slugify(title),
-    [slug, title]
-  );
 
   async function uploadFiles(files: FileList | null) {
     setError(null);
@@ -87,7 +69,6 @@ export default function PostEditor({
         type,
         visibility,
         title: trimmedTitle,
-        slug: effectiveSlug || undefined,
         content: trimmedContent,
         categorySlug: type === "blog" ? categorySlug.trim() : null,
         imageKeys,
@@ -112,8 +93,8 @@ export default function PostEditor({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-background">
-      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+    <div className="overflow-hidden rounded-3xl border border-border bg-background">
+      <div className="flex items-center justify-between border-b border-border px-7 py-5">
         <div className="flex items-center gap-3">
           <span className="text-sm font-semibold text-muted">
             {typeLabel(type)} 글쓰기
@@ -123,13 +104,6 @@ export default function PostEditor({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setPreview((p) => !p)}
-            className="h-9 rounded-xl border border-border bg-surface px-3 text-sm font-semibold text-foreground hover:bg-surface-2"
-          >
-            {preview ? "편집" : "미리보기"}
-          </button>
           <button
             type="button"
             onClick={submit}
@@ -142,7 +116,7 @@ export default function PostEditor({
       </div>
 
       <div className="grid gap-0 lg:grid-cols-[320px_1fr]">
-        <aside className="border-b border-border bg-background p-5 lg:border-b-0 lg:border-r">
+        <aside className="border-b border-border bg-background p-6 lg:border-b-0 lg:border-r">
           <div className="space-y-5">
             <div className="grid gap-3">
               <label className="space-y-1 text-sm">
@@ -191,30 +165,12 @@ export default function PostEditor({
               </label>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted">
-                슬러그
-              </p>
-              <input
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
-                placeholder={slugify(title) || "자동 생성"}
-              />
-              <p className="text-xs text-muted">
-                적용값:{" "}
-                <span className="font-mono text-foreground">
-                  {effectiveSlug || "-"}
-                </span>
-              </p>
-            </div>
-
             {error ? <p className="text-sm text-red-500">{error}</p> : null}
           </div>
         </aside>
 
         <main className="min-w-0 bg-[#0f1115]">
-          <div className="border-b border-border px-6 py-5">
+          <div className="border-b border-border px-7 py-6">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -223,36 +179,15 @@ export default function PostEditor({
             />
           </div>
 
-          <div className="grid min-h-[520px] gap-0 lg:grid-cols-2">
-            <section className="border-b border-border lg:border-b-0 lg:border-r">
-              {preview ? (
-                <div className="h-full overflow-auto p-6 text-white">
-                  <MarkdownClient content={content || " "} />
-                </div>
-              ) : (
-                <textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="h-full w-full resize-none bg-transparent p-6 font-mono text-sm leading-relaxed text-[#d4d4d4] outline-none"
-                  placeholder="내용을 입력하세요..."
-                  spellCheck={false}
-                />
-              )}
-            </section>
-            <section className="hidden overflow-auto p-6 lg:block">
-              <div className="rounded-2xl border border-border bg-surface p-5">
-                <p className="text-xs font-bold uppercase tracking-wider text-muted">
-                  미리보기
-                </p>
-                <div className="mt-4">
-                  <MarkdownClient content={content || " "} />
-                </div>
-              </div>
-            </section>
-          </div>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="min-h-[540px] w-full resize-none bg-transparent p-7 font-mono text-sm leading-relaxed text-[#d4d4d4] outline-none"
+            placeholder="내용을 입력하세요..."
+            spellCheck={false}
+          />
         </main>
       </div>
     </div>
   );
 }
-

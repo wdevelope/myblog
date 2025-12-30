@@ -13,7 +13,7 @@ export default async function DiaryWritePage() {
   await requireAdmin("/diary/write");
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-5xl space-y-8">
       <nav className="text-sm text-muted">
         <Link href="/" className="hover:text-foreground">
           홈
@@ -30,4 +30,3 @@ export default async function DiaryWritePage() {
     </div>
   );
 }
-

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import SiteHeader from "@/app/_components/SiteHeader";
 import SiteFooter from "@/app/_components/SiteFooter";
+import { ToastProvider } from "@/app/_components/ToastProvider";
 
 export const metadata: Metadata = {
   title: {
@@ -20,11 +21,13 @@ export default function RootLayout({
     <html lang="ko" className="dark">
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
         <div className="min-h-dvh">
-          <SiteHeader />
-          <main className="mx-auto w-full max-w-6xl px-4 py-10">
-            {children}
-          </main>
-          <SiteFooter />
+          <ToastProvider>
+            <SiteHeader />
+            <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
+              {children}
+            </main>
+            <SiteFooter />
+          </ToastProvider>
         </div>
       </body>
     </html>

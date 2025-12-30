@@ -3,11 +3,13 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useToast } from "@/app/_components/ToastProvider";
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from") ?? "/";
+  const { toast } = useToast();
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -54,11 +56,20 @@ export default function LoginForm() {
       setNotice(
         "가입 확인 이메일을 보냈어요. 메일의 링크를 클릭하면 로그인됩니다.",
       );
+      toast({
+        message:
+          "가입 확인 이메일을 보냈어요. 메일의 링크를 클릭하면 로그인됩니다.",
+        variant: "success",
+      });
       setMode("login");
       return;
     }
 
     startTransition(() => {
+      toast({
+        message: mode === "login" ? "로그인 완료" : "회원가입 완료",
+        variant: "success",
+      });
       router.replace(from.startsWith("/") ? from : "/");
       router.refresh();
     });
@@ -67,7 +78,7 @@ export default function LoginForm() {
   return (
     <div className="mx-auto max-w-md">
       <div className="rounded-2xl border border-border bg-surface shadow-lg shadow-black/20">
-        <div className="border-b border-border px-6 py-5">
+        <div className="border-b border-border px-7 py-6">
           <h1 className="text-xl font-black tracking-tight text-foreground">
             {mode === "login" ? "로그인" : "회원가입"}
           </h1>
@@ -76,7 +87,7 @@ export default function LoginForm() {
           </p>
         </div>
 
-        <div className="space-y-4 px-6 py-5">
+        <div className="space-y-5 px-7 py-6">
           <div className="flex gap-2">
             <button
               type="button"

@@ -16,8 +16,8 @@ export default async function FeedPage() {
   const isAdmin = await isAdminDb(user);
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      <header className="space-y-3">
+    <div className="mx-auto max-w-xl space-y-8">
+      <header className="space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">피드</h1>
@@ -33,7 +33,7 @@ export default async function FeedPage() {
         </div>
       </header>
 
-      <div className="space-y-6">
+      <div className="space-y-7">
         {posts.length ? (
           posts.map((post) => <FeedCard key={post.id} post={post} />)
         ) : (
