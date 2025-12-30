@@ -210,11 +210,11 @@ export default function PostEditor({
               {type === "blog" ? (
                 <label className="space-y-1 text-sm">
                   <span className="font-semibold text-foreground">카테고리</span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex w-full items-center gap-2">
                     <select
                       value={categorySlug}
                       onChange={(e) => setCategorySlug(e.target.value)}
-                      className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
+                      className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
                     >
                       <option value="">카테고리를 선택해주세요</option>
                       {categoryOptions.map((slug) => (
@@ -227,7 +227,7 @@ export default function PostEditor({
                     <button
                       type="button"
                       onClick={() => void refreshCategories()}
-                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2 disabled:opacity-50"
+                      className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-sm font-bold text-foreground transition hover:bg-surface-2 disabled:opacity-50"
                       disabled={categoriesLoading}
                       title="카테고리 새로고침"
                       aria-label="카테고리 새로고침"
@@ -251,6 +251,7 @@ export default function PostEditor({
                     accept="image/*"
                     multiple
                     onChange={(e) => void uploadFiles(e.target.files)}
+                    className="block w-full text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-surface file:px-3 file:py-2 file:text-sm file:font-bold file:text-foreground"
                   />
                   {imageKeys.length ? (
                     <p className="mt-2 text-xs text-muted">
