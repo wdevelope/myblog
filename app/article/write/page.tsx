@@ -26,6 +26,16 @@ export default async function ArticleWritePage() {
         <span className="text-foreground">글쓰기</span>
       </nav>
 
+      <header className="space-y-2">
+        <h1 className="text-2xl font-black tracking-tight text-foreground">
+          아티클 쓰기
+        </h1>
+        <p className="text-sm text-muted">
+          본문은 마크다운으로 저장돼요. 상단 버튼으로 서식을 빠르게 넣을 수
+          있어요.
+        </p>
+      </header>
+
       <PostEditor type="blog" />
     </div>
   );

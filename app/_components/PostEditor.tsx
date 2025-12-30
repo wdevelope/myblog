@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PostType, Visibility } from "@/lib/types";
 
@@ -18,6 +18,7 @@ export default function PostEditor({
   defaultVisibility?: Visibility;
 }) {
   const router = useRouter();
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [visibility, setVisibility] = useState<Visibility>(
     defaultVisibility ?? "public"
   );
@@ -27,6 +28,35 @@ export default function PostEditor({
   const [imageKeys, setImageKeys] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const applyMarkdown = useCallback(
+    (prefix: string, suffix = "") => {
+      const el = textareaRef.current;
+      if (!el) return;
+
+      const start = el.selectionStart ?? 0;
+      const end = el.selectionEnd ?? 0;
+      const value = el.value ?? "";
+      const selected = value.slice(start, end);
+
+      const nextValue =
+        value.slice(0, start) + prefix + selected + suffix + value.slice(end);
+      const selectionStart = start + prefix.length;
+      const selectionEnd = selectionStart + selected.length;
+
+      setContent(nextValue);
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(selectionStart, selectionEnd);
+      });
+    },
+    [setContent]
+  );
+
+  const insertLinePrefix = useCallback(
+    (linePrefix: string) => applyMarkdown(`${linePrefix}`),
+    [applyMarkdown]
+  );
 
   async function uploadFiles(files: FileList | null) {
     setError(null);
@@ -116,7 +146,7 @@ export default function PostEditor({
       </div>
 
       <div className="grid gap-0 lg:grid-cols-[320px_1fr]">
-        <aside className="border-b border-border bg-background p-6 lg:border-b-0 lg:border-r">
+        <aside className="border-b border-border bg-background p-6 lg:sticky lg:top-20 lg:h-[calc(100dvh-7.5rem)] lg:overflow-auto lg:border-b-0 lg:border-r">
           <div className="space-y-5">
             <div className="grid gap-3">
               <label className="space-y-1 text-sm">
@@ -170,6 +200,131 @@ export default function PostEditor({
         </aside>
 
         <main className="min-w-0 bg-[#0f1115]">
+          <div className="border-b border-border px-7 py-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-1 rounded-2xl border border-white/10 bg-black/10 p-1">
+                <button
+                  type="button"
+                  onClick={() => insertLinePrefix("# ")}
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  aria-label="제목 1"
+                  title="제목 1"
+                >
+                  H1
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertLinePrefix("## ")}
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  aria-label="제목 2"
+                  title="제목 2"
+                >
+                  H2
+                </button>
+              </div>
+
+              <div className="h-6 w-px bg-white/10" />
+
+              <div className="inline-flex items-center gap-1 rounded-2xl border border-white/10 bg-black/10 p-1">
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown("**", "**")}
+                  className="h-9 rounded-xl px-3 text-sm font-black text-white/80 transition hover:bg-white/10 hover:text-white"
+                  aria-label="굵게"
+                  title="굵게"
+                >
+                  B
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown("*", "*")}
+                  className="h-9 rounded-xl px-3 text-sm font-black italic text-white/80 transition hover:bg-white/10 hover:text-white"
+                  aria-label="기울임"
+                  title="기울임"
+                >
+                  I
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown("~~", "~~")}
+                  className="h-9 rounded-xl px-3 text-sm font-black text-white/80 transition hover:bg-white/10 hover:text-white"
+                  aria-label="취소선"
+                  title="취소선"
+                >
+                  S
+                </button>
+              </div>
+
+              <div className="h-6 w-px bg-white/10" />
+
+              <div className="inline-flex items-center gap-1 rounded-2xl border border-white/10 bg-black/10 p-1">
+                <button
+                  type="button"
+                  onClick={() => insertLinePrefix("- ")}
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  aria-label="불릿 리스트"
+                  title="불릿 리스트"
+                >
+                  •
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertLinePrefix("1. ")}
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  aria-label="번호 리스트"
+                  title="번호 리스트"
+                >
+                  1.
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertLinePrefix("> ")}
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  aria-label="인용"
+                  title="인용"
+                >
+                  &quot;
+                </button>
+              </div>
+
+              <div className="h-6 w-px bg-white/10" />
+
+              <div className="inline-flex items-center gap-1 rounded-2xl border border-white/10 bg-black/10 p-1">
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown("`", "`")}
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  aria-label="인라인 코드"
+                  title="인라인 코드"
+                >
+                  {"</>"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown("\n```\n", "\n```\n")}
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  aria-label="코드 블록"
+                  title="코드 블록"
+                >
+                  {"```"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = window.prompt("링크 URL을 입력하세요");
+                    if (!url) return;
+                    applyMarkdown("[", `](${url})`);
+                  }}
+                  className="h-9 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+                  aria-label="링크"
+                  title="링크"
+                >
+                  ⛓
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="border-b border-border px-7 py-6">
             <input
               value={title}
@@ -180,6 +335,7 @@ export default function PostEditor({
           </div>
 
           <textarea
+            ref={textareaRef}
             value={content}
             onChange={(e) => setContent(e.target.value)}
             className="min-h-[540px] w-full resize-none bg-transparent p-7 font-mono text-sm leading-relaxed text-[#d4d4d4] outline-none"
