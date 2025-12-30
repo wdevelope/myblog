@@ -1,19 +1,29 @@
 "use client";
 
 import { useState } from "react";
+import type { Post } from "@/lib/types";
 import { Badge, Card, CardBody } from "@/app/_components/ui";
 
-interface Post {
-  id: string;
-  slug: string;
-  title: string;
-  content: string;
-  createdAt: string;
-  visibility: string;
+function coverSrcFromImageKey(key: string) {
+  const [bucket, ...rest] = key.split(":");
+  const objectPath = rest.join(":");
+  const looksLikeSupabaseKey = Boolean(bucket && objectPath);
+  if (!looksLikeSupabaseKey) return key;
+
+  if (bucket === "post-images-public") {
+    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!base) return null;
+    const path = encodeURIComponent(objectPath).replaceAll("%2F", "/");
+    return `${base}/storage/v1/object/public/${bucket}/${path}`;
+  }
+
+  return `/api/images?bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(objectPath)}`;
 }
 
 export function FeedCard({ post }: { post: Post }) {
   const [expanded, setExpanded] = useState(false);
+  const coverKey = post.imageKeys?.[0];
+  const coverSrc = coverKey ? coverSrcFromImageKey(coverKey) : null;
 
   return (
     <Card className="overflow-hidden transition hover:shadow-lg">
@@ -39,27 +49,44 @@ export function FeedCard({ post }: { post: Post }) {
         </Badge>
       </div>
 
-      {/* Image placeholder area */}
-      <div className="aspect-square w-full bg-gradient-to-br from-surface-2 via-surface to-surface-2 flex items-center justify-center">
-        <div className="text-center space-y-2 p-8">
-          <div className="mx-auto size-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <svg
-              className="size-8 text-primary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-.75a.75.75 0 01-.75-.75v-.75a3.375 3.375 0 00-3.375-3.375H9.75a3.375 3.375 0 00-3.375 3.375v11.25A3.375 3.375 0 009.75 21h4.5a3.375 3.375 0 003.375-3.375v-.375"
-              />
-            </svg>
+      {/* Image area */}
+      {coverSrc ? (
+        <div className="relative aspect-square w-full bg-surface-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={coverSrc}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+            loading="lazy"
+          />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent p-5">
+            <p className="line-clamp-2 text-base font-bold text-white">
+              {post.title}
+            </p>
           </div>
-          <p className="text-lg font-bold text-foreground">{post.title}</p>
         </div>
-      </div>
+      ) : (
+        <div className="aspect-square w-full bg-gradient-to-br from-surface-2 via-surface to-surface-2 flex items-center justify-center">
+          <div className="text-center space-y-2 p-8">
+            <div className="mx-auto size-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <svg
+                className="size-8 text-primary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-.75a.75.75 0 01-.75-.75v-.75a3.375 3.375 0 00-3.375-3.375H9.75a3.375 3.375 0 00-3.375 3.375v11.25A3.375 3.375 0 009.75 21h4.5a3.375 3.375 0 003.375-3.375v-.375"
+                />
+              </svg>
+            </div>
+            <p className="text-lg font-bold text-foreground">{post.title}</p>
+          </div>
+        </div>
+      )}
 
       {/* Content area */}
       <CardBody className="space-y-3">
