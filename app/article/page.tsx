@@ -71,32 +71,52 @@ function PublishedIcon({ className }: { className?: string }) {
   );
 }
 
-export default async function BlogIndexPage() {
+type Props = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function BlogIndexPage({ searchParams }: Props) {
   const user = await getCurrentUser();
   const isAdmin = await isAdminDb(user);
-  const posts = isAdmin
+  const sp = (await searchParams) ?? {};
+  const selectedCategory =
+    typeof sp.category === "string" ? sp.category.trim() : "";
+
+  const allVisiblePosts = isAdmin
     ? await getPosts({ type: "blog" })
     : await getPublicPosts({ type: "blog" });
 
-  const categoryCounts = posts.reduce<Record<string, number>>((acc, post) => {
-    const key = post.categorySlug?.trim();
-    if (!key) return acc;
-    acc[key] = (acc[key] ?? 0) + 1;
-    return acc;
-  }, {});
+  const posts = selectedCategory
+    ? allVisiblePosts.filter(
+        (post) => (post.categorySlug ?? "").trim() === selectedCategory,
+      )
+    : allVisiblePosts;
+
+  const categoryCounts = allVisiblePosts.reduce<Record<string, number>>(
+    (acc, post) => {
+      const key = post.categorySlug?.trim();
+      if (!key) return acc;
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    },
+    {},
+  );
 
   const supabase = await createSupabaseServerClient();
   const { data: categoryRows } = await supabase
     .from("categories")
     .select("slug")
     .order("slug", { ascending: true });
-  const categories = Array.from(
+  let categories = Array.from(
     new Set([...(categoryRows ?? []).map((row) => row.slug), ...Object.keys(categoryCounts)]),
   ).sort(
     (a, b) =>
       (categoryCounts[b] ?? 0) - (categoryCounts[a] ?? 0) ||
       a.localeCompare(b, "ko"),
   );
+  if (!isAdmin) {
+    categories = categories.filter((slug) => (categoryCounts[slug] ?? 0) > 0);
+  }
 
   return (
     <div className="grid gap-8 lg:grid-cols-12">
@@ -110,33 +130,29 @@ export default async function BlogIndexPage() {
           <nav className="space-y-1">
             <Link
               href="/article"
-              className="flex items-center justify-between py-2 text-sm text-foreground hover:text-primary transition"
+              className={[
+                "flex items-center justify-between py-2 text-sm transition",
+                selectedCategory
+                  ? "text-muted hover:text-foreground"
+                  : "text-foreground hover:text-primary",
+              ].join(" ")}
             >
               <span className="font-medium">전체 글</span>
-              <span className="text-xs text-muted">{posts.length}</span>
+              <span className="text-xs text-muted">{allVisiblePosts.length}</span>
             </Link>
             {categories.map((slug) => (
               <Link
                 key={slug}
-                href={`/article/category/${slug}`}
-                className="flex items-center justify-between py-2 text-sm text-muted hover:text-foreground transition"
+                href={`/article?category=${encodeURIComponent(slug)}`}
+                className={[
+                  "flex items-center justify-between py-2 text-sm transition",
+                  slug === selectedCategory
+                    ? "text-foreground"
+                    : "text-muted hover:text-foreground",
+                ].join(" ")}
               >
-                <div className="flex items-center gap-2">
-                  <span>{slug}</span>
-                  <svg
-                    className="size-3.5 text-muted/60"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-                    />
-                  </svg>
-                </div>
+                <span className="truncate">{slug}</span>
+                <span className="text-xs text-muted">{categoryCounts[slug] ?? 0}</span>
               </Link>
             ))}
           </nav>
@@ -148,7 +164,7 @@ export default async function BlogIndexPage() {
         <header className="mb-6 flex items-end justify-between gap-4 border-b border-border pb-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-black tracking-tight text-foreground">
-              아티클
+              {selectedCategory ? `아티클 · ${selectedCategory}` : "아티클"}
             </h1>
             <p className="text-sm text-muted">조금 긴 글과 정리된 기록.</p>
           </div>
