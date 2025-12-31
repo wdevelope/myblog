@@ -25,14 +25,9 @@ function visibilityLabel(visibility: string) {
 async function HomePage() {
   const user = await getCurrentUser();
   const loggedIn = Boolean(user);
-  const isAdmin = await isAdminDb(user);
-  const [blog, feed] = await Promise.all([
-    getPosts({ type: "blog" }),
-    getPosts({ type: "feed" }),
-  ]);
-  const latest = [...blog.slice(0, 2), ...feed.slice(0, 2)].sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt)
-  );
+  await isAdminDb(user);
+  const feed = await getPosts({ type: "feed" });
+  const latest = feed.slice(0, 6);
 
   return (
     <div className="space-y-10">
@@ -40,29 +35,14 @@ async function HomePage() {
         <div className="space-y-5">
           <h1 className="text-4xl font-black leading-tight tracking-tight md:text-5xl">
             안녕하세요. <br />
-            기록하는 사람입니다.
+            개발자 원스입니다.
           </h1>
           <p className="max-w-xl text-sm leading-6 text-muted">
             인생이야기를 기록합니다.
           </p>
           <div className="flex flex-wrap gap-3">
-            <ButtonLink href="/article">최신 글 보기 →</ButtonLink>
-            <ButtonLink href="/feed" variant="secondary">
-              피드 보기
-            </ButtonLink>
-            {isAdmin ? (
-              <>
-                <ButtonLink href="/article/write" variant="secondary">
-                  아티클 쓰기
-                </ButtonLink>
-                <ButtonLink href="/feed/write" variant="secondary">
-                  피드 쓰기
-                </ButtonLink>
-                <ButtonLink href="/diary/write" variant="secondary">
-                  다이어리 쓰기
-                </ButtonLink>
-              </>
-            ) : loggedIn ? (
+            <ButtonLink href="/feed">최신 피드 보기 →</ButtonLink>
+            {loggedIn ? (
               <LogoutButton className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-bold text-foreground transition hover:bg-surface-2">
                 로그아웃
               </LogoutButton>
@@ -80,10 +60,10 @@ async function HomePage() {
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="rounded-2xl bg-surface/20 px-6 py-4 text-center ring-1 ring-border backdrop-blur">
                 <p className="text-sm font-semibold text-foreground">
-                  피드 · 아티클 · 다이어리
+                  최신 피드
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                  게시글 공개 범위 · 마크다운
+                  짧은 생각과 기록
                 </p>
               </div>
             </div>
@@ -94,35 +74,19 @@ async function HomePage() {
       <section className="space-y-4">
         <div className="flex items-end justify-between gap-4 border-b border-border pb-3">
           <div className="flex items-center gap-5">
-            <Link
-              href="/"
-              className="border-b-2 border-primary pb-3 text-sm font-bold text-primary"
-            >
-              최신
-            </Link>
-            <Link
-              href="/article"
-              className="pb-3 text-sm font-medium text-muted"
-            >
-              아티클
-            </Link>
-            <Link href="/feed" className="pb-3 text-sm font-medium text-muted">
-              피드
-            </Link>
-            <Link href="/diary" className="pb-3 text-sm font-medium text-muted">
-              다이어리
-            </Link>
+            <span className="border-b-2 border-primary pb-3 text-sm font-bold text-primary">
+              최신 피드
+            </span>
           </div>
+          <Link href="/feed" className="text-sm font-bold text-primary hover:opacity-90">
+            더 보기 →
+          </Link>
         </div>
 
         <div className="space-y-4">
           {latest.map((post) => {
             const href =
-              post.type === "blog"
-                ? `/article/${post.slug}`
-                : post.type === "feed"
-                ? `/feed`
-                : `/diary/${post.slug}`;
+              post.type === "feed" ? `/feed` : "/";
 
             return (
               <Card
@@ -171,7 +135,7 @@ async function HomePage() {
             <Card>
               <CardBody>
                 <p className="text-sm text-muted">
-                  아직 글이 없어요. 글을 작성해보세요.
+                  아직 피드가 없어요.
                 </p>
               </CardBody>
             </Card>
