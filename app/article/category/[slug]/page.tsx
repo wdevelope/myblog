@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublicPosts } from "@/lib/server/publicPosts";
 import { Badge, Card, CardBody } from "@/app/_components/ui";
+import MarkdownExcerpt from "@/app/_components/MarkdownExcerpt";
+import { toExcerptMarkdown } from "@/lib/markdown";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -55,9 +57,7 @@ export default async function BlogCategoryPage({ params }: Props) {
                   <h3 className="text-lg font-bold leading-tight text-foreground transition group-hover:text-primary">
                     {post.title}
                   </h3>
-                  <p className="line-clamp-3 text-sm leading-6 text-muted">
-                    {post.content}
-                  </p>
+                  <MarkdownExcerpt content={toExcerptMarkdown(post.content)} />
                 </CardBody>
               </Link>
             </Card>

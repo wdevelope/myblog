@@ -1,10 +1,12 @@
 import Link from "next/link";
 import DeletePostButton from "@/app/_components/DeletePostButton";
 import CategorySettingsModal from "@/app/article/CategorySettingsModal";
+import MarkdownExcerpt from "@/app/_components/MarkdownExcerpt";
 import { getPublicPosts } from "@/lib/server/publicPosts";
 import { getPosts } from "@/lib/api";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { toExcerptMarkdown } from "@/lib/markdown";
 
 export const metadata = {
   title: "아티클",
@@ -205,9 +207,9 @@ export default async function BlogIndexPage() {
                           <h2 className="text-xl font-black leading-snug text-foreground transition group-hover:text-primary">
                             {post.title}
                           </h2>
-                          <p className="line-clamp-3 text-sm leading-6 text-muted">
-                            {post.content}
-                          </p>
+                          <MarkdownExcerpt
+                            content={toExcerptMarkdown(post.content)}
+                          />
                         </div>
 
                         <div className="mt-5 flex items-center justify-between gap-3 text-xs text-muted">
