@@ -29,11 +29,6 @@ export default async function DiaryEntryPage({
         >
           ← 뒤로
         </BackButton>
-        <PostActionMenu
-          editHref={`/diary/edit/${post.slug}`}
-          deleteSlug={post.slug}
-          deleteRedirectTo="/diary"
-        />
       </div>
 
       <nav className="text-sm text-muted">
@@ -54,9 +49,17 @@ export default async function DiaryEntryPage({
           <span className="h-1 w-1 rounded-full bg-muted/60" />
           <span>{post.visibility === "public" ? "공개" : "비공개"}</span>
         </div>
-        <h1 className="text-4xl font-black tracking-tight md:text-5xl">
-          {post.title}
-        </h1>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="min-w-0 flex-1 text-4xl font-black tracking-tight md:text-5xl">
+            {post.title}
+          </h1>
+          <PostActionMenu
+            editHref={`/diary/edit/${post.slug}`}
+            deleteSlug={post.slug}
+            deleteRedirectTo="/diary"
+            ariaLabel="다이어리 더보기"
+          />
+        </div>
       </header>
 
       <Card>

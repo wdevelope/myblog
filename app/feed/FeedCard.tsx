@@ -25,6 +25,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const coverKey = post.imageKeys?.[0];
   const coverSrc = coverKey ? coverSrcFromImageKey(coverKey) : null;
+  const shouldShowMore = post.content.trim().length > 140;
 
   return (
     <Card className="relative overflow-hidden transition hover:shadow-lg">
@@ -95,34 +96,40 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
 
       {/* Content area */}
       <CardBody className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="text-sm font-bold text-foreground hover:text-primary transition"
-          >
-            내용 더보기 →
-          </button>
+        <div className="flex items-center justify-end">
           <Badge variant={post.visibility === "public" ? "primary" : "warning"}>
             {post.visibility === "public" ? "공개" : "비공개"}
           </Badge>
         </div>
-        <p
-          className={`text-sm leading-relaxed text-muted ${
-            expanded ? "" : "line-clamp-3"
-          }`}
-        >
-          {post.content}
-        </p>
         {expanded ? (
-          <button
-            type="button"
-            onClick={() => setExpanded(false)}
-            className="text-sm font-semibold text-primary hover:opacity-80 transition"
-          >
-            접기
-          </button>
-        ) : null}
+          <>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted">
+              {post.content}
+            </p>
+            <button
+              type="button"
+              onClick={() => setExpanded(false)}
+              className="text-sm font-semibold text-primary hover:opacity-80 transition"
+            >
+              접기
+            </button>
+          </>
+        ) : (
+          <div className="relative">
+            <p className="line-clamp-3 pr-14 text-sm leading-relaxed text-muted">
+              {post.content}
+            </p>
+            {shouldShowMore ? (
+              <button
+                type="button"
+                onClick={() => setExpanded(true)}
+                className="absolute bottom-0 right-0 text-sm font-semibold text-primary hover:opacity-80 transition"
+              >
+                더 보기
+              </button>
+            ) : null}
+          </div>
+        )}
       </CardBody>
     </Card>
   );
