@@ -24,11 +24,13 @@ export default function PostActionMenu({
   deleteSlug,
   deleteRedirectTo,
   ariaLabel = "더보기",
+  className,
 }: {
   editHref?: string;
   deleteSlug: string;
   deleteRedirectTo?: string;
   ariaLabel?: string;
+  className?: string;
 }) {
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -57,7 +59,7 @@ export default function PostActionMenu({
   }, [open]);
 
   return (
-    <div className="relative" ref={rootRef}>
+    <div className={["relative", className].filter(Boolean).join(" ")} ref={rootRef}>
       <button
         type="button"
         aria-label={ariaLabel}
@@ -65,22 +67,22 @@ export default function PostActionMenu({
         aria-controls={menuId}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex size-12 items-center justify-center rounded-2xl bg-surface/70 text-foreground ring-1 ring-border shadow-sm transition hover:bg-surface-2"
+        className="inline-flex size-10 items-center justify-center rounded-xl bg-surface/70 text-foreground ring-1 ring-border shadow-sm transition hover:bg-surface-2"
       >
-        <DotsIcon className="size-5 text-muted" />
+        <DotsIcon className="size-4.5 text-muted" />
       </button>
 
       {open ? (
         <div
           id={menuId}
           role="menu"
-          className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-3xl border border-border bg-surface shadow-2xl shadow-black/15"
+          className="absolute right-0 z-20 mt-2 w-36 overflow-hidden rounded-2xl border border-border bg-surface shadow-xl shadow-black/10"
         >
           {editHref ? (
             <Link
               href={editHref}
               role="menuitem"
-              className="flex w-full items-center justify-center px-5 py-4 text-base font-bold text-foreground transition hover:bg-surface-2"
+              className="flex w-full items-center justify-center px-4 py-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
               onClick={() => setOpen(false)}
             >
               수정하기
@@ -89,7 +91,7 @@ export default function PostActionMenu({
           <DeletePostButton
             slug={deleteSlug}
             redirectTo={deleteRedirectTo}
-            className="flex w-full items-center justify-center px-5 py-4 text-base font-bold text-foreground transition hover:bg-surface-2"
+            className="flex w-full items-center justify-center px-4 py-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
           >
             삭제하기
           </DeletePostButton>

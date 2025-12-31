@@ -27,7 +27,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
   const coverSrc = coverKey ? coverSrcFromImageKey(coverKey) : null;
 
   return (
-    <Card className="overflow-hidden transition hover:shadow-lg">
+    <Card className="relative overflow-hidden transition hover:shadow-lg">
       {/* Instagram-style header with avatar */}
       <div className="flex items-center gap-3 border-b border-border p-4">
         <div className="size-10 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-[2px]">
@@ -45,9 +45,13 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
             })}
           </p>
         </div>
-        <Badge variant={post.visibility === "public" ? "primary" : "warning"}>
-          {post.visibility === "public" ? "공개" : "비공개"}
-        </Badge>
+        {isAdmin ? (
+          <PostActionMenu
+            editHref={`/feed/edit/${post.slug}`}
+            deleteSlug={post.slug}
+            deleteRedirectTo="/feed"
+          />
+        ) : null}
       </div>
 
       {/* Image area */}
@@ -99,13 +103,9 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
           >
             내용 더보기 →
           </button>
-          {isAdmin ? (
-            <PostActionMenu
-              editHref={`/feed/edit/${post.slug}`}
-              deleteSlug={post.slug}
-              deleteRedirectTo="/feed"
-            />
-          ) : null}
+          <Badge variant={post.visibility === "public" ? "primary" : "warning"}>
+            {post.visibility === "public" ? "공개" : "비공개"}
+          </Badge>
         </div>
         <p
           className={`text-sm leading-relaxed text-muted ${

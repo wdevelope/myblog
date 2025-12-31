@@ -239,7 +239,7 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
                   key={post.id}
                   className="px-5 py-6 transition hover:bg-surface-2/60"
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="relative flex items-start gap-3">
                     <div className="mt-0.5 text-muted/80">
                       <LockIcon className="size-5" />
                     </div>
@@ -259,14 +259,17 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
                         <p className="text-sm text-muted">
                           {formatDateKorean(new Date(post.createdAt))}
                         </p>
-                        <PostActionMenu
-                          editHref={`/diary/edit/${post.slug}`}
-                          deleteSlug={post.slug}
-                          deleteRedirectTo="/diary"
-                        />
+                        <div className="min-w-[2.5rem]" />
                       </div>
                     </div>
                   </div>
+
+                  <PostActionMenu
+                    className="absolute right-3 top-3 z-10"
+                    editHref={`/diary/edit/${post.slug}`}
+                    deleteSlug={post.slug}
+                    deleteRedirectTo="/diary"
+                  />
                 </div>
               ))
             ) : (
