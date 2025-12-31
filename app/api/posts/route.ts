@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { isAdminDb, requireAdmin } from "@/lib/server/admin";
 import { publicBlogCategoryTag, publicPostsTag } from "@/lib/server/publicPosts";
+import { toAutoTitle } from "@/lib/markdown";
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
@@ -100,11 +101,16 @@ export async function POST(request: Request) {
   if (!body.visibility || !["public", "private"].includes(body.visibility)) {
     return badRequest("visibility must be public|private");
   }
-  if (!body.title?.trim()) return badRequest("제목을 입력해주세요.");
   if (!body.content?.trim()) return badRequest("내용을 입력해주세요.");
   if (body.type === "blog" && !body.categorySlug?.trim()) {
     return badRequest("아티클은 카테고리가 필요해요.");
   }
+
+  const finalTitle =
+    body.type === "feed"
+      ? body.title?.trim() || toAutoTitle(body.content)
+      : body.title?.trim() ?? "";
+  if (!finalTitle) return badRequest("제목을 입력해주세요.");
 
   const createdAtYmd = body.createdAtYmd?.trim();
   let createdAtIso: string | null = null;
@@ -125,7 +131,7 @@ export async function POST(request: Request) {
     createdAtIso = createdAt.toISOString();
   }
 
-  const baseSlug = body.slug?.trim() || slugify(body.title) || "post";
+  const baseSlug = body.slug?.trim() || slugify(finalTitle) || "post";
   const service = createSupabaseServiceClient();
   const categorySlug =
     body.type === "blog" ? (body.categorySlug?.trim() ?? null) : null;
@@ -159,7 +165,7 @@ export async function POST(request: Request) {
     slug,
     type: body.type,
     visibility: body.visibility,
-    title: body.title,
+    title: finalTitle,
     content: body.content,
     category_slug: categorySlug,
     image_keys: body.imageKeys ?? [],

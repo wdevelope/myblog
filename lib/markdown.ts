@@ -40,3 +40,9 @@ export function toExcerptMarkdown(content: string, maxLength = 240): string {
 
   return excerpt;
 }
+
+export function toAutoTitle(content: string, maxLength = 48): string {
+  const excerpt = toExcerptMarkdown(content, maxLength);
+  const title = excerpt.replace(/…$/, "").trim();
+  return title || "피드";
+}

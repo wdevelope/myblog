@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PostType, Visibility } from "@/lib/types";
+import { toAutoTitle } from "@/lib/markdown";
 
 function typeLabel(type: PostType) {
   if (type === "blog") return "아티클";
@@ -184,14 +185,16 @@ export default function PostEditor({
 
   async function submit() {
     setError(null);
-    const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
 
-    if (!trimmedTitle) return setError("제목을 입력해주세요.");
     if (!trimmedContent) return setError("내용을 입력해주세요.");
     if (type === "blog" && !categorySlug.trim()) {
       return setError("아티클은 카테고리가 필요해요.");
     }
+
+    const trimmedTitle =
+      type === "feed" ? toAutoTitle(trimmedContent) : title.trim();
+    if (type !== "feed" && !trimmedTitle) return setError("제목을 입력해주세요.");
 
     const response = await fetch("/api/posts", {
       method: "POST",
@@ -461,14 +464,22 @@ export default function PostEditor({
             </div>
           </div>
 
-          <div className="border-b border-border px-7 py-6">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full border-0 bg-transparent px-0 text-3xl font-black tracking-tight text-foreground placeholder:text-muted outline-none"
-              placeholder="제목"
-            />
-          </div>
+          {type === "feed" ? (
+            <div className="border-b border-border px-7 py-4">
+              <p className="text-sm font-semibold text-muted">
+                제목은 본문으로 자동 생성돼요.
+              </p>
+            </div>
+          ) : (
+            <div className="border-b border-border px-7 py-6">
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full border-0 bg-transparent px-0 text-3xl font-black tracking-tight text-foreground placeholder:text-muted outline-none"
+                placeholder="제목"
+              />
+            </div>
+          )}
 
           <div className="relative">
             <pre
