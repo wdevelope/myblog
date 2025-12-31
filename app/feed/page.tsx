@@ -2,6 +2,7 @@ import { getPublicPosts } from "@/lib/server/publicPosts";
 import { ButtonLink, Card, CardBody } from "@/app/_components/ui";
 import { FeedCard } from "./FeedCard";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
+import { getPosts } from "@/lib/api";
 
 export const metadata = {
   title: "피드",
@@ -10,10 +11,11 @@ export const metadata = {
 export const revalidate = 60;
 
 export default async function FeedPage() {
-  const posts = await getPublicPosts({ type: "feed" });
-
   const user = await getCurrentUser();
   const isAdmin = await isAdminDb(user);
+  const posts = isAdmin
+    ? await getPosts({ type: "feed" })
+    : await getPublicPosts({ type: "feed" });
 
   return (
     <div className="mx-auto max-w-xl space-y-8">

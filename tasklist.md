@@ -116,7 +116,7 @@
 - [x] `/blog/[slug]` (글 상세)
 - [x] `/blog/category/[slug]` (카테고리별 목록)
 - [x] `/feed` (피드 목록)
-- [x] `/feed/[slug]` (피드 상세, 필요 시)
+- [ ] `/feed/[slug]` (피드 상세, 필요 시)
 - [x] `/diary` (다이어리 목록: 로그인 필요)
 - [x] `/diary/[slug]` (다이어리 상세: 로그인 필요)
 - [x] `/admin` (관리자)

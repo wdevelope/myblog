@@ -2,7 +2,7 @@ import { getPostBySlug } from "@/lib/api";
 import PostImages from "@/app/_components/PostImages";
 import Markdown from "@/app/_components/Markdown";
 import BackButton from "@/app/_components/BackButton";
-import DeletePostButton from "@/app/_components/DeletePostButton";
+import PostActionMenu from "@/app/_components/PostActionMenu";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Badge, Card, CardBody } from "@/app/_components/ui";
@@ -29,21 +29,11 @@ export default async function DiaryEntryPage({
         >
           ← 뒤로
         </BackButton>
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/diary/edit/${post.slug}`}
-            className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
-          >
-            수정
-          </Link>
-          <DeletePostButton
-            slug={post.slug}
-            redirectTo="/diary"
-            className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
-          >
-            삭제
-          </DeletePostButton>
-        </div>
+        <PostActionMenu
+          editHref={`/diary/edit/${post.slug}`}
+          deleteSlug={post.slug}
+          deleteRedirectTo="/diary"
+        />
       </div>
 
       <nav className="text-sm text-muted">

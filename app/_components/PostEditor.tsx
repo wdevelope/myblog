@@ -222,7 +222,7 @@ export default function PostEditor({
     const created = (await response.json()) as { slug: string; type: PostType };
     startTransition(() => {
       if (created.type === "blog") router.push(`/article/${created.slug}`);
-      else if (created.type === "feed") router.push(`/feed/${created.slug}`);
+      else if (created.type === "feed") router.push(`/feed`);
       else router.push(`/diary/${created.slug}`);
       router.refresh();
     });

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import BackButton from "@/app/_components/BackButton";
-import DeletePostButton from "@/app/_components/DeletePostButton";
+import PostActionMenu from "@/app/_components/PostActionMenu";
 import PostEditor from "@/app/_components/PostEditor";
 import { getPostBySlug } from "@/lib/api";
 import { requireAdmin } from "@/lib/server/admin";
@@ -43,13 +43,11 @@ export default async function FeedEditPage({ params }: Props) {
           </nav>
         </div>
 
-        <DeletePostButton
-          slug={post.slug}
-          redirectTo="/feed"
-          className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
-        >
-          삭제
-        </DeletePostButton>
+        <PostActionMenu
+          deleteSlug={post.slug}
+          deleteRedirectTo="/feed"
+          ariaLabel="삭제 메뉴"
+        />
       </div>
 
       <PostEditor
@@ -66,4 +64,3 @@ export default async function FeedEditPage({ params }: Props) {
     </div>
   );
 }
-

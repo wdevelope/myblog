@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import DeletePostButton from "@/app/_components/DeletePostButton";
+import PostActionMenu from "@/app/_components/PostActionMenu";
 import { toExcerptMarkdown } from "@/lib/markdown";
 
 type DiaryPost = {
@@ -259,20 +259,11 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
                         <p className="text-sm text-muted">
                           {formatDateKorean(new Date(post.createdAt))}
                         </p>
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`/diary/edit/${post.slug}`}
-                            className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
-                          >
-                            수정
-                          </Link>
-                          <DeletePostButton
-                            slug={post.slug}
-                            className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
-                          >
-                            삭제
-                          </DeletePostButton>
-                        </div>
+                        <PostActionMenu
+                          editHref={`/diary/edit/${post.slug}`}
+                          deleteSlug={post.slug}
+                          deleteRedirectTo="/diary"
+                        />
                       </div>
                     </div>
                   </div>

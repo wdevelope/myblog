@@ -1,7 +1,7 @@
 import Link from "next/link";
-import DeletePostButton from "@/app/_components/DeletePostButton";
 import CategorySettingsModal from "@/app/article/CategorySettingsModal";
 import MarkdownExcerpt from "@/app/_components/MarkdownExcerpt";
+import PostActionMenu from "@/app/_components/PostActionMenu";
 import { getPublicPosts } from "@/lib/server/publicPosts";
 import { getPosts } from "@/lib/api";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
@@ -239,19 +239,12 @@ export default async function BlogIndexPage() {
                   </Link>
 
                   {isAdmin ? (
-                    <div className="mt-3 flex items-center justify-end gap-2">
-                      <Link
-                        href={`/article/edit/${post.slug}`}
-                        className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
-                      >
-                        수정
-                      </Link>
-                      <DeletePostButton
-                        slug={post.slug}
-                        className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
-                      >
-                        삭제
-                      </DeletePostButton>
+                    <div className="mt-3 flex items-center justify-end">
+                      <PostActionMenu
+                        editHref={`/article/edit/${post.slug}`}
+                        deleteSlug={post.slug}
+                        deleteRedirectTo="/article"
+                      />
                     </div>
                   ) : null}
                 </div>

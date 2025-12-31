@@ -121,7 +121,7 @@ async function HomePage() {
               post.type === "blog"
                 ? `/article/${post.slug}`
                 : post.type === "feed"
-                ? `/feed/${post.slug}`
+                ? `/feed`
                 : `/diary/${post.slug}`;
 
             return (

@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import type { Post } from "@/lib/types";
 import { Badge, Card, CardBody } from "@/app/_components/ui";
-import DeletePostButton from "@/app/_components/DeletePostButton";
+import PostActionMenu from "@/app/_components/PostActionMenu";
 
 function coverSrcFromImageKey(key: string) {
   const [bucket, ...rest] = key.split(":");
@@ -93,27 +92,19 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
       {/* Content area */}
       <CardBody className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <Link
-            href={`/feed/${post.slug}`}
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
             className="text-sm font-bold text-foreground hover:text-primary transition"
           >
-            상세보기 →
-          </Link>
+            내용 더보기 →
+          </button>
           {isAdmin ? (
-            <div className="flex items-center gap-2">
-              <Link
-                href={`/feed/edit/${post.slug}`}
-                className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
-              >
-                수정
-              </Link>
-              <DeletePostButton
-                slug={post.slug}
-                className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
-              >
-                삭제
-              </DeletePostButton>
-            </div>
+            <PostActionMenu
+              editHref={`/feed/edit/${post.slug}`}
+              deleteSlug={post.slug}
+              deleteRedirectTo="/feed"
+            />
           ) : null}
         </div>
         <p
@@ -123,12 +114,15 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
         >
           {post.content}
         </p>
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="text-sm font-semibold text-primary hover:opacity-80 transition"
-        >
-          {expanded ? "접기" : "더 보기"}
-        </button>
+        {expanded ? (
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="text-sm font-semibold text-primary hover:opacity-80 transition"
+          >
+            접기
+          </button>
+        ) : null}
       </CardBody>
     </Card>
   );
