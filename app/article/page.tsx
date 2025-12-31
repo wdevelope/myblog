@@ -1,7 +1,6 @@
 import Link from "next/link";
 import CategorySettingsModal from "@/app/article/CategorySettingsModal";
 import MarkdownExcerpt from "@/app/_components/MarkdownExcerpt";
-import PostActionMenu from "@/app/_components/PostActionMenu";
 import { getPublicPosts } from "@/lib/server/publicPosts";
 import { getPosts } from "@/lib/api";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
@@ -173,9 +172,8 @@ export default async function BlogIndexPage() {
 
               return (
                 <div key={post.id} className="group">
-                  <div className="relative">
-                    <Link href={`/article/${post.slug}`} className="block">
-                      <article className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10">
+                  <Link href={`/article/${post.slug}`} className="block">
+                    <article className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10">
                       <div className="p-5">
                         <div className="flex items-center justify-between">
                           <span className="inline-flex rounded-xl bg-primary/15 px-3 py-1 text-xs font-bold text-primary ring-1 ring-primary/20">
@@ -236,18 +234,8 @@ export default async function BlogIndexPage() {
                           ) : null}
                         </div>
                       </div>
-                      </article>
-                    </Link>
-
-                    {isAdmin ? (
-                      <PostActionMenu
-                        className="absolute right-3 top-3 z-10"
-                        editHref={`/article/edit/${post.slug}`}
-                        deleteSlug={post.slug}
-                        deleteRedirectTo="/article"
-                      />
-                    ) : null}
-                  </div>
+                    </article>
+                  </Link>
                 </div>
               );
             })}

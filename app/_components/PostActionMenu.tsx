@@ -67,7 +67,7 @@ export default function PostActionMenu({
         aria-controls={menuId}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex size-10 items-center justify-center rounded-xl bg-surface/70 text-foreground ring-1 ring-border shadow-sm transition hover:bg-surface-2"
+        className="inline-flex size-10 items-center justify-center rounded-xl bg-surface/70 text-foreground shadow-sm transition hover:bg-surface-2"
       >
         <DotsIcon className="size-4.5 text-muted" />
       </button>
