@@ -52,13 +52,13 @@ export default async function DiaryEntryPage({
         </Link>
         <span className="mx-2">/</span>
         <Link href="/diary" className="hover:text-foreground">
-          일기
+          다이어리
         </Link>
       </nav>
 
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-          <Badge variant="warning">일기</Badge>
+          <Badge variant="warning">다이어리</Badge>
           <span className="h-1 w-1 rounded-full bg-muted/60" />
           <span>{new Date(post.createdAt).toLocaleString()}</span>
           <span className="h-1 w-1 rounded-full bg-muted/60" />

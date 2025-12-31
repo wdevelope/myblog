@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  return { title: `일기 수정: ${slug}` };
+  return { title: `다이어리 수정: ${slug}` };
 }
 
 export default async function DiaryEditPage({ params }: Props) {
@@ -36,7 +36,7 @@ export default async function DiaryEditPage({ params }: Props) {
           </BackButton>
           <nav className="hidden items-center gap-2 sm:flex">
             <Link href="/diary" className="hover:text-foreground">
-              일기
+              다이어리
             </Link>
             <span className="text-muted/70">/</span>
             <span className="text-foreground">수정</span>
@@ -67,4 +67,3 @@ export default async function DiaryEditPage({ params }: Props) {
     </div>
   );
 }
-

@@ -14,7 +14,7 @@ export default function MobileNav({ loggedIn }: { loggedIn: boolean }) {
     () => [
       { href: "/feed", label: "피드" },
       { href: "/article", label: "아티클" },
-      { href: "/diary", label: "일기" },
+      { href: "/diary", label: "다이어리" },
     ],
     [],
   );

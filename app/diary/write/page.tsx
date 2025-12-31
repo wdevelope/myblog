@@ -5,7 +5,7 @@ import PostEditor from "@/app/_components/PostEditor";
 import { requireAdmin } from "@/lib/server/admin";
 
 export const metadata: Metadata = {
-  title: "일기 쓰기",
+  title: "다이어리 쓰기",
 };
 
 export const dynamic = "force-dynamic";
@@ -22,14 +22,14 @@ export default async function DiaryWritePage() {
         >
           ← 뒤로
         </BackButton>
-        <nav className="hidden items-center gap-2 sm:flex">
-          <Link href="/diary" className="hover:text-foreground">
-            일기
-          </Link>
-          <span className="text-muted/70">/</span>
-          <span className="text-foreground">글쓰기</span>
-        </nav>
-      </div>
+          <nav className="hidden items-center gap-2 sm:flex">
+            <Link href="/diary" className="hover:text-foreground">
+              다이어리
+            </Link>
+            <span className="text-muted/70">/</span>
+            <span className="text-foreground">글쓰기</span>
+          </nav>
+        </div>
 
       <PostEditor type="diary" defaultVisibility="private" />
     </div>

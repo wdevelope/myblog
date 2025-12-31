@@ -46,7 +46,7 @@ export default async function SiteHeader() {
           <nav className="hidden items-center gap-6 md:flex">
             <NavLink href="/feed">피드</NavLink>
             <NavLink href="/article">아티클</NavLink>
-            <NavLink href="/diary">일기</NavLink>
+            <NavLink href="/diary">다이어리</NavLink>
           </nav>
         </div>
 

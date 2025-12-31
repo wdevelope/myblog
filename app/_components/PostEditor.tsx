@@ -7,7 +7,7 @@ import type { PostType, Visibility } from "@/lib/types";
 function typeLabel(type: PostType) {
   if (type === "blog") return "아티클";
   if (type === "feed") return "피드";
-  return "일기";
+  return "다이어리";
 }
 
 function escapeHtml(input: string) {

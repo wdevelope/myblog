@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/server/admin";
 import DiaryIndexClient from "@/app/diary/DiaryIndexClient";
 
 export const metadata = {
-  title: "일기",
+  title: "다이어리",
 };
 
 export const dynamic = "force-dynamic";

@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 function postTypeLabel(type: string) {
   if (type === "blog") return "아티클";
   if (type === "feed") return "피드";
-  if (type === "diary") return "일기";
+  if (type === "diary") return "다이어리";
   return type.toUpperCase();
 }
 
@@ -59,7 +59,7 @@ async function HomePage() {
                   피드 쓰기
                 </ButtonLink>
                 <ButtonLink href="/diary/write" variant="secondary">
-                  일기 쓰기
+                  다이어리 쓰기
                 </ButtonLink>
               </>
             ) : loggedIn ? (
@@ -80,7 +80,7 @@ async function HomePage() {
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="rounded-2xl bg-surface/20 px-6 py-4 text-center ring-1 ring-border backdrop-blur">
                 <p className="text-sm font-semibold text-foreground">
-                  피드 · 아티클 · 일기
+                  피드 · 아티클 · 다이어리
                 </p>
                 <p className="mt-1 text-xs text-muted">
                   게시글 공개 범위 · 마크다운
@@ -110,7 +110,7 @@ async function HomePage() {
               피드
             </Link>
             <Link href="/diary" className="pb-3 text-sm font-medium text-muted">
-              일기
+              다이어리
             </Link>
           </div>
         </div>

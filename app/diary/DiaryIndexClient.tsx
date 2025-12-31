@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import DeletePostButton from "@/app/_components/DeletePostButton";
+import { toExcerptMarkdown } from "@/lib/markdown";
 
 type DiaryPost = {
   id: string;
@@ -220,71 +221,76 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
               href="/diary/write"
               className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
             >
-              일기 쓰기
+              다이어리 쓰기
             </Link>
           </div>
         </div>
 
-        <div className="divide-y divide-border">
-          {visiblePosts.length ? (
-            visiblePosts.map((post) => (
-              <div key={post.id} className="py-6 first:pt-0">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 text-muted/80">
-                    <LockIcon className="size-5" />
-                  </div>
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <Link
-                      href={`/diary/${post.slug}`}
-                      className="block min-w-0"
-                    >
-                      <h2 className="truncate text-lg font-bold text-foreground transition hover:text-primary">
-                        {post.title}
-                      </h2>
-                    </Link>
-                    <p className="line-clamp-2 text-sm leading-6 text-muted">
-                      {post.content}
-                    </p>
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                      <p className="text-sm text-muted">
-                        {formatDateKorean(new Date(post.createdAt))}
+        <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-background shadow-sm">
+          <div className="divide-y divide-border">
+            {visiblePosts.length ? (
+              visiblePosts.map((post) => (
+                <div
+                  key={post.id}
+                  className="px-5 py-6 transition hover:bg-surface-2/60"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 text-muted/80">
+                      <LockIcon className="size-5" />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Link
+                        href={`/diary/${post.slug}`}
+                        className="block min-w-0"
+                      >
+                        <h2 className="truncate text-lg font-bold text-foreground transition hover:text-primary">
+                          {post.title}
+                        </h2>
+                      </Link>
+                      <p className="line-clamp-2 text-sm leading-6 text-muted">
+                        {toExcerptMarkdown(post.content, 180)}
                       </p>
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/diary/edit/${post.slug}`}
-                          className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
-                        >
-                          수정
-                        </Link>
-                        <DeletePostButton
-                          slug={post.slug}
-                          className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
-                        >
-                          삭제
-                        </DeletePostButton>
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                        <p className="text-sm text-muted">
+                          {formatDateKorean(new Date(post.createdAt))}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/diary/edit/${post.slug}`}
+                            className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
+                          >
+                            수정
+                          </Link>
+                          <DeletePostButton
+                            slug={post.slug}
+                            className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
+                          >
+                            삭제
+                          </DeletePostButton>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
-          ) : (
-            <div className="py-16 text-center">
-              <p className="text-sm text-muted">
+              ))
+            ) : (
+              <div className="py-16 text-center">
+                <p className="text-sm text-muted">
                 {selectedYmd
-                  ? "선택한 날짜에 작성한 일기가 없습니다."
-                  : "아직 일기가 없습니다."}
+                    ? "선택한 날짜에 작성한 다이어리가 없습니다."
+                    : "아직 다이어리가 없습니다."}
               </p>
-              <div className="mt-4">
-                <Link
-                  href="/diary/write"
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
-                >
-                  오늘 일기 작성하기
-                </Link>
+                <div className="mt-4">
+                  <Link
+                    href="/diary/write"
+                    className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+                  >
+                    오늘 다이어리 작성하기
+                  </Link>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </section>
 
@@ -350,7 +356,7 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
                       isSelected ? "ring-2 ring-emerald-400/60" : "ring-0",
                       hasEntry ? "cursor-pointer" : "cursor-default",
                     ].join(" ")}
-                    aria-label={`${ymd}${hasEntry ? " 일기 있음" : ""}`}
+                    aria-label={`${ymd}${hasEntry ? " 다이어리 있음" : ""}`}
                     disabled={!hasEntry}
                   >
                     {date.getDate()}
@@ -372,7 +378,7 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
                 <p className="text-base font-bold text-foreground">
                   오늘은 어떤 하루였나요?
                 </p>
-                <p className="text-sm text-muted">오늘 일기 작성하기</p>
+                <p className="text-sm text-muted">오늘 다이어리 작성하기</p>
               </div>
             </div>
             <ChevronRight className="size-5 text-muted transition group-hover:text-foreground" />
