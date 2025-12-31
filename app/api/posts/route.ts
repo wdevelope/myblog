@@ -91,6 +91,7 @@ export async function POST(request: Request) {
     content: string;
     categorySlug: string | null;
     imageKeys: string[];
+    createdAtYmd: string;
   }>;
 
   if (!body.type || !["blog", "feed", "diary"].includes(body.type)) {
@@ -103,6 +104,25 @@ export async function POST(request: Request) {
   if (!body.content?.trim()) return badRequest("내용을 입력해주세요.");
   if (body.type === "blog" && !body.categorySlug?.trim()) {
     return badRequest("아티클은 카테고리가 필요해요.");
+  }
+
+  const createdAtYmd = body.createdAtYmd?.trim();
+  let createdAtIso: string | null = null;
+  if (createdAtYmd) {
+    if (body.type !== "diary") {
+      return badRequest("createdAtYmd는 다이어리에만 사용할 수 있어요.");
+    }
+    if (body.id) {
+      return badRequest("createdAtYmd는 신규 다이어리 작성에서만 사용할 수 있어요.");
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(createdAtYmd)) {
+      return badRequest("createdAtYmd 형식이 올바르지 않아요. (YYYY-MM-DD)");
+    }
+    const createdAt = new Date(`${createdAtYmd}T12:00:00+09:00`);
+    if (Number.isNaN(createdAt.getTime())) {
+      return badRequest("createdAtYmd 날짜가 올바르지 않아요.");
+    }
+    createdAtIso = createdAt.toISOString();
   }
 
   const baseSlug = body.slug?.trim() || slugify(body.title) || "post";
@@ -144,6 +164,7 @@ export async function POST(request: Request) {
     category_slug: categorySlug,
     image_keys: body.imageKeys ?? [],
     author_id: user.id,
+    ...(createdAtIso ? { created_at: createdAtIso } : null),
   };
 
   const { data: saved, error } = await service

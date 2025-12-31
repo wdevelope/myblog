@@ -37,6 +37,11 @@ function formatDateKorean(date: Date) {
     .replace(/\.$/, "");
 }
 
+function buildWriteHref(selectedYmd: string | null) {
+  if (!selectedYmd) return "/diary/write";
+  return `/diary/write?date=${encodeURIComponent(selectedYmd)}`;
+}
+
 function addMonths(base: Date, diff: number) {
   const next = new Date(base);
   next.setMonth(next.getMonth() + diff, 1);
@@ -218,7 +223,7 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
               {distinctDayCount}일의 기록
             </p>
             <Link
-              href="/diary/write"
+              href={buildWriteHref(selectedYmd)}
               className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
             >
               다이어리 쓰기
@@ -276,16 +281,18 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
             ) : (
               <div className="py-16 text-center">
                 <p className="text-sm text-muted">
-                {selectedYmd
+                  {selectedYmd
                     ? "선택한 날짜에 작성한 다이어리가 없습니다."
                     : "아직 다이어리가 없습니다."}
-              </p>
+                </p>
                 <div className="mt-4">
                   <Link
-                    href="/diary/write"
+                    href={buildWriteHref(selectedYmd)}
                     className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
                   >
-                    오늘 다이어리 작성하기
+                    {selectedYmd
+                      ? "선택한 날짜에 다이어리 작성하기"
+                      : "오늘 다이어리 작성하기"}
                   </Link>
                 </div>
               </div>
@@ -342,7 +349,6 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
                     key={ymd}
                     type="button"
                     onClick={() => {
-                      if (!hasEntry) return;
                       setSelectedYmd((prev) => (prev === ymd ? null : ymd));
                     }}
                     className={[
@@ -353,11 +359,9 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
                       hasEntry
                         ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20"
                         : "hover:bg-surface-2",
-                      isSelected ? "ring-2 ring-emerald-400/60" : "ring-0",
-                      hasEntry ? "cursor-pointer" : "cursor-default",
+                      isSelected ? "ring-2 ring-primary/60" : "ring-0",
                     ].join(" ")}
                     aria-label={`${ymd}${hasEntry ? " 다이어리 있음" : ""}`}
-                    disabled={!hasEntry}
                   >
                     {date.getDate()}
                   </button>
@@ -367,7 +371,7 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
           </div>
 
           <Link
-            href="/diary/write"
+            href={buildWriteHref(selectedYmd)}
             className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-background p-5 transition hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
           >
             <div className="flex items-center gap-4">
@@ -378,7 +382,9 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
                 <p className="text-base font-bold text-foreground">
                   오늘은 어떤 하루였나요?
                 </p>
-                <p className="text-sm text-muted">오늘 다이어리 작성하기</p>
+                <p className="text-sm text-muted">
+                  {selectedYmd ? `${selectedYmd.replaceAll("-", ".")} 작성하기` : "오늘 다이어리 작성하기"}
+                </p>
               </div>
             </div>
             <ChevronRight className="size-5 text-muted transition group-hover:text-foreground" />

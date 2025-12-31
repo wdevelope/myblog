@@ -10,8 +10,20 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function DiaryWritePage() {
+function isYmd(input: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(input);
+}
+
+type Props = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function DiaryWritePage({ searchParams }: Props) {
   await requireAdmin("/diary/write");
+
+  const sp = (await searchParams) ?? {};
+  const dateParam = typeof sp.date === "string" ? sp.date : null;
+  const createdAtYmd = dateParam && isYmd(dateParam) ? dateParam : undefined;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -22,16 +34,20 @@ export default async function DiaryWritePage() {
         >
           ← 뒤로
         </BackButton>
-          <nav className="hidden items-center gap-2 sm:flex">
-            <Link href="/diary" className="hover:text-foreground">
-              다이어리
-            </Link>
-            <span className="text-muted/70">/</span>
-            <span className="text-foreground">글쓰기</span>
-          </nav>
-        </div>
+        <nav className="hidden items-center gap-2 sm:flex">
+          <Link href="/diary" className="hover:text-foreground">
+            다이어리
+          </Link>
+          <span className="text-muted/70">/</span>
+          <span className="text-foreground">글쓰기</span>
+        </nav>
+      </div>
 
-      <PostEditor type="diary" defaultVisibility="private" />
+      <PostEditor
+        type="diary"
+        defaultVisibility="private"
+        createdAtYmd={createdAtYmd}
+      />
     </div>
   );
 }

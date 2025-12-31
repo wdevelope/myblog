@@ -68,6 +68,7 @@ export default function PostEditor({
   type,
   defaultVisibility,
   initial,
+  createdAtYmd,
 }: {
   type: PostType;
   defaultVisibility?: Visibility;
@@ -80,6 +81,7 @@ export default function PostEditor({
     categorySlug?: string | null;
     imageKeys?: string[];
   };
+  createdAtYmd?: string;
 }) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -203,6 +205,9 @@ export default function PostEditor({
         content: trimmedContent,
         categorySlug: type === "blog" ? categorySlug.trim() : null,
         imageKeys,
+        ...(type === "diary" && !initial?.id && createdAtYmd
+          ? { createdAtYmd }
+          : null),
       }),
     });
 
@@ -230,6 +235,11 @@ export default function PostEditor({
           <span className="text-sm font-semibold text-muted">
             {typeLabel(type)} 글쓰기
           </span>
+          {type === "diary" && !initial && createdAtYmd ? (
+            <span className="text-xs font-semibold text-muted">
+              작성 날짜: {createdAtYmd.replaceAll("-", ".")}
+            </span>
+          ) : null}
           <span className="text-xs text-muted">
             {isPending ? "저장 중..." : "임시"}
           </span>
