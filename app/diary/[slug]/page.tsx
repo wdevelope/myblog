@@ -53,15 +53,15 @@ export default async function DiaryEntryPage({
           </Link>
         </p>
 
-        <h1 className="text-4xl font-black tracking-tight md:text-5xl">
+        <h1 className="text-3xl font-black tracking-tight md:text-4xl">
           {post?.title ?? "비공개 다이어리"}
         </h1>
 
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
           <div className="flex items-center gap-4">
-            <div className="size-12 rounded-full bg-surface-2 ring-1 ring-border" />
+            <div className="size-10 rounded-full bg-surface-2 ring-1 ring-border" />
             <div className="space-y-1">
-              <p className="text-base font-bold text-foreground">원스</p>
+              <p className="text-sm font-bold text-foreground">원스</p>
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
                 <span>
                   {post ? new Date(post.createdAt).toLocaleDateString("ko-KR") : ""}

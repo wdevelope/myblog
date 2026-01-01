@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
   const { data: comments, error } = await supabase
     .from("comments")
-    .select("*")
+    .select("id,post_id,parent_id,author_id,content,created_at")
     .eq("post_id", postId)
     .order("created_at", { ascending: true });
   if (error) {
@@ -44,6 +44,8 @@ export async function GET(request: Request) {
     comments.map((c) => ({
       id: c.id,
       postId: c.post_id,
+      parentId: c.parent_id,
+      authorId: c.author_id,
       content: c.content,
       createdAt: c.created_at,
     })),
@@ -59,6 +61,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as Partial<{
     postSlug: string;
     content: string;
+    parentId: string;
   }>;
 
   if (!body.postSlug?.trim()) return badRequest("postSlug is required");
@@ -80,12 +83,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
+  const parentId = body.parentId?.trim() ? body.parentId.trim() : null;
+  if (parentId) {
+    const { data: parent, error: parentError } = await supabase
+      .from("comments")
+      .select("id,post_id,parent_id")
+      .eq("id", parentId)
+      .maybeSingle();
+
+    if (parentError) {
+      return NextResponse.json(
+        { error: "db_error", details: parentError.message },
+        { status: 500 },
+      );
+    }
+    if (!parent) return badRequest("parent comment not found");
+    if (parent.post_id !== post.id) return badRequest("invalid parent comment");
+    if (parent.parent_id) return badRequest("nested replies are not supported");
+  }
+
   const { data: created, error } = await supabase
     .from("comments")
     .insert({
       post_id: post.id,
       author_id: auth.user.id,
       content: body.content.trim(),
+      parent_id: parentId,
     })
     .select("*")
     .single();
@@ -97,6 +120,8 @@ export async function POST(request: Request) {
     {
       id: created.id,
       postId: created.post_id,
+      parentId: created.parent_id,
+      authorId: created.author_id,
       content: created.content,
       createdAt: created.created_at,
     },

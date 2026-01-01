@@ -1,10 +1,10 @@
 import { getPostBySlug } from "@/lib/api";
 import { getComments } from "@/lib/api";
 import PostImages from "@/app/_components/PostImages";
-import CommentForm from "@/app/_components/CommentForm";
 import Markdown from "@/app/_components/Markdown";
 import BackButton from "@/app/_components/BackButton";
 import PostActionMenu from "@/app/_components/PostActionMenu";
+import CommentsThread from "@/app/_components/CommentsThread";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Card, CardBody } from "@/app/_components/ui";
@@ -68,15 +68,15 @@ export default async function BlogPostPage({
           ) : null}
         </p>
 
-        <h1 className="text-4xl font-black tracking-tight md:text-5xl">
+        <h1 className="text-3xl font-black tracking-tight md:text-4xl">
           {post.title}
         </h1>
 
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
           <div className="flex items-center gap-4">
-            <div className="size-12 rounded-full bg-surface-2 ring-1 ring-border" />
+            <div className="size-10 rounded-full bg-surface-2 ring-1 ring-border" />
             <div className="space-y-1">
-              <p className="text-base font-bold text-foreground">원스</p>
+              <p className="text-sm font-bold text-foreground">원스</p>
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
                 <span>{new Date(post.createdAt).toLocaleDateString("ko-KR")}</span>
                 <span>·</span>
@@ -90,12 +90,7 @@ export default async function BlogPostPage({
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-sm text-muted">
-            <span className="inline-flex items-center gap-2">
-              <span aria-hidden>💬</span>
-              {comments.length}
-            </span>
-          </div>
+          <div className="flex items-center gap-4 text-sm text-muted" />
         </div>
       </header>
 
@@ -107,38 +102,22 @@ export default async function BlogPostPage({
       </Card>
 
       <Card>
-        <CardBody>
-          <h2 className="text-base font-bold text-foreground">댓글</h2>
-          <div className="mt-4 space-y-3">
-            {comments.length ? (
-              comments.map((c) => (
-                <div
-                  key={c.id}
-                  className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm"
-                >
-                  <p className="whitespace-pre-wrap text-foreground">
-                    {c.content}
-                  </p>
-                  <p className="mt-2 text-xs text-muted">
-                    {new Date(c.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted">
-                {user ? "아직 댓글이 없습니다." : "로그인 후 댓글을 확인할 수 있어요."}
-              </p>
-            )}
-          </div>
+        <CardBody className="space-y-6">
           {user ? (
-            <CommentForm postSlug={post.slug} />
+            <CommentsThread postSlug={post.slug} comments={comments} canWrite />
           ) : (
-            <div className="mt-6">
+            <div className="space-y-3">
+              <h2 className="text-2xl font-black tracking-tight text-foreground">
+                댓글
+              </h2>
+              <p className="text-sm text-muted">
+                로그인 후 댓글을 확인/작성할 수 있어요.
+              </p>
               <Link
                 href={`/login?from=${encodeURIComponent(`/article/${slug}`)}`}
                 className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
               >
-                로그인하고 댓글 쓰기
+                로그인하기
               </Link>
             </div>
           )}

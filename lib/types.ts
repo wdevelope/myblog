@@ -18,6 +18,8 @@ export type Post = {
 export type Comment = {
   id: string;
   postId: string;
+  parentId?: string | null;
+  authorId?: string | null;
   content: string;
   createdAt: string;
 };
