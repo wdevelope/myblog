@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getPosts } from "@/lib/api";
+import Image from "next/image";
 import { getCurrentUser } from "@/lib/server/admin";
 import { getPublicPosts } from "@/lib/server/publicPosts";
 import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
@@ -13,30 +13,9 @@ export default function Home() {
 
 export const dynamic = "force-dynamic";
 
-function coverSrcFromImageKey(key: string) {
-  const [bucket, ...rest] = key.split(":");
-  const objectPath = rest.join(":");
-  const looksLikeSupabaseKey = Boolean(bucket && objectPath);
-  if (!looksLikeSupabaseKey) return key;
-
-  if (bucket === "post-images-public") {
-    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!base) return null;
-    const path = encodeURIComponent(objectPath).replaceAll("%2F", "/");
-    return `${base}/storage/v1/object/public/${bucket}/${path}`;
-  }
-
-  return `/api/images?bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(objectPath)}`;
-}
-
 async function HomePage() {
   const user = await getCurrentUser();
   const loggedIn = Boolean(user);
-  const feed = await getPosts({ type: "feed" });
-  const latestCoverKey = feed.find((post) => post.imageKeys?.[0])?.imageKeys?.[0];
-  const latestCoverSrc = latestCoverKey
-    ? coverSrcFromImageKey(latestCoverKey)
-    : null;
   const latestArticles = (await getPublicPosts({ type: "blog" })).slice(0, 6);
 
   return (
@@ -64,23 +43,15 @@ async function HomePage() {
 
         <Card className="overflow-hidden">
           <div className="relative aspect-[16/10] overflow-hidden">
-            {latestCoverSrc ? (
-              <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={latestCoverSrc}
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-tr from-background/70 via-black/10 to-surface/40" />
-              </>
-            ) : (
-              <>
-                <div className="absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_40%,rgba(19,91,236,0.45)_0%,rgba(147,51,234,0.25)_55%,rgba(16,22,34,0)_100%)]" />
-                <div className="absolute inset-0 bg-gradient-to-tr from-background via-transparent to-surface opacity-60" />
-              </>
-            )}
+            <Image
+              src="/logo.png"
+              alt=""
+              fill
+              sizes="(min-width: 768px) 50vw, 100vw"
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-tr from-background/70 via-black/10 to-surface/40" />
           </div>
         </Card>
       </section>

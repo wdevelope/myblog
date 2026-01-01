@@ -40,7 +40,7 @@ export default async function BlogPostPage({
           fallbackHref="/article"
           className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
         >
-          ← 뒤로
+          ← 목록으로
         </BackButton>
         {isAdmin ? (
           <PostActionMenu
