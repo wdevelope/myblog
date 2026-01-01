@@ -7,7 +7,7 @@ import PostActionMenu from "@/app/_components/PostActionMenu";
 import CommentsThread from "@/app/_components/CommentsThread";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { Card, CardBody } from "@/app/_components/ui";
+import { CardBody } from "@/app/_components/ui";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 
 export const dynamic = "force-dynamic";
@@ -68,16 +68,16 @@ export default async function BlogPostPage({
           ) : null}
         </p>
 
-        <h1 className="text-3xl font-black tracking-tight md:text-4xl">
+        <h1 className="text-2xl font-black tracking-tight md:text-3xl">
           {post.title}
         </h1>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
           <div className="flex items-center gap-4">
             <div className="size-10 rounded-full bg-surface-2 ring-1 ring-border" />
             <div className="space-y-1">
               <p className="text-sm font-bold text-foreground">원스</p>
-              <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
                 <span>{new Date(post.createdAt).toLocaleDateString("ko-KR")}</span>
                 <span>·</span>
                 <span>조회수 {(post.viewCount ?? 0).toLocaleString()}회</span>
@@ -94,15 +94,15 @@ export default async function BlogPostPage({
         </div>
       </header>
 
-      <Card>
-        <CardBody className="space-y-6">
+      <div className="space-y-6">
+        <div className="text-sm">
           <Markdown content={post.content} />
-          <PostImages imageKeys={post.imageKeys} />
-        </CardBody>
-      </Card>
+        </div>
+        <PostImages imageKeys={post.imageKeys} />
+      </div>
 
-      <Card>
-        <CardBody className="space-y-6">
+      <div className="border-t border-border pt-8">
+        <CardBody className="space-y-6 px-0">
           {user ? (
             <CommentsThread postSlug={post.slug} comments={comments} canWrite />
           ) : (
@@ -122,7 +122,7 @@ export default async function BlogPostPage({
             </div>
           )}
         </CardBody>
-      </Card>
+      </div>
     </article>
   );
 }
