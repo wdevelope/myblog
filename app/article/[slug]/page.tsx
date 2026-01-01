@@ -43,14 +43,6 @@ export default async function BlogPostPage({
         >
           ← 목록으로
         </BackButton>
-        {isAdmin ? (
-          <PostActionMenu
-            editHref={`/article/edit/${post.slug}`}
-            deleteSlug={post.slug}
-            deleteRedirectTo="/article"
-            ariaLabel="아티클 더보기"
-          />
-        ) : null}
       </div>
 
       <header className="space-y-6">
@@ -69,9 +61,21 @@ export default async function BlogPostPage({
           ) : null}
         </p>
 
-        <h1 className="text-2xl font-black tracking-tight md:text-3xl">
-          {post.title}
-        </h1>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="min-w-0 text-2xl font-black tracking-tight md:text-3xl">
+            {post.title}
+          </h1>
+          {isAdmin ? (
+            <div className="shrink-0 pt-1">
+              <PostActionMenu
+                editHref={`/article/edit/${post.slug}`}
+                deleteSlug={post.slug}
+                deleteRedirectTo="/article"
+                ariaLabel="아티클 더보기"
+              />
+            </div>
+          ) : null}
+        </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
           <div className="flex items-center gap-4">
