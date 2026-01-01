@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { FiSettings } from "react-icons/fi";
+import { FiSettings, FiX } from "react-icons/fi";
 
 type Category = { slug: string; inUse?: number };
 
@@ -194,9 +194,11 @@ export default function CategorySettingsModal() {
           <button
             type="button"
             onClick={close}
-            className="rounded-xl border border-border bg-surface px-3 py-2 text-sm font-bold transition hover:bg-surface-2"
+            className="inline-flex size-9 items-center justify-center rounded-xl bg-transparent text-muted transition hover:text-foreground"
+            aria-label="닫기"
+            title="닫기"
           >
-            닫기
+            <FiX className="size-5" aria-hidden />
           </button>
         </div>
 
@@ -366,16 +368,6 @@ export default function CategorySettingsModal() {
               )}
             </div>
           </div>
-        </div>
-
-        <div className="border-t border-border p-4 text-right">
-          <button
-            type="button"
-            onClick={close}
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-bold transition hover:bg-surface-2"
-          >
-            닫기
-          </button>
         </div>
       </dialog>
     </>
