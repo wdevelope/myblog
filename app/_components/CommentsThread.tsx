@@ -65,10 +65,10 @@ function CommentComposer({
         onChange={(e) => setContent(e.target.value)}
         rows={3}
         disabled={disabled || isPending}
-        className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary/60 disabled:opacity-60"
+        className="w-full rounded-2xl border border-border bg-transparent px-4 py-3 text-xs text-foreground outline-none transition focus:border-primary/60 disabled:opacity-60"
         placeholder={placeholder}
       />
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-xs text-red-600">{error}</p> : null}
       <div className="flex items-center justify-end">
         <button
           type="button"
@@ -89,7 +89,7 @@ function CommentComposer({
                 }),
             );
           }}
-          className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
+          className="inline-flex h-8 items-center justify-center rounded-xl bg-primary px-4 text-xs font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
         >
           {submitLabel}
         </button>
@@ -145,7 +145,7 @@ export default function CommentsThread({
   return (
     <section className="space-y-5">
       <div className="flex items-end justify-between gap-4">
-        <h2 className="text-2xl font-black tracking-tight text-foreground">
+        <h2 className="text-xl font-black tracking-tight text-foreground">
           댓글 {comments.length}개
         </h2>
       </div>
@@ -167,7 +167,7 @@ export default function CommentsThread({
                 <div className="flex items-start gap-4">
                   <Avatar authorId={c.authorId} />
                   <div className="min-w-0 flex-1 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
                       <span className="font-bold text-foreground">
                         {displayName(c.authorId)}
                       </span>
@@ -176,10 +176,10 @@ export default function CommentsThread({
                         {formatRelativeTime(c.createdAt)}
                       </span>
                     </div>
-                    <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/90">
+                    <p className="whitespace-pre-wrap text-xs leading-5 text-foreground/90">
                       {c.content}
                     </p>
-                    <div className="flex items-center gap-4 text-sm text-muted">
+                    <div className="flex items-center gap-4 text-xs text-muted">
                       <button
                         type="button"
                         onClick={() => setReplyTo((prev) => (prev === c.id ? null : c.id))}
@@ -209,7 +209,7 @@ export default function CommentsThread({
                       <div key={r.id} className="flex items-start gap-4">
                         <Avatar authorId={r.authorId} />
                         <div className="min-w-0 flex-1 space-y-2">
-                          <div className="flex flex-wrap items-center gap-2 text-sm">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
                             <span className="font-bold text-foreground">
                               {displayName(r.authorId)}
                             </span>
@@ -218,7 +218,7 @@ export default function CommentsThread({
                               {formatRelativeTime(r.createdAt)}
                             </span>
                           </div>
-                          <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/90">
+                          <p className="whitespace-pre-wrap text-xs leading-5 text-foreground/90">
                             {r.content}
                           </p>
                         </div>
@@ -231,8 +231,8 @@ export default function CommentsThread({
           })}
         </div>
       ) : (
-        <div className="rounded-3xl border border-border bg-surface px-6 py-16 text-center">
-          <p className="text-sm text-muted">아직 작성된 댓글이 없습니다.</p>
+        <div className="rounded-3xl border border-border bg-transparent px-6 py-16 text-center">
+          <p className="text-xs text-muted">아직 작성된 댓글이 없습니다.</p>
         </div>
       )}
     </section>
