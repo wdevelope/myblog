@@ -5,6 +5,21 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { isAdminDb, requireAdmin } from "@/lib/server/admin";
 import { publicBlogCategoryTag, publicPostsTag } from "@/lib/server/publicPosts";
 
+async function incrementViewCount(slug: string) {
+  try {
+    const service = createSupabaseServiceClient();
+    const { data, error } = await service.rpc("increment_post_view", {
+      p_slug: slug,
+    });
+    if (error) return null;
+    if (typeof data === "number") return data;
+    if (typeof data === "bigint") return Number(data);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ slug: string }> },
@@ -51,6 +66,11 @@ export async function GET(
       );
     }
 
+    const viewCount =
+      servicePost.visibility === "public"
+        ? await incrementViewCount(slug)
+        : null;
+
     return NextResponse.json(
       {
         id: servicePost.id,
@@ -63,6 +83,7 @@ export async function GET(
         createdAt: servicePost.created_at,
         updatedAt: servicePost.updated_at ?? servicePost.created_at,
         imageKeys: servicePost.image_keys ?? [],
+        viewCount: viewCount ?? servicePost.view_count ?? 0,
       },
       { status: 200 },
     );
@@ -77,6 +98,8 @@ export async function GET(
     );
   }
 
+  const viewCount = post.visibility === "public" ? await incrementViewCount(slug) : null;
+
   return NextResponse.json(
     {
       id: post.id,
@@ -89,6 +112,7 @@ export async function GET(
       createdAt: post.created_at,
       updatedAt: post.updated_at ?? post.created_at,
       imageKeys: post.image_keys ?? [],
+      viewCount: viewCount ?? post.view_count ?? 0,
     },
     { status: 200 },
   );

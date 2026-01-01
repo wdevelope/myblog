@@ -5,7 +5,7 @@ import BackButton from "@/app/_components/BackButton";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Badge, Card, CardBody } from "@/app/_components/ui";
+import { Card, CardBody } from "@/app/_components/ui";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export default async function DiaryEntryPage({
   if (post && post.type !== "diary") notFound();
 
   return (
-    <article className="mx-auto max-w-3xl space-y-8">
+    <article className="mx-auto max-w-4xl space-y-10">
       <div className="flex items-center justify-between gap-4">
         <BackButton
           fallbackHref="/diary"
@@ -44,28 +44,41 @@ export default async function DiaryEntryPage({
         </BackButton>
       </div>
 
-      <nav className="text-sm text-muted">
-        <Link href="/" className="hover:text-foreground">
-          홈
-        </Link>
-        <span className="mx-2">/</span>
-        <Link href="/diary" className="hover:text-foreground">
-          다이어리
-        </Link>
-      </nav>
+      <header className="space-y-6">
+        <p className="text-sm text-muted">
+          <span className="font-semibold text-foreground">w-life</span>
+          <span className="mx-2 text-muted/70">/</span>
+          <Link href="/diary" className="hover:text-foreground">
+            다이어리
+          </Link>
+        </p>
 
-      <header className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-          <Badge variant="warning">다이어리</Badge>
-          <span className="h-1 w-1 rounded-full bg-muted/60" />
-          <span>{post ? new Date(post.createdAt).toLocaleString() : ""}</span>
-          <span className="h-1 w-1 rounded-full bg-muted/60" />
-          <span>{post ? (post.visibility === "public" ? "공개" : "비공개") : "비공개"}</span>
-        </div>
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="min-w-0 flex-1 text-4xl font-black tracking-tight md:text-5xl">
-            {post?.title ?? "비공개 다이어리"}
-          </h1>
+        <h1 className="text-4xl font-black tracking-tight md:text-5xl">
+          {post?.title ?? "비공개 다이어리"}
+        </h1>
+
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
+          <div className="flex items-center gap-4">
+            <div className="size-12 rounded-full bg-surface-2 ring-1 ring-border" />
+            <div className="space-y-1">
+              <p className="text-base font-bold text-foreground">원스</p>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+                <span>
+                  {post ? new Date(post.createdAt).toLocaleDateString("ko-KR") : ""}
+                </span>
+                <span>·</span>
+                <span>
+                  조회수 {(post?.viewCount ?? 0).toLocaleString()}회
+                </span>
+                <span>·</span>
+                <span className="inline-flex items-center gap-1">
+                  {post ? (post.visibility === "public" ? "공개" : "비공개") : "비공개"}
+                  {post?.visibility === "private" ? <span aria-hidden>🔒</span> : null}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {isAdmin && post ? (
             <PostActionMenu
               editHref={`/diary/edit/${post.slug}`}

@@ -12,6 +12,7 @@ export type Post = {
   createdAt: string;
   updatedAt: string;
   imageKeys?: string[];
+  viewCount?: number;
 };
 
 export type Comment = {
@@ -20,4 +21,3 @@ export type Comment = {
   content: string;
   createdAt: string;
 };
-
