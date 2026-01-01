@@ -55,7 +55,7 @@ export default async function BlogPostPage({
 
       <header className="space-y-6">
         <p className="text-sm text-muted">
-          <span className="font-semibold text-foreground">w-life</span>
+          <span className="font-semibold text-foreground">아티클</span>
           {post.categorySlug ? (
             <>
               <span className="mx-2 text-muted/70">/</span>

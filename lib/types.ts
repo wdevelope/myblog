@@ -12,6 +12,7 @@ export type Post = {
   createdAt: string;
   updatedAt: string;
   imageKeys?: string[];
+  thumbnailImageKey?: string | null;
   viewCount?: number;
 };
 

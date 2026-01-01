@@ -107,6 +107,7 @@ export async function createPost(input: {
   content: string;
   categorySlug?: string | null;
   imageKeys?: string[];
+  thumbnailImageKey?: string | null;
 }): Promise<Post> {
   return fetchJson<Post>("/posts", { method: "POST", body: input });
 }

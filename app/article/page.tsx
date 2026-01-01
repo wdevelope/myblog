@@ -182,8 +182,10 @@ export default async function BlogIndexPage({ searchParams }: Props) {
             {posts.map((post) => {
               const createdAt = new Date(post.createdAt);
               const dateLabel = createdAt.toISOString().slice(0, 10);
-              const coverSrc = post.imageKeys?.[0]
-                ? coverSrcFromImageKey(post.imageKeys[0])
+              const coverKey =
+                post.thumbnailImageKey?.trim() || post.imageKeys?.[0] || null;
+              const coverSrc = coverKey
+                ? coverSrcFromImageKey(coverKey)
                 : null;
 
               return (

@@ -81,6 +81,7 @@ export default function PostEditor({
     visibility: Visibility;
     categorySlug?: string | null;
     imageKeys?: string[];
+    thumbnailImageKey?: string | null;
   };
   createdAtYmd?: string;
 }) {
@@ -95,6 +96,9 @@ export default function PostEditor({
   );
   const [content, setContent] = useState(initial?.content ?? "");
   const [imageKeys, setImageKeys] = useState<string[]>(initial?.imageKeys ?? []);
+  const [thumbnailImageKey, setThumbnailImageKey] = useState<string>(
+    initial?.thumbnailImageKey?.trim() ?? ""
+  );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [categories, setCategories] = useState<string[]>([]);
@@ -213,6 +217,8 @@ export default function PostEditor({
         content: trimmedContent,
         categorySlug: type === "blog" ? categorySlug.trim() : null,
         imageKeys,
+        thumbnailImageKey:
+          type === "blog" ? (thumbnailImageKey.trim() || null) : null,
         ...(type === "diary" && !initial?.id && createdAtYmd
           ? { createdAtYmd }
           : null),
@@ -339,6 +345,26 @@ export default function PostEditor({
                   )}
                 </div>
               </label>
+
+              {type === "blog" && imageKeys.length ? (
+                <label className="space-y-1 text-sm">
+                  <span className="font-semibold text-foreground">
+                    썸네일 이미지
+                  </span>
+                  <select
+                    value={thumbnailImageKey}
+                    onChange={(e) => setThumbnailImageKey(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
+                  >
+                    <option value="">자동(첫 번째 이미지)</option>
+                    {imageKeys.map((key, idx) => (
+                      <option key={key} value={key}>
+                        이미지 {idx + 1}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
             </div>
 
             {error ? <p className="text-sm text-red-500">{error}</p> : null}

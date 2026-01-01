@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     const service = createSupabaseServiceClient();
     const { data: posts, error } = await service
       .from("posts")
-      .select("id,slug,type,visibility,title,created_at,updated_at")
+      .select("id,slug,type,visibility,title,created_at,updated_at,thumbnail_image_key")
       .eq("type", "diary")
       .order("created_at", { ascending: false });
 
@@ -61,6 +61,7 @@ export async function GET(request: Request) {
         createdAt: p.created_at,
         updatedAt: p.updated_at ?? p.created_at,
         imageKeys: [],
+        thumbnailImageKey: p.thumbnail_image_key,
       })),
       { status: 200 },
     );
@@ -92,6 +93,7 @@ export async function GET(request: Request) {
       createdAt: p.created_at,
       updatedAt: p.updated_at ?? p.created_at,
       imageKeys: p.image_keys ?? [],
+      thumbnailImageKey: p.thumbnail_image_key,
     })),
     { status: 200 },
   );
@@ -120,6 +122,7 @@ export async function POST(request: Request) {
     content: string;
     categorySlug: string | null;
     imageKeys: string[];
+    thumbnailImageKey: string | null;
     createdAtYmd: string;
   }>;
 
@@ -201,6 +204,10 @@ export async function POST(request: Request) {
     content: body.content,
     category_slug: categorySlug,
     image_keys: body.imageKeys ?? [],
+    thumbnail_image_key:
+      body.type === "blog" && body.thumbnailImageKey?.trim()
+        ? body.thumbnailImageKey.trim()
+        : null,
     author_id: user.id,
     ...(createdAtIso ? { created_at: createdAtIso } : null),
   };
@@ -232,6 +239,7 @@ export async function POST(request: Request) {
       createdAt: saved.created_at,
       updatedAt: saved.updated_at ?? saved.created_at,
       imageKeys: saved.image_keys ?? [],
+      thumbnailImageKey: saved.thumbnail_image_key,
     },
     { status: 200 },
   );

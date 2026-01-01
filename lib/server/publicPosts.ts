@@ -18,6 +18,7 @@ type PostRow = {
   created_at: string;
   updated_at: string | null;
   image_keys: string[] | null;
+  thumbnail_image_key: string | null;
 };
 
 function mapPost(row: PostRow): Post {
@@ -32,6 +33,7 @@ function mapPost(row: PostRow): Post {
     createdAt: row.created_at,
     updatedAt: row.updated_at ?? row.created_at,
     imageKeys: row.image_keys ?? [],
+    thumbnailImageKey: row.thumbnail_image_key,
   };
 }
 
@@ -57,7 +59,7 @@ export async function getPublicPosts(params: {
   const search = new URLSearchParams();
   search.set(
     "select",
-    "id,slug,type,visibility,title,content,category_slug,created_at,updated_at,image_keys",
+    "id,slug,type,visibility,title,content,category_slug,created_at,updated_at,image_keys,thumbnail_image_key",
   );
   search.set("type", `eq.${params.type}`);
   search.set("visibility", "eq.public");
@@ -83,4 +85,3 @@ export async function getPublicPosts(params: {
   const rows = (await response.json()) as PostRow[];
   return rows.map(mapPost);
 }
-

@@ -60,6 +60,7 @@ export default async function ArticleEditPage({ params }: Props) {
           visibility: post.visibility,
           categorySlug: post.categorySlug ?? null,
           imageKeys: post.imageKeys ?? [],
+          thumbnailImageKey: post.thumbnailImageKey ?? null,
         }}
       />
     </div>
