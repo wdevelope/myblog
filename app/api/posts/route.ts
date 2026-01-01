@@ -35,7 +35,35 @@ export async function GET(request: Request) {
   const isAdmin = await isAdminDb(data.user);
 
   if (type === "diary" && !isAdmin) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    const service = createSupabaseServiceClient();
+    const { data: posts, error } = await service
+      .from("posts")
+      .select("id,slug,type,visibility,title,created_at,updated_at")
+      .eq("type", "diary")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      return NextResponse.json(
+        { error: "db_error", details: error.message },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json(
+      (posts ?? []).map((p) => ({
+        id: p.id,
+        slug: p.slug,
+        type: p.type,
+        visibility: p.visibility,
+        title: p.title,
+        content: "",
+        categorySlug: null,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at ?? p.created_at,
+        imageKeys: [],
+      })),
+      { status: 200 },
+    );
   }
 
   let query = supabase

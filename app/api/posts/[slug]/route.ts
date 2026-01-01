@@ -24,11 +24,53 @@ export async function GET(
   if (error) {
     return NextResponse.json({ error: "db_error", details: error.message }, { status: 500 });
   }
+  if (!post && !isAdmin) {
+    const service = createSupabaseServiceClient();
+    const { data: servicePost, error: serviceError } = await service
+      .from("posts")
+      .select("*")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (serviceError) {
+      return NextResponse.json(
+        { error: "db_error", details: serviceError.message },
+        { status: 500 },
+      );
+    }
+
+    if (!servicePost) {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+
+    const isPrivate = servicePost.visibility === "private";
+    if (isPrivate && !isAdmin) {
+      return NextResponse.json(
+        { error: authData.user ? "forbidden" : "unauthorized" },
+        { status: authData.user ? 403 : 401 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        id: servicePost.id,
+        slug: servicePost.slug,
+        type: servicePost.type,
+        visibility: servicePost.visibility,
+        title: servicePost.title,
+        content: servicePost.content,
+        categorySlug: servicePost.category_slug,
+        createdAt: servicePost.created_at,
+        updatedAt: servicePost.updated_at ?? servicePost.created_at,
+        imageKeys: servicePost.image_keys ?? [],
+      },
+      { status: 200 },
+    );
+  }
   if (!post) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  const isDiary = post.type === "diary";
   const isPrivate = post.visibility === "private";
-  if ((isDiary || isPrivate) && !isAdmin) {
+  if (isPrivate && !isAdmin) {
     return NextResponse.json(
       { error: authData.user ? "forbidden" : "unauthorized" },
       { status: authData.user ? 403 : 401 },

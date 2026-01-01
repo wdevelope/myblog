@@ -3,13 +3,11 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import PostActionMenu from "@/app/_components/PostActionMenu";
-import { toExcerptMarkdown } from "@/lib/markdown";
 
 type DiaryPost = {
   id: string;
   slug: string;
   title: string;
-  content: string;
   createdAt: string;
   visibility: "public" | "private";
 };
@@ -158,7 +156,13 @@ function WeatherIcon({ className }: { className?: string }) {
   );
 }
 
-export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
+export default function DiaryIndexClient({
+  posts,
+  isAdmin,
+}: {
+  posts: DiaryPost[];
+  isAdmin: boolean;
+}) {
   const [sortMode, setSortMode] = useState<SortMode>("latest");
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [selectedYmd, setSelectedYmd] = useState<string | null>(null);
@@ -222,12 +226,14 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
             <p className="text-sm font-semibold text-muted">
               {distinctDayCount}일의 기록
             </p>
-            <Link
-              href={buildWriteHref(selectedYmd)}
-              className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
-            >
-              다이어리 쓰기
-            </Link>
+            {isAdmin ? (
+              <Link
+                href={buildWriteHref(selectedYmd)}
+                className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+              >
+                다이어리 쓰기
+              </Link>
+            ) : null}
           </div>
         </div>
 
@@ -241,32 +247,47 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
                 >
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 text-muted/80">
-                      <LockIcon className="size-5" />
+                      {post.visibility === "private" ? (
+                        <LockIcon className="size-5" />
+                      ) : (
+                        <span className="inline-flex size-5" aria-hidden />
+                      )}
                     </div>
                     <div className="min-w-0 flex-1 space-y-2">
                       <div className="flex items-start justify-between gap-3">
-                        <Link
-                          href={`/diary/${post.slug}`}
-                          className="block min-w-0 flex-1"
-                        >
-                          <h2 className="truncate text-lg font-bold text-foreground transition hover:text-primary">
+                        {post.visibility === "public" || isAdmin ? (
+                          <Link
+                            href={`/diary/${post.slug}`}
+                            className="block min-w-0 flex-1"
+                          >
+                            <h2 className="truncate text-lg font-bold text-foreground transition hover:text-primary">
+                              {post.title}
+                            </h2>
+                          </Link>
+                        ) : (
+                          <h2 className="truncate text-lg font-bold text-foreground/80">
                             {post.title}
                           </h2>
-                        </Link>
-                        <PostActionMenu
-                          editHref={`/diary/edit/${post.slug}`}
-                          deleteSlug={post.slug}
-                          deleteRedirectTo="/diary"
-                        />
+                        )}
+                        {isAdmin ? (
+                          <PostActionMenu
+                            editHref={`/diary/edit/${post.slug}`}
+                            deleteSlug={post.slug}
+                            deleteRedirectTo="/diary"
+                            ariaLabel="다이어리 더보기"
+                          />
+                        ) : null}
                       </div>
-                      <p className="line-clamp-2 text-sm leading-6 text-muted">
-                        {toExcerptMarkdown(post.content, 180)}
-                      </p>
                       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                         <p className="text-sm text-muted">
                           {formatDateKorean(new Date(post.createdAt))}
                         </p>
                       </div>
+                      {post.visibility === "private" && !isAdmin ? (
+                        <p className="text-sm text-muted">
+                          해당 글은 비공개입니다.
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -278,16 +299,18 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
                     ? "선택한 날짜에 작성한 다이어리가 없습니다."
                     : "아직 다이어리가 없습니다."}
                 </p>
-                <div className="mt-4">
-                  <Link
-                    href={buildWriteHref(selectedYmd)}
-                    className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
-                  >
-                    {selectedYmd
-                      ? "선택한 날짜에 다이어리 작성하기"
-                      : "오늘 다이어리 작성하기"}
-                  </Link>
-                </div>
+                {isAdmin ? (
+                  <div className="mt-4">
+                    <Link
+                      href={buildWriteHref(selectedYmd)}
+                      className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+                    >
+                      {selectedYmd
+                        ? "선택한 날짜에 다이어리 작성하기"
+                        : "오늘 다이어리 작성하기"}
+                    </Link>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
@@ -363,25 +386,29 @@ export default function DiaryIndexClient({ posts }: { posts: DiaryPost[] }) {
             </div>
           </div>
 
-          <Link
-            href={buildWriteHref(selectedYmd)}
-            className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-background p-5 transition hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-          >
-            <div className="flex items-center gap-4">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                <WeatherIcon className="size-6" />
+          {isAdmin ? (
+            <Link
+              href={buildWriteHref(selectedYmd)}
+              className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-background p-5 transition hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                  <WeatherIcon className="size-6" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-base font-bold text-foreground">
+                    오늘은 어떤 하루였나요?
+                  </p>
+                  <p className="text-sm text-muted">
+                    {selectedYmd
+                      ? `${selectedYmd.replaceAll("-", ".")} 작성하기`
+                      : "오늘 다이어리 작성하기"}
+                  </p>
+                </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-base font-bold text-foreground">
-                  오늘은 어떤 하루였나요?
-                </p>
-                <p className="text-sm text-muted">
-                  {selectedYmd ? `${selectedYmd.replaceAll("-", ".")} 작성하기` : "오늘 다이어리 작성하기"}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="size-5 text-muted transition group-hover:text-foreground" />
-          </Link>
+              <ChevronRight className="size-5 text-muted transition group-hover:text-foreground" />
+            </Link>
+          ) : null}
         </div>
       </aside>
     </div>

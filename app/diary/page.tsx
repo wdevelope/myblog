@@ -1,5 +1,5 @@
 import { getPosts } from "@/lib/api";
-import { requireAdmin } from "@/lib/server/admin";
+import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 import DiaryIndexClient from "@/app/diary/DiaryIndexClient";
 
 export const metadata = {
@@ -9,9 +9,10 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function DiaryPage() {
-  await requireAdmin("/diary");
+  const user = await getCurrentUser();
+  const isAdmin = await isAdminDb(user);
   const posts = await getPosts({ type: "diary" });
   return (
-    <DiaryIndexClient posts={posts} />
+    <DiaryIndexClient posts={posts} isAdmin={isAdmin} />
   );
 }
