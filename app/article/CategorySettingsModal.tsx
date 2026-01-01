@@ -177,14 +177,14 @@ export default function CategorySettingsModal() {
         onClick={() => void open()}
         aria-label="카테고리 설정"
         title="카테고리 설정"
-        className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
+        className="inline-flex size-9 items-center justify-center rounded-xl bg-transparent text-muted transition hover:text-foreground"
       >
-        <FiSettings className="size-4 text-muted" aria-hidden />
+        <FiSettings className="size-4" aria-hidden />
       </button>
 
       <dialog
         ref={dialogRef}
-        className="w-[min(720px,calc(100vw-2rem))] rounded-3xl border border-border bg-surface p-0 text-foreground shadow-2xl backdrop:bg-black/30"
+        className="fixed left-1/2 top-1/2 max-h-[calc(100dvh-2rem)] w-[min(720px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-3xl border border-border bg-surface p-0 text-foreground shadow-2xl backdrop:bg-black/30"
       >
         <div className="flex items-center justify-between gap-4 border-b border-border p-5">
           <div className="space-y-1">
