@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Post } from "@/lib/types";
-import { Badge, Card, CardBody } from "@/app/_components/ui";
+import { Card, CardBody } from "@/app/_components/ui";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 
 function coverSrcFromImageKey(key: string) {
@@ -90,11 +90,6 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
 
       {/* Content area */}
       <CardBody className="space-y-3">
-        <div className="flex items-center justify-end">
-          <Badge variant={post.visibility === "public" ? "primary" : "warning"}>
-            {post.visibility === "public" ? "공개" : "비공개"}
-          </Badge>
-        </div>
         {expanded ? (
           <>
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted">

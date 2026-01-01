@@ -131,6 +131,11 @@ export default function PostEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
 
+  useEffect(() => {
+    if (type !== "feed") return;
+    if (visibility !== "public") setVisibility("public");
+  }, [type, visibility]);
+
   const applyMarkdown = useCallback(
     (prefix: string, suffix = "") => {
       const el = textareaRef.current;
@@ -165,7 +170,7 @@ export default function PostEditor({
     if (!files?.length) return;
 
     const form = new FormData();
-    form.set("visibility", visibility);
+    form.set("visibility", type === "feed" ? "public" : visibility);
     for (const file of Array.from(files)) {
       form.append("files", file);
     }
@@ -203,7 +208,7 @@ export default function PostEditor({
         id: initial?.id,
         slug: initial?.slug,
         type,
-        visibility,
+        visibility: type === "feed" ? "public" : visibility,
         title: trimmedTitle,
         content: trimmedContent,
         categorySlug: type === "blog" ? categorySlug.trim() : null,
@@ -263,17 +268,19 @@ export default function PostEditor({
         <aside className="border-b border-border bg-background p-6 lg:sticky lg:top-20 lg:h-[calc(100dvh-7.5rem)] lg:overflow-auto lg:border-b-0 lg:border-r">
           <div className="space-y-5">
             <div className="grid gap-3">
-              <label className="space-y-1 text-sm">
-                <span className="font-semibold text-foreground">공개 범위</span>
-                <select
-                  value={visibility}
-                  onChange={(e) => setVisibility(e.target.value as Visibility)}
-                  className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
-                >
-                  <option value="public">공개</option>
-                  <option value="private">비공개</option>
-                </select>
-              </label>
+              {type !== "feed" ? (
+                <label className="space-y-1 text-sm">
+                  <span className="font-semibold text-foreground">공개 범위</span>
+                  <select
+                    value={visibility}
+                    onChange={(e) => setVisibility(e.target.value as Visibility)}
+                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
+                  >
+                    <option value="public">공개</option>
+                    <option value="private">비공개</option>
+                  </select>
+                </label>
+              ) : null}
 
               {type === "blog" ? (
                 <label className="space-y-1 text-sm">

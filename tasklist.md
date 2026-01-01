@@ -11,7 +11,7 @@
 - [x] DB: **Supabase Postgres**
 - [x] 기능 스펙 고정
   - [x] 글 타입: `blog` / `feed` / `diary`
-  - [x] 공개 범위(모든 글 공통): `public` / `private`
+  - [x] 공개 범위: `blog/diary`는 `public` / `private`, `feed`는 `public` 고정
   - [x] 이미지 첨부(모든 글 공통): O
   - [x] 댓글: `blog/feed`만 O, `diary`는 X
   - [x] 카테고리: `blog`에만 필수(권장), `feed/diary`는 선택
@@ -116,7 +116,7 @@
 - [x] `/blog/[slug]` (글 상세)
 - [x] `/blog/category/[slug]` (카테고리별 목록)
 - [x] `/feed` (피드 목록)
-- [ ] `/feed/[slug]` (피드 상세, 필요 시)
+- [x] `/feed/[slug]` 제거 (피드는 목록에서 내용 더보기로만 제공)
 - [x] `/diary` (다이어리 목록: 로그인 필요)
 - [x] `/diary/[slug]` (다이어리 상세: 로그인 필요)
 - [x] `/admin` (관리자)

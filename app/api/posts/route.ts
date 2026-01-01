@@ -126,13 +126,17 @@ export async function POST(request: Request) {
   if (!body.type || !["blog", "feed", "diary"].includes(body.type)) {
     return badRequest("type must be one of: blog, feed, diary");
   }
-  if (!body.visibility || !["public", "private"].includes(body.visibility)) {
-    return badRequest("visibility must be public|private");
+  if (body.type !== "feed") {
+    if (!body.visibility || !["public", "private"].includes(body.visibility)) {
+      return badRequest("visibility must be public|private");
+    }
   }
   if (!body.content?.trim()) return badRequest("내용을 입력해주세요.");
   if (body.type === "blog" && !body.categorySlug?.trim()) {
     return badRequest("아티클은 카테고리가 필요해요.");
   }
+
+  const finalVisibility: Visibility = body.type === "feed" ? "public" : body.visibility!;
 
   const finalTitle =
     body.type === "feed"
@@ -192,7 +196,7 @@ export async function POST(request: Request) {
     id: body.id,
     slug,
     type: body.type,
-    visibility: body.visibility,
+    visibility: finalVisibility,
     title: finalTitle,
     content: body.content,
     category_slug: categorySlug,
