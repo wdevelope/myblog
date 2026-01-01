@@ -1,9 +1,27 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
+
+function imageSrcFromImageKey(key: string) {
+  const [bucket, ...rest] = key.split(":");
+  const objectPath = rest.join(":");
+  const looksLikeSupabaseKey = Boolean(bucket && objectPath);
+  if (!looksLikeSupabaseKey) return key;
+
+  if (bucket === "post-images-public") {
+    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!base) return null;
+    const path = encodeURIComponent(objectPath).replaceAll("%2F", "/");
+    return `${base}/storage/v1/object/public/${bucket}/${path}`;
+  }
+
+  return `/api/images?bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(objectPath)}`;
+}
 
 function typeLabel(type: PostType) {
   if (type === "blog") return "아티클";
@@ -105,6 +123,14 @@ export default function PostEditor({
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const highlightRef = useRef<HTMLPreElement | null>(null);
 
+  const removeImageKey = useCallback(
+    (key: string) => {
+      setImageKeys((prev) => prev.filter((k) => k !== key));
+      setThumbnailImageKey((prev) => (prev === key ? "" : prev));
+    },
+    [setImageKeys, setThumbnailImageKey],
+  );
+
   const categoryOptions = useMemo(() => {
     const current = categorySlug.trim();
     const list = categories.slice();
@@ -139,6 +165,13 @@ export default function PostEditor({
     if (type !== "feed") return;
     if (visibility !== "public") setVisibility("public");
   }, [type, visibility]);
+
+  useEffect(() => {
+    if (type !== "blog") return;
+    if (!thumbnailImageKey.trim()) return;
+    if (imageKeys.includes(thumbnailImageKey)) return;
+    setThumbnailImageKey("");
+  }, [type, imageKeys, thumbnailImageKey]);
 
   const applyMarkdown = useCallback(
     (prefix: string, suffix = "") => {
@@ -344,6 +377,39 @@ export default function PostEditor({
                     </p>
                   )}
                 </div>
+                {imageKeys.length ? (
+                  <div className="mt-3 grid grid-cols-4 gap-2">
+                    {imageKeys.map((key) => {
+                      const src = imageSrcFromImageKey(key);
+                      return (
+                        <div
+                          key={key}
+                          className="relative aspect-square overflow-hidden rounded-xl ring-1 ring-border"
+                        >
+                          {src ? (
+                            <img
+                              src={src}
+                              alt=""
+                              className="absolute inset-0 h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-surface-2" />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeImageKey(key)}
+                            className="absolute right-1 top-1 inline-flex size-6 items-center justify-center rounded-full bg-black/45 text-xs font-black text-white transition hover:bg-black/60"
+                            aria-label="이미지 제거"
+                            title="이미지 제거"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </label>
 
               {type === "blog" && imageKeys.length ? (
