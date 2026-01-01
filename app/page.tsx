@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { getPosts } from "@/lib/api";
-import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
+import { getCurrentUser } from "@/lib/server/admin";
+import { getPublicPosts } from "@/lib/server/publicPosts";
 import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
 import LogoutButton from "@/app/_components/LogoutButton";
+import { toExcerptMarkdown } from "@/lib/markdown";
 
 export default function Home() {
   // kept as server component without data to avoid extra load in local dev
@@ -11,23 +13,31 @@ export default function Home() {
 
 export const dynamic = "force-dynamic";
 
-function postTypeLabel(type: string) {
-  if (type === "blog") return "아티클";
-  if (type === "feed") return "피드";
-  if (type === "diary") return "다이어리";
-  return type.toUpperCase();
-}
+function coverSrcFromImageKey(key: string) {
+  const [bucket, ...rest] = key.split(":");
+  const objectPath = rest.join(":");
+  const looksLikeSupabaseKey = Boolean(bucket && objectPath);
+  if (!looksLikeSupabaseKey) return key;
 
-function visibilityLabel(visibility: string) {
-  return visibility === "public" ? "공개" : "비공개";
+  if (bucket === "post-images-public") {
+    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!base) return null;
+    const path = encodeURIComponent(objectPath).replaceAll("%2F", "/");
+    return `${base}/storage/v1/object/public/${bucket}/${path}`;
+  }
+
+  return `/api/images?bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(objectPath)}`;
 }
 
 async function HomePage() {
   const user = await getCurrentUser();
   const loggedIn = Boolean(user);
-  await isAdminDb(user);
   const feed = await getPosts({ type: "feed" });
-  const latest = feed.slice(0, 6);
+  const latestCoverKey = feed.find((post) => post.imageKeys?.[0])?.imageKeys?.[0];
+  const latestCoverSrc = latestCoverKey
+    ? coverSrcFromImageKey(latestCoverKey)
+    : null;
+  const latestArticles = (await getPublicPosts({ type: "blog" })).slice(0, 6);
 
   return (
     <div className="space-y-10">
@@ -37,9 +47,7 @@ async function HomePage() {
             안녕하세요. <br />
             개발자 원스입니다.
           </h1>
-          <p className="max-w-xl text-sm leading-6 text-muted">
-            인생이야기를 기록합니다.
-          </p>
+          
           <div className="flex flex-wrap gap-3">
             <ButtonLink href="/feed">최신 피드 보기 →</ButtonLink>
             {loggedIn ? (
@@ -55,18 +63,24 @@ async function HomePage() {
         </div>
 
         <Card className="overflow-hidden">
-          <div className="relative aspect-[16/10] bg-[radial-gradient(60%_60%_at_50%_40%,rgba(19,91,236,0.45)_0%,rgba(147,51,234,0.25)_55%,rgba(16,22,34,0)_100%)]">
-            <div className="absolute inset-0 bg-gradient-to-tr from-background via-transparent to-surface opacity-60" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="rounded-2xl bg-surface/20 px-6 py-4 text-center ring-1 ring-border backdrop-blur">
-                <p className="text-sm font-semibold text-foreground">
-                  최신 피드
-                </p>
-                <p className="mt-1 text-xs text-muted">
-                  짧은 생각과 기록
-                </p>
-              </div>
-            </div>
+          <div className="relative aspect-[16/10] overflow-hidden">
+            {latestCoverSrc ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={latestCoverSrc}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-tr from-background/70 via-black/10 to-surface/40" />
+              </>
+            ) : (
+              <>
+                <div className="absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_40%,rgba(19,91,236,0.45)_0%,rgba(147,51,234,0.25)_55%,rgba(16,22,34,0)_100%)]" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-background via-transparent to-surface opacity-60" />
+              </>
+            )}
           </div>
         </Card>
       </section>
@@ -75,19 +89,16 @@ async function HomePage() {
         <div className="flex items-end justify-between gap-4 border-b border-border pb-3">
           <div className="flex items-center gap-5">
             <span className="border-b-2 border-primary pb-3 text-sm font-bold text-primary">
-              최신 피드
+              최신 아티클
             </span>
           </div>
-          <Link href="/feed" className="text-sm font-bold text-primary hover:opacity-90">
+          <Link href="/article" className="text-sm font-bold text-primary hover:opacity-90">
             더 보기 →
           </Link>
         </div>
 
         <div className="space-y-4">
-          {latest.map((post) => {
-            const href =
-              post.type === "feed" ? `/feed` : "/";
-
+          {latestArticles.map((post) => {
             return (
               <Card
                 key={post.id}
@@ -96,30 +107,28 @@ async function HomePage() {
                 <CardBody className="flex flex-col gap-4 md:flex-row md:items-stretch">
                   <div className="flex flex-1 flex-col justify-between gap-3">
                     <div className="flex items-center gap-2 text-xs text-muted">
-                      <Badge variant="primary">
-                        {postTypeLabel(post.type)}
-                      </Badge>
+                      <Badge variant="primary">아티클</Badge>
                       <span>•</span>
                       <span>{new Date(post.createdAt).toLocaleString()}</span>
                       <span className="flex-1" />
-                      <span className="text-muted">
-                        {visibilityLabel(post.visibility)}
-                      </span>
+                      {post.categorySlug ? (
+                        <span className="text-muted">{post.categorySlug}</span>
+                      ) : null}
                     </div>
                     <div className="space-y-2">
                       <Link
-                        href={href}
+                        href={`/article/${post.slug}`}
                         className="text-xl font-bold leading-tight text-foreground hover:text-primary"
                       >
                         {post.title}
                       </Link>
                       <p className="line-clamp-3 text-sm leading-6 text-muted">
-                        {post.content}
+                        {toExcerptMarkdown(post.content)}
                       </p>
                     </div>
                     <div className="pt-1">
                       <Link
-                        href={href}
+                        href={`/article/${post.slug}`}
                         className="text-sm font-bold text-primary hover:opacity-90"
                       >
                         읽기 →
@@ -131,11 +140,11 @@ async function HomePage() {
               </Card>
             );
           })}
-          {latest.length === 0 ? (
+          {latestArticles.length === 0 ? (
             <Card>
               <CardBody>
                 <p className="text-sm text-muted">
-                  아직 피드가 없어요.
+                  아직 아티클이 없어요.
                 </p>
               </CardBody>
             </Card>

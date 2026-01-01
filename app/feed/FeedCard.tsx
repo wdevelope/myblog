@@ -65,11 +65,6 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
             className="absolute inset-0 h-full w-full object-cover"
             loading="lazy"
           />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent p-5">
-            <p className="line-clamp-2 text-base font-bold text-white">
-              {post.title}
-            </p>
-          </div>
         </div>
       ) : (
         <div className="aspect-square w-full bg-gradient-to-br from-surface-2 via-surface to-surface-2 flex items-center justify-center">
@@ -89,7 +84,6 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
                 />
               </svg>
             </div>
-            <p className="text-lg font-bold text-foreground">{post.title}</p>
           </div>
         </div>
       )}
