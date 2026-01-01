@@ -11,6 +11,14 @@ function uuid() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function safeExtension(file: File) {
+  const fromType = file.type.split("/")[1]?.trim().toLowerCase();
+  const fromName = file.name.split(".").pop()?.trim().toLowerCase();
+  const candidate = fromType || fromName || "";
+  if (!candidate) return "bin";
+  return candidate.replaceAll(/[^a-z0-9]+/g, "").slice(0, 10) || "bin";
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const bucket = url.searchParams.get("bucket");
@@ -74,7 +82,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const path = `${new Date().toISOString().slice(0, 10)}/${uuid()}-${file.name}`;
+    const date = new Date().toISOString().slice(0, 10);
+    const ext = safeExtension(file);
+    const path = `${date}/${uuid()}.${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
     const { error } = await service.storage
       .from(bucket)
