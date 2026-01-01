@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import type { Comment } from "@/lib/types";
 
 function formatRelativeTime(dateIso: string) {
@@ -27,13 +28,17 @@ function Avatar({ authorId }: { authorId?: string | null }) {
   const label = displayName(authorId);
   return (
     <div
-      className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-2 ring-1 ring-border"
+      className="size-10 shrink-0 overflow-hidden rounded-full ring-1 ring-border"
       aria-label={label}
       title={label}
     >
-      <span className="text-xs font-black text-muted">
-        {(authorId?.slice(0, 2) ?? "U").toUpperCase()}
-      </span>
+      <Image
+        src="/logo.png"
+        alt={label}
+        width={40}
+        height={40}
+        className="h-full w-full object-cover"
+      />
     </div>
   );
 }
@@ -233,4 +238,3 @@ export default function CommentsThread({
     </section>
   );
 }
-

@@ -5,6 +5,7 @@ import BackButton from "@/app/_components/BackButton";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +59,13 @@ export default async function DiaryEntryPage({
 
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
           <div className="flex items-center gap-4">
-            <div className="size-10 rounded-full bg-surface-2 ring-1 ring-border" />
+            <Image
+              src="/logo.png"
+              alt="프로필"
+              width={40}
+              height={40}
+              className="size-10 rounded-full object-cover ring-1 ring-border"
+            />
             <div className="space-y-1">
               <p className="text-sm font-bold text-foreground">원스</p>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted">

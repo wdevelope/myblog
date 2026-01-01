@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import type { Post } from "@/lib/types";
 import { Card, CardBody } from "@/app/_components/ui";
 import PostActionMenu from "@/app/_components/PostActionMenu";
@@ -31,11 +32,14 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
     <Card className="relative overflow-hidden transition hover:shadow-lg">
       {/* Instagram-style header with avatar */}
       <div className="flex items-center gap-3 border-b border-border p-4">
-        <div className="size-10 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-[2px]">
-          <div className="size-full rounded-full bg-surface flex items-center justify-center">
-            <div className="size-[34px] rounded-full bg-gradient-to-br from-primary/60 to-purple-500/40" />
-          </div>
-        </div>
+        <Image
+          src="/logo.png"
+          alt=""
+          width={40}
+          height={40}
+          className="size-10 rounded-full object-cover ring-1 ring-border"
+          priority={false}
+        />
         <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">인생일지</p>
           <p className="text-xs text-muted">
