@@ -3,7 +3,6 @@ import Image from "next/image";
 import { getCurrentUser } from "@/lib/server/admin";
 import { getPublicPosts } from "@/lib/server/publicPosts";
 import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
-import LogoutButton from "@/app/_components/LogoutButton";
 import { toExcerptMarkdown } from "@/lib/markdown";
 
 export default function Home() {
@@ -29,15 +28,11 @@ async function HomePage() {
           
           <div className="flex flex-wrap gap-3">
             <ButtonLink href="/feed">최신 피드 보기 →</ButtonLink>
-            {loggedIn ? (
-              <LogoutButton className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-bold text-foreground transition hover:bg-surface-2">
-                로그아웃
-              </LogoutButton>
-            ) : (
+            {!loggedIn ? (
               <ButtonLink href="/login" variant="secondary">
                 로그인
               </ButtonLink>
-            )}
+            ) : null}
           </div>
         </div>
 
