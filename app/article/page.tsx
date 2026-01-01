@@ -119,9 +119,9 @@ export default async function BlogIndexPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-12">
+      <div className="grid gap-8 lg:grid-cols-12">
       {/* Left sidebar - Categories */}
-      <aside className="lg:col-span-4 lg:col-start-1 lg:self-start lg:sticky lg:top-20 xl:col-span-3 xl:col-start-1">
+      <aside className="lg:col-span-3 lg:col-start-1 lg:self-start lg:sticky lg:top-20 xl:col-span-3 xl:col-start-1">
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-sm font-bold text-primary">전체 카테고리</h3>
@@ -160,7 +160,7 @@ export default async function BlogIndexPage({ searchParams }: Props) {
       </aside>
 
       {/* Main content - Post list */}
-      <main className="lg:col-span-8 lg:col-start-5 xl:col-span-9 xl:col-start-4">
+      <main className="lg:col-span-9 lg:col-start-4 xl:col-span-9 xl:col-start-4">
         <header className="mb-6 flex items-end justify-between gap-4 border-b border-border pb-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-black tracking-tight text-foreground">
