@@ -46,6 +46,14 @@ body {
   font-family: var(--font-sans);
 }
 
+button:not(:disabled),
+input[type="button"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+input[type="reset"]:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
 ::selection {
   background: color-mix(in oklab, var(--primary) 30%, transparent);
   color: var(--foreground);
