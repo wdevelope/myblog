@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/server/admin";
 import { getPublicPosts } from "@/lib/server/publicPosts";
 import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
 import { toExcerptMarkdown } from "@/lib/markdown";
+import { coverSrcFromImageKey } from "@/lib/image";
 
 export default function Home() {
   // kept as server component without data to avoid extra load in local dev
@@ -25,7 +26,7 @@ async function HomePage() {
             안녕하세요. <br />
             개발자 원스입니다.
           </h1>
-          
+
           <div className="flex flex-wrap gap-3">
             <ButtonLink href="/feed">최신 피드 보기 →</ButtonLink>
             {!loggedIn ? (
@@ -58,7 +59,10 @@ async function HomePage() {
               최신 아티클
             </span>
           </div>
-          <Link href="/article" className="text-sm font-bold text-primary hover:opacity-90">
+          <Link
+            href="/article"
+            className="text-sm font-bold text-primary hover:opacity-90"
+          >
             더 보기 →
           </Link>
         </div>
@@ -101,7 +105,19 @@ async function HomePage() {
                       </Link>
                     </div>
                   </div>
-                  <div className="h-28 w-full shrink-0 rounded-2xl bg-surface-2 ring-1 ring-border md:h-auto md:w-64" />
+
+                  {post.thumbnailImageKey ? (
+                    <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-2xl ring-1 ring-border md:h-auto md:w-64">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={coverSrcFromImageKey(post.thumbnailImageKey) ?? ""}
+                        alt={post.title}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-28 w-full shrink-0 rounded-2xl bg-surface-2 ring-1 ring-border md:h-auto md:w-64" />
+                  )}
                 </CardBody>
               </Card>
             );
@@ -109,9 +125,7 @@ async function HomePage() {
           {latestArticles.length === 0 ? (
             <Card>
               <CardBody>
-                <p className="text-sm text-muted">
-                  아직 아티클이 없어요.
-                </p>
+                <p className="text-sm text-muted">아직 아티클이 없어요.</p>
               </CardBody>
             </Card>
           ) : null}
