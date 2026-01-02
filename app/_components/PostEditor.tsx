@@ -10,9 +10,13 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
+import { FiArrowLeft, FiImage, FiMenu, FiX, FiTrash2 } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
 import MarkdownClient from "@/app/_components/MarkdownClient";
+import DeletePostButton from "@/app/_components/DeletePostButton";
+import { cn } from "@/lib/utils";
 
 type DraftPayloadV1 = {
   version: 1;
@@ -27,58 +31,11 @@ type DraftPayloadV1 = {
   updatedAt: string;
 };
 
+// ... (Helper functions like typeLabel can remain or be inline)
 function typeLabel(type: PostType) {
   if (type === "blog") return "아티클";
   if (type === "feed") return "피드";
   return "다이어리";
-}
-
-function VisibilitySegmented({
-  value,
-  onChange,
-  disabled,
-}: {
-  value: Visibility;
-  onChange: (next: Visibility) => void;
-  disabled?: boolean;
-}) {
-  const isPublic = value === "public";
-  return (
-    <div className="inline-flex overflow-hidden rounded-xl border border-border bg-background p-1">
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onChange("public")}
-        className={[
-          "h-9 rounded-lg px-3 text-sm font-bold transition",
-          isPublic
-            ? "bg-surface text-foreground shadow-sm"
-            : "text-muted hover:text-foreground",
-          disabled ? "opacity-50" : null,
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      >
-        공개
-      </button>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onChange("private")}
-        className={[
-          "h-9 rounded-lg px-3 text-sm font-bold transition",
-          !isPublic
-            ? "bg-surface text-foreground shadow-sm"
-            : "text-muted hover:text-foreground",
-          disabled ? "opacity-50" : null,
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      >
-        비공개
-      </button>
-    </div>
-  );
 }
 
 export default function PostEditor({
@@ -86,6 +43,8 @@ export default function PostEditor({
   defaultVisibility,
   initial,
   createdAtYmd,
+  deleteSlug,
+  deleteRedirectTo,
 }: {
   type: PostType;
   defaultVisibility?: Visibility;
@@ -100,6 +59,8 @@ export default function PostEditor({
     thumbnailImageKey?: string | null;
   };
   createdAtYmd?: string;
+  deleteSlug?: string;
+  deleteRedirectTo?: string;
 }) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -128,6 +89,11 @@ export default function PostEditor({
   const [pendingDraft, setPendingDraft] = useState<DraftPayloadV1 | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
+
+  // Layout state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // --- LOGIC SECTION (Copied & Adapted) ---
 
   const draftKey = useMemo(() => {
     if (initial?.id) return `draft:post:edit:${initial.id}`;
@@ -203,7 +169,7 @@ export default function PostEditor({
     setDraftSavedAt(draft.updatedAt);
   }, []);
 
-  async function refreshCategories() {
+  const refreshCategories = useCallback(async () => {
     if (type !== "blog") return;
     try {
       const response = await fetch("/api/categories", { method: "GET" });
@@ -225,12 +191,11 @@ export default function PostEditor({
     } finally {
       // ignore
     }
-  }
+  }, [type]);
 
   useEffect(() => {
     void refreshCategories();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type]);
+  }, [refreshCategories]);
 
   useEffect(() => {
     if (type !== "feed") return;
@@ -368,87 +333,204 @@ export default function PostEditor({
     });
   }
 
+  // --- UI RENDER ---
+
   return (
-    <div className="overflow-hidden rounded-3xl border border-border bg-background">
-      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+    <div className="fixed inset-0 z-50 bg-background flex flex-col h-dvh">
+      {/* Top Bar */}
+      <header className="flex h-16 items-center justify-between border-b border-border bg-background px-4 shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-black text-foreground">
-            {typeLabel(type)} {initial ? "수정" : "글쓰기"}
-          </span>
-          {type === "diary" && !initial && createdAtYmd ? (
-            <span className="text-xs font-semibold text-muted">
-              작성 날짜: {createdAtYmd.replaceAll("-", ".")}
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex items-center justify-center size-9 rounded-lg hover:bg-surface transition"
+            title="뒤로 가기"
+          >
+            <FiArrowLeft className="size-5" />
+          </button>
+          <div className="h-6 w-px bg-border" />
+          <nav className="flex items-center gap-2 text-sm">
+            <span className="font-bold text-foreground">
+              {typeLabel(type)} {initial ? "수정" : "글쓰기"}
             </span>
-          ) : null}
-          <span className="text-xs text-muted">
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted hidden sm:block">
             {isPending
               ? "저장 중..."
               : draftSavedAt
-              ? `임시저장 ${new Date(draftSavedAt).toLocaleTimeString("ko-KR", {
+              ? `저장됨 ${new Date(draftSavedAt).toLocaleTimeString("ko-KR", {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}`
               : ""}
           </span>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={isPending}
+            className="h-9 px-4 rounded-lg bg-primary text-white text-sm font-bold shadow-md hover:brightness-110 transition disabled:opacity-50 flex items-center gap-2"
+          >
+            {isPending ? "발행 중" : initial ? "수정 완료" : "발행"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(true)}
+            className="flex items-center justify-center size-9 rounded-lg hover:bg-surface text-foreground transition border border-border"
+            title="설정"
+          >
+            <FiMenu className="size-5" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={submit}
-          disabled={isPending}
-          className="h-9 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
-        >
-          {initial ? "저장" : "발행"}
-        </button>
-      </div>
+      </header>
 
-      <div className="border-b border-border bg-background p-4">
-        {pendingDraft ? (
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-foreground">
-                임시저장본이 있어요.
-              </p>
-              <p className="text-xs text-muted">
-                {pendingDraft.updatedAt
-                  ? `저장 시각: ${new Date(
-                      pendingDraft.updatedAt
-                    ).toLocaleString("ko-KR")}`
-                  : null}
-              </p>
+      {/* Main Content: Split View */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Editor Area */}
+        <div className="flex-1 flex flex-col min-w-0 bg-background overflow-hidden relative border-r border-border">
+          {pendingDraft ? (
+            <div className="absolute top-4 left-4 right-4 z-10 p-3 rounded-xl bg-surface border border-border shadow-lg flex items-center justify-between animate-in slide-in-from-top-2">
+              <span className="text-sm font-medium">
+                임시저장된 글이 있습니다 (
+                {new Date(pendingDraft.updatedAt).toLocaleTimeString()})
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    applyDraft(pendingDraft);
+                    setPendingDraft(null);
+                  }}
+                  className="px-3 py-1.5 text-xs font-bold bg-primary text-white rounded-lg hover:brightness-110"
+                >
+                  불러오기
+                </button>
+                <button
+                  type="button"
+                  onClick={clearDraft}
+                  className="px-3 py-1.5 text-xs font-medium hover:bg-surface-2 rounded-lg"
+                >
+                  무시
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  applyDraft(pendingDraft);
-                  setPendingDraft(null);
-                }}
-                className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
-              >
-                불러오기
-              </button>
-              <button
-                type="button"
-                onClick={clearDraft}
-                className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-transparent px-4 text-sm font-bold text-foreground transition hover:border-primary/30"
-              >
-                무시
-              </button>
+          ) : null}
+
+          <div className="flex-1 overflow-auto p-6 md:p-12 max-w-3xl mx-auto w-full">
+            {type !== "feed" && (
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="제목을 입력하세요..."
+                className="w-full text-4xl font-black bg-transparent border-none outline-none placeholder:text-muted/50 mb-8"
+              />
+            )}
+
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="내용을 입력하세요..."
+              className="w-full h-full resize-none bg-transparent border-none outline-none text-base leading-relaxed placeholder:text-muted/50 font-mono"
+              spellCheck={false}
+            />
+          </div>
+        </div>
+
+        {/* Preview Area (Hidden on mobile, visible on lg) */}
+        <div className="hidden lg:flex flex-1 flex-col bg-surface-2/30 min-w-0 overflow-hidden">
+          <div className="flex-1 overflow-auto p-6 md:p-12 max-w-3xl mx-auto w-full">
+            <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none">
+              {title && <h1 className="mb-8 font-black text-4xl">{title}</h1>}
+              {content ? (
+                <MarkdownClient content={content} />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-muted">
+                  <p>미리보기가 여기에 표시됩니다</p>
+                </div>
+              )}
             </div>
           </div>
-        ) : null}
+        </div>
+      </div>
 
-        <div className="rounded-2xl">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex items-center gap-3">
-              {type === "blog" ? (
-                <>
-                  <div className="flex min-w-[220px] items-center gap-2">
+      {/* Settings Sidebar */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSidebarOpen(false)}
+              className="absolute inset-0 z-50 bg-black/20 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none"
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="absolute right-0 top-0 bottom-0 z-50 w-80 bg-surface border-l border-border shadow-2xl flex flex-col"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <h3 className="font-bold">글 설정</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="p-2 hover:bg-surface-2 rounded-lg"
+                >
+                  <FiX className="size-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-auto p-4 space-y-6">
+                {/* Visibility */}
+                {type !== "feed" && (
+                  <div className="space-y-3">
+                    <label className="block text-sm font-bold text-muted">
+                      공개 설정
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 p-1 bg-surface-2 rounded-xl border border-border">
+                      <button
+                        type="button"
+                        onClick={() => setVisibility("public")}
+                        className={cn(
+                          "py-2 text-sm font-bold rounded-lg transition",
+                          visibility === "public"
+                            ? "bg-background shadow-sm text-foreground"
+                            : "text-muted hover:text-foreground"
+                        )}
+                      >
+                        공개
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVisibility("private")}
+                        className={cn(
+                          "py-2 text-sm font-bold rounded-lg transition",
+                          visibility === "private"
+                            ? "bg-background shadow-sm text-foreground"
+                            : "text-muted hover:text-foreground"
+                        )}
+                      >
+                        비공개
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Category */}
+                {type === "blog" && (
+                  <div className="space-y-3">
+                    <label className="block text-sm font-bold text-muted">
+                      카테고리
+                    </label>
                     <select
                       value={categorySlug}
                       onChange={(e) => setCategorySlug(e.target.value)}
-                      className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm font-bold text-foreground outline-none transition focus:border-primary/60"
-                      aria-label="카테고리 선택"
+                      className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition"
                     >
                       <option value="">카테고리 선택</option>
                       {categoryOptions.map((slug) => (
@@ -459,142 +541,107 @@ export default function PostEditor({
                       ))}
                     </select>
                   </div>
-                  <div className="h-6 w-px bg-border" aria-hidden />
-                </>
-              ) : null}
+                )}
 
-              <label
-                htmlFor={fileInputId}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-background px-3 text-sm font-bold text-foreground transition hover:border-primary/30"
-              >
-                <svg
-                  className="size-4 text-muted"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.7}
-                  aria-hidden
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 7a2 2 0 0 1 2-2h2l1-1h6l1 1h2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"
+                {/* Images */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-bold text-muted">
+                      이미지
+                    </label>
+                    <span className="text-xs text-muted bg-surface-2 px-2 py-0.5 rounded-full">
+                      {imageKeys.length}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {imageKeys.map((key, idx) => (
+                      <div
+                        key={key}
+                        className="relative group aspect-square bg-surface-2 rounded-lg overflow-hidden border border-border"
+                      >
+                        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted break-all p-2 text-center">
+                          이미지 {idx + 1}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeImageKey(key)}
+                          className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                        >
+                          <FiX className="size-3" />
+                        </button>
+                        {/* Thumbnail Badge */}
+                        {key === thumbnailImageKey && type === "blog" && (
+                          <div className="absolute bottom-1 left-1 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                            대표
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    <label
+                      htmlFor={fileInputId}
+                      className="flex flex-col items-center justify-center aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition cursor-pointer"
+                    >
+                      <FiImage className="size-6 text-muted mb-2" />
+                      <span className="text-xs font-bold text-muted">
+                        추가하기
+                      </span>
+                    </label>
+                  </div>
+                  <input
+                    id={fileInputId}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => void uploadFiles(e.target.files)}
                   />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8 14l2-2 2 2 3-3 3 3"
-                  />
-                </svg>
-                이미지 첨부
-                {imageKeys.length ? (
-                  <span className="rounded-lg bg-surface-2 px-2 py-1 text-xs font-black text-muted">
-                    {imageKeys.length}
-                  </span>
-                ) : null}
-              </label>
-              <input
-                id={fileInputId}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => void uploadFiles(e.target.files)}
-              />
-            </div>
+                </div>
 
-            <div className="flex items-center">
-              <VisibilitySegmented
-                value={type === "feed" ? "public" : visibility}
-                onChange={(next) => setVisibility(next)}
-                disabled={type === "feed"}
-              />
-            </div>
-          </div>
+                {/* Thumbnail Picker */}
+                {type === "blog" && imageKeys.length > 0 && (
+                  <div className="space-y-3">
+                    <label className="block text-sm font-bold text-muted">
+                      썸네일 설정
+                    </label>
+                    <select
+                      value={thumbnailImageKey}
+                      onChange={(e) => setThumbnailImageKey(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition"
+                    >
+                      <option value="">자동 설정</option>
+                      {imageKeys.map((key, idx) => (
+                        <option key={key} value={key}>
+                          이미지 {idx + 1}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-          {type === "blog" && imageKeys.length ? (
-            <div className="mt-3">
-              <label className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2 text-sm">
-                <span className="text-xs font-bold text-muted">썸네일</span>
-                <select
-                  value={thumbnailImageKey}
-                  onChange={(e) => setThumbnailImageKey(e.target.value)}
-                  className="h-9 rounded-xl border border-border bg-background px-3 text-sm font-bold text-foreground outline-none transition focus:border-primary/60"
-                >
-                  <option value="">자동</option>
-                  {imageKeys.map((key, idx) => (
-                    <option key={key} value={key}>
-                      이미지 {idx + 1}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          ) : null}
+                {error && (
+                  <div className="p-3 rounded-xl bg-red-500/10 text-red-500 text-sm font-medium">
+                    {error}
+                  </div>
+                )}
+              </div>
 
-          {imageKeys.length ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {imageKeys.map((key, idx) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => removeImageKey(key)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs font-bold text-foreground transition hover:border-primary/30"
-                  title="클릭해서 제거"
-                >
-                  <span className="text-muted">이미지 {idx + 1}</span>
-                  <span className="text-muted/80">×</span>
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        {error ? <p className="mt-4 text-sm text-red-500">{error}</p> : null}
-      </div>
-
-      <div className="grid min-h-[720px] gap-0 lg:grid-cols-2">
-        <div className="min-w-0 bg-background">
-          <div className="border-b border-border px-5 py-5">
-            {type === "feed" ? (
-              <p className="text-sm font-semibold text-muted">
-                제목은 본문으로 자동 생성돼요.
-              </p>
-            ) : (
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full border-0 bg-transparent px-0 text-2xl font-black tracking-tight text-foreground placeholder:text-muted outline-none"
-                placeholder="제목을 입력해주세요"
-              />
-            )}
-          </div>
-
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="min-h-[520px] w-full resize-none bg-transparent p-5 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted"
-            placeholder="내용을 입력해주세요..."
-            spellCheck={false}
-          />
-        </div>
-
-        <div className="min-w-0 border-t border-border bg-background lg:border-l lg:border-t-0">
-          <div className="px-5 py-4">
-            <p className="text-sm font-semibold text-muted">미리보기</p>
-          </div>
-          <div className="min-h-130 overflow-auto p-5">
-            {content.trim() ? (
-              <MarkdownClient content={content} />
-            ) : (
-              <p className="text-sm text-muted">
-                내용을 입력하면 미리보기가 표시돼요.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
+              {deleteSlug && (
+                <div className="p-4 border-t border-border mt-auto">
+                  <DeletePostButton
+                    slug={deleteSlug}
+                    redirectTo={deleteRedirectTo}
+                    className="w-full h-10 rounded-xl border border-red-500/20 text-red-500 font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-2"
+                  >
+                    <FiTrash2 className="size-4" />
+                    삭제하기
+                  </DeletePostButton>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
