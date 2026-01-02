@@ -25,7 +25,7 @@ export default async function ArticleEditPage({ params }: Props) {
   if (post.type !== "blog") notFound();
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="mx-auto space-y-8">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 text-sm text-muted">
           <BackButton

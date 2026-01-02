@@ -14,7 +14,7 @@ export default async function FeedWritePage() {
   await requireAdmin("/feed/write");
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="mx-auto space-y-8">
       <div className="flex items-center gap-3 text-sm text-muted">
         <BackButton
           fallbackHref="/feed"

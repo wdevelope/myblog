@@ -270,87 +270,79 @@ export default function PostEditor({
         </button>
       </div>
 
-      <div className="border-b border-border bg-background p-6">
-        <div className="rounded-2xl border border-border bg-surface px-4 py-3">
-          <div className="flex flex-wrap items-center gap-3">
-            {type === "blog" ? (
-              <>
-                <div className="flex min-w-[220px] items-center gap-2">
-                  <select
-                    value={categorySlug}
-                    onChange={(e) => setCategorySlug(e.target.value)}
-                    className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm font-bold text-foreground outline-none transition focus:border-primary/60"
-                    aria-label="카테고리 선택"
-                  >
-                    <option value="">카테고리 선택</option>
-                    {categoryOptions.map((slug) => (
-                      <option key={slug} value={slug}>
-                        {slug}
-                        {categories.includes(slug) ? "" : " (삭제됨)"}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => void refreshCategories()}
-                    className="inline-flex size-10 items-center justify-center rounded-xl border border-border bg-background text-sm font-black text-foreground transition hover:border-primary/30 disabled:opacity-50"
-                    disabled={categoriesLoading}
-                    title="카테고리 새로고침"
-                    aria-label="카테고리 새로고침"
-                  >
-                    ↻
-                  </button>
-                </div>
-                <div className="h-6 w-px bg-border" aria-hidden />
-              </>
-            ) : null}
-
-            <VisibilitySegmented
-              value={type === "feed" ? "public" : visibility}
-              onChange={(next) => setVisibility(next)}
-              disabled={type === "feed"}
-            />
-
-            <div className="h-6 w-px bg-border" aria-hidden />
-
-            <label
-              htmlFor={fileInputId}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-background px-3 text-sm font-bold text-foreground transition hover:border-primary/30"
-            >
-              <svg
-                className="size-4 text-muted"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.7}
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 7a2 2 0 0 1 2-2h2l1-1h6l1 1h2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8 14l2-2 2 2 3-3 3 3"
-                />
-              </svg>
-              이미지 첨부
-              {imageKeys.length ? (
-                <span className="rounded-lg bg-surface-2 px-2 py-1 text-xs font-black text-muted">
-                  {imageKeys.length}
-                </span>
+      <div className="border-b border-border bg-background p-4">
+        <div className="rounded-2xl">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex items-center gap-3">
+              {type === "blog" ? (
+                <>
+                  <div className="flex min-w-[220px] items-center gap-2">
+                    <select
+                      value={categorySlug}
+                      onChange={(e) => setCategorySlug(e.target.value)}
+                      className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm font-bold text-foreground outline-none transition focus:border-primary/60"
+                      aria-label="카테고리 선택"
+                    >
+                      <option value="">카테고리 선택</option>
+                      {categoryOptions.map((slug) => (
+                        <option key={slug} value={slug}>
+                          {slug}
+                          {categories.includes(slug) ? "" : " (삭제됨)"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="h-6 w-px bg-border" aria-hidden />
+                </>
               ) : null}
-            </label>
-            <input
-              id={fileInputId}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => void uploadFiles(e.target.files)}
-            />
+
+              <label
+                htmlFor={fileInputId}
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-background px-3 text-sm font-bold text-foreground transition hover:border-primary/30"
+              >
+                <svg
+                  className="size-4 text-muted"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.7}
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 7a2 2 0 0 1 2-2h2l1-1h6l1 1h2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8 14l2-2 2 2 3-3 3 3"
+                  />
+                </svg>
+                이미지 첨부
+                {imageKeys.length ? (
+                  <span className="rounded-lg bg-surface-2 px-2 py-1 text-xs font-black text-muted">
+                    {imageKeys.length}
+                  </span>
+                ) : null}
+              </label>
+              <input
+                id={fileInputId}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => void uploadFiles(e.target.files)}
+              />
+            </div>
+
+            <div className="flex items-center">
+              <VisibilitySegmented
+                value={type === "feed" ? "public" : visibility}
+                onChange={(next) => setVisibility(next)}
+                disabled={type === "feed"}
+              />
+            </div>
           </div>
 
           {type === "blog" && imageKeys.length ? (
