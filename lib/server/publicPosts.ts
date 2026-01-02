@@ -114,7 +114,7 @@ export async function getPublicPosts(params: {
 
 export async function getPublicPostCounts(
   type: Exclude<PostType, "diary">
-): Promise<Record<string, number>> {
+): Promise<{ counts: Record<string, number>; total: number }> {
   const { url, anonKey } = getSupabaseEnv();
   const search = new URLSearchParams();
   search.set("select", "category_slug");
@@ -134,13 +134,15 @@ export async function getPublicPostCounts(
     }
   );
 
-  if (!response.ok) return {};
+  if (!response.ok) return { counts: {}, total: 0 };
 
   const rows = (await response.json()) as { category_slug: string | null }[];
-  return rows.reduce<Record<string, number>>((acc, row) => {
+  const counts = rows.reduce<Record<string, number>>((acc, row) => {
     const key = row.category_slug?.trim();
     if (!key) return acc;
     acc[key] = (acc[key] ?? 0) + 1;
     return acc;
   }, {});
+
+  return { counts, total: rows.length };
 }

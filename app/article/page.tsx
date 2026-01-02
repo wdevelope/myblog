@@ -93,6 +93,7 @@ export default async function BlogIndexPage({ searchParams }: Props) {
   let posts: Post[] = [];
   let totalCount = 0;
   let categoryCounts: Record<string, number> = {};
+  let sidebarTotalCount = 0;
 
   if (isAdmin) {
     // Admin: Fetch all for existing logic compatibility (and consistent counts)
@@ -103,6 +104,7 @@ export default async function BlogIndexPage({ searchParams }: Props) {
     // The original code fetched "getPosts({ type: 'blog' })" regardless of selection, then filtered in memory.
     // Let's replicate that to ensure sidebar counts are correct.
     const allVisiblePosts = await getPosts({ type: "blog" });
+    sidebarTotalCount = allVisiblePosts.length;
 
     categoryCounts = allVisiblePosts.reduce<Record<string, number>>(
       (acc, post) => {
@@ -125,8 +127,10 @@ export default async function BlogIndexPage({ searchParams }: Props) {
     posts = filtered.slice(start, start + LIMIT);
   } else {
     // Public: Optimized fetching
-    // 1. Fetch Counts (Lightweight)
-    categoryCounts = await getPublicPostCounts("blog");
+    // 1. Fetch Counts (Lightweight) - returns { counts, total }
+    const { counts, total } = await getPublicPostCounts("blog");
+    categoryCounts = counts;
+    sidebarTotalCount = total;
 
     // 2. Fetch Paginated Posts
     const { data, count } = await getPublicPosts({
@@ -200,15 +204,7 @@ export default async function BlogIndexPage({ searchParams }: Props) {
               ].join(" ")}
             >
               <span className="font-medium">전체 글</span>
-              <span className="text-xs text-muted">
-                {
-                  isAdmin
-                    ? Object.values(categoryCounts).reduce((a, b) => a + b, 0)
-                    : totalCount /* Total count might be filtered, but 'All Posts' usually means sum of all. For Public 'totalCount' here is filtered count if category selected. Wait. '전체 글' count should be sum of all? getPublicPostCounts allows summing. */
-                }
-                {/* Actually simple sum of categoryCounts is safer for 'All' label */}
-                {Object.values(categoryCounts).reduce((a, b) => a + b, 0)}
-              </span>
+              <span className="text-xs text-muted">{sidebarTotalCount}</span>
             </Link>
             {categories.map((category) => (
               <Link
