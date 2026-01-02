@@ -3,7 +3,7 @@ import Image from "next/image";
 import { getCurrentUser } from "@/lib/server/admin";
 import { getPublicPosts } from "@/lib/server/publicPosts";
 import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
-import { toExcerptMarkdown } from "@/lib/markdown";
+import { toExcerpt } from "@/lib/markdown";
 import { coverSrcFromImageKey } from "@/lib/image";
 
 export default function Home() {
@@ -93,8 +93,8 @@ async function HomePage() {
                       >
                         {post.title}
                       </Link>
-                      <p className="line-clamp-3 text-sm leading-6 text-muted">
-                        {toExcerptMarkdown(post.content)}
+                      <p className="line-clamp-2 text-sm leading-relaxed text-muted">
+                        {toExcerpt(post.content)}
                       </p>
                     </div>
                     <div className="pt-1">

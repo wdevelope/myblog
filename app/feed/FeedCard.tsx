@@ -5,14 +5,16 @@ import Image from "next/image";
 import type { Post } from "@/lib/types";
 import { Card, CardBody } from "@/app/_components/ui";
 import PostActionMenu from "@/app/_components/PostActionMenu";
-
 import { coverSrcFromImageKey } from "@/lib/image";
+import HtmlContent from "@/app/_components/HtmlContent";
+import { toExcerpt } from "@/lib/markdown";
 
 export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const coverKey = post.imageKeys?.[0];
   const coverSrc = coverKey ? coverSrcFromImageKey(coverKey) : null;
-  const shouldShowMore = post.content.trim().length > 140;
+  const textContent = toExcerpt(post.content, 1000);
+  const shouldShowMore = textContent.length > 140;
 
   return (
     <Card className="relative overflow-hidden transition hover:shadow-lg">
@@ -82,9 +84,9 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
       <CardBody className="space-y-3">
         {expanded ? (
           <>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted">
-              {post.content}
-            </p>
+            <div className="text-sm leading-relaxed text-muted">
+              <HtmlContent content={post.content} />
+            </div>
             <button
               type="button"
               onClick={() => setExpanded(false)}
@@ -96,7 +98,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
         ) : (
           <div className="relative">
             <p className="line-clamp-3 pr-14 text-sm leading-relaxed text-muted">
-              {post.content}
+              {textContent}
             </p>
             {shouldShowMore ? (
               <button

@@ -1,7 +1,7 @@
 import { getPostBySlug } from "@/lib/api";
 import { getComments } from "@/lib/api";
 import PostImages from "@/app/_components/PostImages";
-import Markdown from "@/app/_components/Markdown";
+// import Markdown from "@/app/_components/Markdown";
 import BackButton from "@/app/_components/BackButton";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 import CommentsThread from "@/app/_components/CommentsThread";
@@ -10,6 +10,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { CardBody } from "@/app/_components/ui";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
+import HtmlContent from "@/app/_components/HtmlContent";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,9 @@ export default async function BlogPostPage({
             <>
               <span className="mx-2 text-muted/70">/</span>
               <Link
-                href={`/article?category=${encodeURIComponent(post.categorySlug)}`}
+                href={`/article?category=${encodeURIComponent(
+                  post.categorySlug
+                )}`}
                 className="hover:text-foreground"
               >
                 {post.categorySlug}
@@ -89,13 +92,17 @@ export default async function BlogPostPage({
             <div className="space-y-1">
               <p className="text-sm font-bold text-foreground">원스</p>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-                <span>{new Date(post.createdAt).toLocaleDateString("ko-KR")}</span>
+                <span>
+                  {new Date(post.createdAt).toLocaleDateString("ko-KR")}
+                </span>
                 <span>·</span>
                 <span>조회수 {(post.viewCount ?? 0).toLocaleString()}회</span>
                 <span>·</span>
                 <span className="inline-flex items-center gap-1">
                   {post.visibility === "public" ? "공개" : "비공개"}
-                  {post.visibility === "private" ? <span aria-hidden>🔒</span> : null}
+                  {post.visibility === "private" ? (
+                    <span aria-hidden>🔒</span>
+                  ) : null}
                 </span>
               </div>
             </div>
@@ -107,7 +114,7 @@ export default async function BlogPostPage({
 
       <div className="space-y-6">
         <div className="text-sm">
-          <Markdown content={post.content} />
+          <HtmlContent content={post.content} />
         </div>
         <PostImages imageKeys={post.imageKeys} />
       </div>

@@ -1,13 +1,13 @@
 import Link from "next/link";
-import Image from "next/image";
+// import Image from "next/image";
 import CategorySettingsModal from "@/app/article/CategorySettingsModal";
-import MarkdownExcerpt from "@/app/_components/MarkdownExcerpt";
+// import MarkdownExcerpt from "@/app/_components/MarkdownExcerpt"; (deleted in cleanup)
 import type { Post } from "@/lib/types";
 import { getPublicPosts, getPublicPostCounts } from "@/lib/server/publicPosts";
 import { getPosts } from "@/lib/api";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { toExcerptMarkdown } from "@/lib/markdown";
+import { toExcerpt } from "@/lib/markdown";
 import { notFound } from "next/navigation";
 
 export const metadata = {
@@ -287,14 +287,15 @@ export default async function BlogIndexPage({ searchParams }: Props) {
 
                           <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface-2 relative h-44 w-full">
                             {coverSrc ? (
-                              <Image
-                                src={coverSrc}
-                                alt=""
-                                fill
-                                sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
-                                className="object-cover transition duration-300 group-hover:scale-[1.02]"
-                                priority={false}
-                              />
+                              <>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={coverSrc}
+                                  alt=""
+                                  className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                                  loading="lazy"
+                                />
+                              </>
                             ) : (
                               <div className="absolute inset-0 bg-[radial-gradient(70%_70%_at_50%_35%,rgba(19,91,236,0.35)_0%,rgba(147,51,234,0.18)_50%,rgba(16,22,34,0)_100%)]" />
                             )}
@@ -304,9 +305,9 @@ export default async function BlogIndexPage({ searchParams }: Props) {
                             <h2 className="text-xl font-black leading-snug text-foreground transition group-hover:text-primary">
                               {post.title}
                             </h2>
-                            <MarkdownExcerpt
-                              content={toExcerptMarkdown(post.content)}
-                            />
+                            <p className="line-clamp-3 text-sm leading-6 text-muted">
+                              {toExcerpt(post.content)}
+                            </p>
                           </div>
 
                           <div className="mt-5 flex items-center justify-between gap-3 text-xs text-muted">
