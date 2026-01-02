@@ -384,11 +384,11 @@ export default function PostEditor({
             {isPending
               ? "저장 중..."
               : draftSavedAt
-                ? `임시저장 ${new Date(draftSavedAt).toLocaleTimeString("ko-KR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}`
-                : "임시"}
+              ? `임시저장 ${new Date(draftSavedAt).toLocaleTimeString("ko-KR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}`
+              : ""}
           </span>
         </div>
         <button
@@ -410,7 +410,9 @@ export default function PostEditor({
               </p>
               <p className="text-xs text-muted">
                 {pendingDraft.updatedAt
-                  ? `저장 시각: ${new Date(pendingDraft.updatedAt).toLocaleString("ko-KR")}`
+                  ? `저장 시각: ${new Date(
+                      pendingDraft.updatedAt
+                    ).toLocaleString("ko-KR")}`
                   : null}
               </p>
             </div>
@@ -553,12 +555,7 @@ export default function PostEditor({
 
       <div className="grid min-h-[720px] gap-0 lg:grid-cols-2">
         <div className="min-w-0 bg-background">
-          <div className="border-b border-border px-7 py-4">
-            <p className="text-lg font-black tracking-tight text-foreground">
-              제목
-            </p>
-          </div>
-          <div className="border-b border-border px-7 py-5">
+          <div className="border-b border-border px-5 py-5">
             {type === "feed" ? (
               <p className="text-sm font-semibold text-muted">
                 제목은 본문으로 자동 생성돼요.
@@ -577,17 +574,17 @@ export default function PostEditor({
             ref={textareaRef}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="min-h-[520px] w-full resize-none bg-transparent p-7 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted"
+            className="min-h-[520px] w-full resize-none bg-transparent p-5 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted"
             placeholder="내용을 입력해주세요..."
             spellCheck={false}
           />
         </div>
 
         <div className="min-w-0 border-t border-border bg-background lg:border-l lg:border-t-0">
-          <div className="border-b border-border px-7 py-4">
+          <div className="px-5 py-4">
             <p className="text-sm font-semibold text-muted">미리보기</p>
           </div>
-          <div className="min-h-[520px] overflow-auto p-7">
+          <div className="min-h-130 overflow-auto p-5">
             {content.trim() ? (
               <MarkdownClient content={content} />
             ) : (

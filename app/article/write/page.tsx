@@ -31,13 +31,6 @@ export default async function ArticleWritePage() {
         </nav>
       </div>
 
-      <header className="space-y-2">
-        <h1 className="text-2xl font-black tracking-tight text-foreground">
-          아티클 쓰기
-        </h1>
-        <p className="text-sm text-muted">본문은 마크다운으로 저장돼요.</p>
-      </header>
-
       <PostEditor type="blog" />
     </div>
   );
