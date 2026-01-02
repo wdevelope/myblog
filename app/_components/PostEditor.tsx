@@ -30,58 +30,33 @@ function typeLabel(type: PostType) {
   return "다이어리";
 }
 
-function escapeHtml(input: string) {
-  return input
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function highlightMarkdown(input: string) {
-  const lines = input.split("\n");
-  let inFence = false;
-
-  const out = lines.map((rawLine) => {
-    const line = escapeHtml(rawLine);
-
-    if (/^\s*```/.test(rawLine)) {
-      inFence = !inFence;
-      return `<span class="text-muted">\`\`\`</span>${line.replace(/^\s*```/, "")}`;
-    }
-
-    if (inFence) {
-      return `<span class="text-emerald-700/80 dark:text-emerald-400/80">${line || "&nbsp;"}</span>`;
-    }
-
-    let html = line;
-
-    // headings: ## ...
-    html = html.replace(
-      /^(#{1,6})(\s+)/,
-      '<span class="text-primary/80 font-bold">$1</span>$2',
-    );
-    // blockquote: > ...
-    html = html.replace(
-      /^(\s*&gt;)(\s*)/,
-      '<span class="text-muted font-bold">$1</span>$2',
-    );
-    // lists: - / * / 1.
-    html = html.replace(
-      /^(\s*(?:[-*+]|\\d+\\.))(\s+)/,
-      '<span class="text-muted font-bold">$1</span>$2',
-    );
-    // inline code markers `
-    html = html.replace(/`/g, '<span class="text-primary/80 font-bold">`</span>');
-    // emphasis markers
-    html = html.replace(/\*\*/g, '<span class="text-primary/80 font-bold">**</span>');
-    html = html.replace(/~~/g, '<span class="text-primary/80 font-bold">~~</span>');
-
-    return html || "&nbsp;";
-  });
-
-  return out.join("\n");
+function VisibilitySwitch({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: Visibility;
+  onChange: (next: Visibility) => void;
+  disabled?: boolean;
+}) {
+  const checked = value === "public";
+  return (
+    <label className="inline-flex select-none items-center gap-3">
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked ? "public" : "private")}
+        className="peer sr-only"
+      />
+      <span className="text-sm font-bold text-foreground">
+        {checked ? "공개" : "비공개"}
+      </span>
+      <span className="relative inline-flex h-7 w-12 items-center rounded-full bg-border transition peer-checked:bg-primary peer-disabled:opacity-50">
+        <span className="absolute left-1 top-1 size-5 rounded-full bg-white shadow-sm transition peer-checked:translate-x-5" />
+      </span>
+    </label>
+  );
 }
 
 export default function PostEditor({
@@ -122,7 +97,6 @@ export default function PostEditor({
   const [isPending, startTransition] = useTransition();
   const [categories, setCategories] = useState<string[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
-  const highlightRef = useRef<HTMLPreElement | null>(null);
 
   const removeImageKey = useCallback(
     (key: string) => {
@@ -254,102 +228,100 @@ export default function PostEditor({
 
   return (
     <div className="overflow-hidden rounded-3xl border border-border bg-background">
-      <div className="flex items-center justify-between border-b border-border px-7 py-5">
+      <div className="flex items-center justify-between border-b border-border px-6 py-4">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-muted">
-            {typeLabel(type)} 글쓰기
+          <span className="text-sm font-black text-foreground">
+            {typeLabel(type)} {initial ? "수정" : "글쓰기"}
           </span>
           {type === "diary" && !initial && createdAtYmd ? (
             <span className="text-xs font-semibold text-muted">
               작성 날짜: {createdAtYmd.replaceAll("-", ".")}
             </span>
           ) : null}
-          <span className="text-xs text-muted">
-            {isPending ? "저장 중..." : "임시"}
-          </span>
+          <span className="text-xs text-muted">{isPending ? "저장 중..." : "임시"}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={submit}
-            disabled={isPending}
-            className="h-9 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
-          >
-            {initial ? "저장" : "발행"}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={isPending}
+          className="h-9 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
+        >
+          {initial ? "저장" : "발행"}
+        </button>
       </div>
 
       <div className="border-b border-border bg-background p-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {type !== "feed" ? (
-            <label className="space-y-1 text-sm">
-              <span className="font-semibold text-foreground">공개 범위</span>
-              <select
-                value={visibility}
-                onChange={(e) => setVisibility(e.target.value as Visibility)}
-                className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
-              >
-                <option value="public">공개</option>
-                <option value="private">비공개</option>
-              </select>
-            </label>
-          ) : null}
+        <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+          <div className="space-y-4 rounded-2xl border border-border bg-surface p-4">
+            {type === "blog" ? (
+              <label className="space-y-2 text-sm">
+                <span className="font-bold text-foreground">카테고리</span>
+                <div className="flex w-full items-center gap-2">
+                  <select
+                    value={categorySlug}
+                    onChange={(e) => setCategorySlug(e.target.value)}
+                    className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-surface-2 px-3 text-sm text-foreground outline-none focus:border-primary/60"
+                  >
+                    <option value="">카테고리를 선택해주세요</option>
+                    {categoryOptions.map((slug) => (
+                      <option key={slug} value={slug}>
+                        {slug}
+                        {categories.includes(slug) ? "" : " (삭제됨)"}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => void refreshCategories()}
+                    className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-2 text-sm font-bold text-foreground transition hover:bg-surface disabled:opacity-50"
+                    disabled={categoriesLoading}
+                    title="카테고리 새로고침"
+                    aria-label="카테고리 새로고침"
+                  >
+                    ↻
+                  </button>
+                </div>
+              </label>
+            ) : null}
 
-          {type === "blog" ? (
-            <label className="space-y-1 text-sm">
-              <span className="font-semibold text-foreground">카테고리</span>
-              <div className="flex w-full items-center gap-2">
-                <select
-                  value={categorySlug}
-                  onChange={(e) => setCategorySlug(e.target.value)}
-                  className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
-                >
-                  <option value="">카테고리를 선택해주세요</option>
-                  {categoryOptions.map((slug) => (
-                    <option key={slug} value={slug}>
-                      {slug}
-                      {categories.includes(slug) ? "" : " (삭제됨)"}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => void refreshCategories()}
-                  className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-sm font-bold text-foreground transition hover:bg-surface-2 disabled:opacity-50"
-                  disabled={categoriesLoading}
-                  title="카테고리 새로고침"
-                  aria-label="카테고리 새로고침"
-                >
-                  ↻
-                </button>
+            <label className="space-y-2 text-sm">
+              <span className="font-bold text-foreground">이미지</span>
+              <div className="rounded-2xl border border-border bg-surface-2 p-4">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => void uploadFiles(e.target.files)}
+                  className="block w-full text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-surface file:px-3 file:py-2 file:text-sm file:font-bold file:text-foreground"
+                />
+                {imageKeys.length ? (
+                  <p className="mt-2 text-xs text-muted">첨부됨: {imageKeys.length}</p>
+                ) : (
+                  <p className="mt-2 text-xs text-muted">클릭해서 이미지를 업로드하세요</p>
+                )}
               </div>
-              {!categoriesLoading && categories.length === 0 ? (
-                <p className="text-xs text-muted">
-                  먼저 아티클 페이지에서 카테고리를 생성해주세요.
-                </p>
+
+              {type === "blog" && imageKeys.length ? (
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-muted">썸네일</span>
+                  <select
+                    value={thumbnailImageKey}
+                    onChange={(e) => setThumbnailImageKey(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-border bg-surface-2 px-3 text-sm text-foreground outline-none focus:border-primary/60"
+                  >
+                    <option value="">자동(첫 번째 이미지)</option>
+                    {imageKeys.map((key, idx) => (
+                      <option key={key} value={key}>
+                        이미지 {idx + 1}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               ) : null}
             </label>
-          ) : null}
 
-          <label className="space-y-1 text-sm md:col-span-2 lg:col-span-1">
-            <span className="font-semibold text-foreground">이미지</span>
-            <div className="rounded-2xl border-2 border-dashed border-border bg-surface-2 p-4">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => void uploadFiles(e.target.files)}
-                className="block w-full text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-surface file:px-3 file:py-2 file:text-sm file:font-bold file:text-foreground"
-              />
-              {imageKeys.length ? (
-                <p className="mt-2 text-xs text-muted">첨부됨: {imageKeys.length}</p>
-              ) : (
-                <p className="mt-2 text-xs text-muted">클릭해서 이미지를 업로드하세요</p>
-              )}
-            </div>
             {imageKeys.length ? (
-              <div className="mt-3 grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 {imageKeys.map((key) => {
                   const src = imageSrcFromImageKey(key);
                   return (
@@ -381,79 +353,63 @@ export default function PostEditor({
                 })}
               </div>
             ) : null}
-          </label>
+          </div>
 
-          {type === "blog" && imageKeys.length ? (
-            <label className="space-y-1 text-sm">
-              <span className="font-semibold text-foreground">썸네일 이미지</span>
-              <select
-                value={thumbnailImageKey}
-                onChange={(e) => setThumbnailImageKey(e.target.value)}
-                className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
-              >
-                <option value="">자동(첫 번째 이미지)</option>
-                {imageKeys.map((key, idx) => (
-                  <option key={key} value={key}>
-                    이미지 {idx + 1}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-sm font-black text-foreground">공개 범위</p>
+                {type === "feed" ? (
+                  <p className="text-xs text-muted">피드는 항상 공개로 저장돼요.</p>
+                ) : null}
+              </div>
+              <VisibilitySwitch
+                value={type === "feed" ? "public" : visibility}
+                onChange={(next) => setVisibility(next)}
+                disabled={type === "feed"}
+              />
+            </div>
+          </div>
         </div>
 
         {error ? <p className="mt-4 text-sm text-red-500">{error}</p> : null}
       </div>
 
       <div className="grid min-h-[720px] gap-0 lg:grid-cols-2">
-        <div className="min-w-0 bg-surface">
-          {type === "feed" ? (
-            <div className="border-b border-border px-7 py-4">
+        <div className="min-w-0 bg-background">
+          <div className="border-b border-border px-7 py-4">
+            <p className="text-lg font-black tracking-tight text-foreground">제목</p>
+          </div>
+          <div className="border-b border-border px-7 py-5">
+            {type === "feed" ? (
               <p className="text-sm font-semibold text-muted">
                 제목은 본문으로 자동 생성돼요.
               </p>
-            </div>
-          ) : (
-            <div className="border-b border-border px-7 py-6">
+            ) : (
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full border-0 bg-transparent px-0 text-3xl font-black tracking-tight text-foreground placeholder:text-muted outline-none"
-                placeholder="제목"
+                className="w-full border-0 bg-transparent px-0 text-2xl font-black tracking-tight text-foreground placeholder:text-muted outline-none"
+                placeholder="제목을 입력해주세요"
               />
-            </div>
-          )}
-
-          <div className="relative">
-            <pre
-              ref={highlightRef}
-              aria-hidden
-              className="pointer-events-none absolute inset-0 z-0 min-h-[540px] w-full overflow-auto whitespace-pre-wrap break-words p-7 font-mono text-sm leading-relaxed text-foreground"
-              dangerouslySetInnerHTML={{ __html: highlightMarkdown(content) }}
-            />
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="relative z-10 min-h-[540px] w-full resize-none bg-transparent p-7 font-mono text-sm leading-relaxed text-transparent caret-foreground outline-none placeholder:text-muted"
-              placeholder="내용을 입력하세요..."
-              spellCheck={false}
-              onScroll={(e) => {
-                const target = e.currentTarget;
-                if (highlightRef.current) {
-                  highlightRef.current.scrollTop = target.scrollTop;
-                  highlightRef.current.scrollLeft = target.scrollLeft;
-                }
-              }}
-            />
+            )}
           </div>
+
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="min-h-[520px] w-full resize-none bg-transparent p-7 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted"
+            placeholder="내용을 입력해주세요..."
+            spellCheck={false}
+          />
         </div>
 
         <div className="min-w-0 border-t border-border bg-background lg:border-l lg:border-t-0">
           <div className="border-b border-border px-7 py-4">
             <p className="text-sm font-semibold text-muted">미리보기</p>
           </div>
-          <div className="min-h-[540px] overflow-auto p-7">
+          <div className="min-h-[520px] overflow-auto p-7">
             {content.trim() ? (
               <MarkdownClient content={content} />
             ) : (
