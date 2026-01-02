@@ -16,7 +16,8 @@ export const dynamic = "force-dynamic";
 async function HomePage() {
   const user = await getCurrentUser();
   const loggedIn = Boolean(user);
-  const latestArticles = (await getPublicPosts({ type: "blog" })).slice(0, 6);
+  const latestArticlesResult = await getPublicPosts({ type: "blog", limit: 6 });
+  const latestArticles = latestArticlesResult.data;
 
   return (
     <div className="space-y-10">

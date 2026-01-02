@@ -15,7 +15,7 @@ export default async function FeedPage() {
   const isAdmin = await isAdminDb(user);
   const posts = isAdmin
     ? await getPosts({ type: "feed" })
-    : await getPublicPosts({ type: "feed" });
+    : (await getPublicPosts({ type: "feed" })).data;
 
   return (
     <div className="mx-auto max-w-xl space-y-8">

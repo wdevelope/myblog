@@ -1,7 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import CategorySettingsModal from "@/app/article/CategorySettingsModal";
 import MarkdownExcerpt from "@/app/_components/MarkdownExcerpt";
-import { getPublicPosts } from "@/lib/server/publicPosts";
+import type { Post } from "@/lib/types";
+import { getPublicPosts, getPublicPostCounts } from "@/lib/server/publicPosts";
 import { getPosts } from "@/lib/api";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -84,27 +86,60 @@ export default async function BlogIndexPage({ searchParams }: Props) {
   const sp = (await searchParams) ?? {};
   const selectedCategory =
     typeof sp.category === "string" ? sp.category.trim() : "";
+  const page =
+    typeof sp.page === "string" && Number(sp.page) > 0 ? Number(sp.page) : 1;
+  const LIMIT = 12;
 
-  const allVisiblePosts = isAdmin
-    ? await getPosts({ type: "blog" })
-    : await getPublicPosts({ type: "blog" });
+  let posts: Post[] = [];
+  let totalCount = 0;
+  let categoryCounts: Record<string, number> = {};
 
-  const posts = selectedCategory
-    ? allVisiblePosts.filter(
-        (post) => (post.categorySlug ?? "").trim() === selectedCategory
-      )
-    : allVisiblePosts;
+  if (isAdmin) {
+    // Admin: Fetch all for existing logic compatibility (and consistent counts)
 
-  const categoryCounts = allVisiblePosts.reduce<Record<string, number>>(
-    (acc, post) => {
-      const key = post.categorySlug?.trim();
-      if (!key) return acc;
-      acc[key] = (acc[key] ?? 0) + 1;
-      return acc;
-    },
-    {}
-  );
+    // Calculate counts from ALL posts (including private)
+    // Note: getPosts only returns filtered by category if provided.
+    // To get SIDEBAR counts correctly for Admin, we actually need to fetch ALL posts regardless of category?
+    // The original code fetched "getPosts({ type: 'blog' })" regardless of selection, then filtered in memory.
+    // Let's replicate that to ensure sidebar counts are correct.
+    const allVisiblePosts = await getPosts({ type: "blog" });
 
+    categoryCounts = allVisiblePosts.reduce<Record<string, number>>(
+      (acc, post) => {
+        const key = post.categorySlug?.trim();
+        if (!key) return acc;
+        acc[key] = (acc[key] ?? 0) + 1;
+        return acc;
+      },
+      {}
+    );
+
+    const filtered = selectedCategory
+      ? allVisiblePosts.filter(
+          (p) => (p.categorySlug ?? "").trim() === selectedCategory
+        )
+      : allVisiblePosts;
+
+    totalCount = filtered.length;
+    const start = (page - 1) * LIMIT;
+    posts = filtered.slice(start, start + LIMIT);
+  } else {
+    // Public: Optimized fetching
+    // 1. Fetch Counts (Lightweight)
+    categoryCounts = await getPublicPostCounts("blog");
+
+    // 2. Fetch Paginated Posts
+    const { data, count } = await getPublicPosts({
+      type: "blog",
+      category: selectedCategory,
+      page,
+      limit: LIMIT,
+    });
+    posts = data;
+    totalCount = count;
+  }
+
+  // Categories Sidebar Logic
   const supabase = await createSupabaseServerClient();
   const { data: categoryRows } = await supabase
     .from("categories")
@@ -140,6 +175,11 @@ export default async function BlogIndexPage({ searchParams }: Props) {
     notFound();
   }
 
+  const totalPages = Math.ceil(totalCount / LIMIT);
+  const baseUrl = `/article?${
+    selectedCategory ? `category=${encodeURIComponent(selectedCategory)}&` : ""
+  }`;
+
   return (
     <div className="grid gap-8 lg:grid-cols-12">
       {/* Left sidebar - Categories */}
@@ -161,7 +201,13 @@ export default async function BlogIndexPage({ searchParams }: Props) {
             >
               <span className="font-medium">전체 글</span>
               <span className="text-xs text-muted">
-                {allVisiblePosts.length}
+                {
+                  isAdmin
+                    ? Object.values(categoryCounts).reduce((a, b) => a + b, 0)
+                    : totalCount /* Total count might be filtered, but 'All Posts' usually means sum of all. For Public 'totalCount' here is filtered count if category selected. Wait. '전체 글' count should be sum of all? getPublicPostCounts allows summing. */
+                }
+                {/* Actually simple sum of categoryCounts is safer for 'All' label */}
+                {Object.values(categoryCounts).reduce((a, b) => a + b, 0)}
               </span>
             </Link>
             {categories.map((category) => (
@@ -211,84 +257,117 @@ export default async function BlogIndexPage({ searchParams }: Props) {
           ) : null}
         </header>
         {posts.length ? (
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {posts.map((post) => {
-              const createdAt = new Date(post.createdAt);
-              const dateLabel = createdAt.toISOString().slice(0, 10);
-              const coverKey =
-                post.thumbnailImageKey?.trim() || post.imageKeys?.[0] || null;
-              const coverSrc = coverKey ? coverSrcFromImageKey(coverKey) : null;
+          <>
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              {posts.map((post) => {
+                const createdAt = new Date(post.createdAt);
+                const dateLabel = createdAt.toISOString().slice(0, 10);
+                const coverKey =
+                  post.thumbnailImageKey?.trim() || post.imageKeys?.[0] || null;
+                const coverSrc = coverKey
+                  ? coverSrcFromImageKey(coverKey)
+                  : null;
 
-              return (
-                <div key={post.id} className="group h-full">
-                  <Link href={`/article/${post.slug}`} className="block h-full">
-                    <article className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 h-full flex flex-col">
-                      <div className="p-5 flex flex-col h-full">
-                        <div className="flex items-center justify-between">
-                          <span className="inline-flex rounded-xl bg-primary/15 px-3 py-1 text-xs font-bold text-primary ring-1 ring-primary/20">
-                            {dateLabel}
-                          </span>
-                          <div className="text-muted/80">
-                            {post.visibility === "private" ? (
-                              <LockIcon className="size-5" />
+                return (
+                  <div key={post.id} className="group h-full">
+                    <Link
+                      href={`/article/${post.slug}`}
+                      className="block h-full"
+                    >
+                      <article className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 h-full flex flex-col">
+                        <div className="p-5 flex flex-col h-full">
+                          <div className="flex items-center justify-between">
+                            <span className="inline-flex rounded-xl bg-primary/15 px-3 py-1 text-xs font-bold text-primary ring-1 ring-primary/20">
+                              {dateLabel}
+                            </span>
+                            <div className="text-muted/80">
+                              {post.visibility === "private" ? (
+                                <LockIcon className="size-5" />
+                              ) : (
+                                <PublishedIcon className="size-5 text-emerald-400/80" />
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface-2 relative h-44 w-full">
+                            {coverSrc ? (
+                              <Image
+                                src={coverSrc}
+                                alt=""
+                                fill
+                                sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+                                className="object-cover transition duration-300 group-hover:scale-[1.02]"
+                                priority={false}
+                              />
                             ) : (
-                              <PublishedIcon className="size-5 text-emerald-400/80" />
+                              <div className="absolute inset-0 bg-[radial-gradient(70%_70%_at_50%_35%,rgba(19,91,236,0.35)_0%,rgba(147,51,234,0.18)_50%,rgba(16,22,34,0)_100%)]" />
                             )}
                           </div>
-                        </div>
 
-                        <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface-2">
-                          {coverSrc ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={coverSrc}
-                              alt=""
-                              className="h-44 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                              loading="lazy"
+                          <div className="mt-4 space-y-2 flex-1">
+                            <h2 className="text-xl font-black leading-snug text-foreground transition group-hover:text-primary">
+                              {post.title}
+                            </h2>
+                            <MarkdownExcerpt
+                              content={toExcerptMarkdown(post.content)}
                             />
-                          ) : (
-                            <div className="h-44 w-full bg-[radial-gradient(70%_70%_at_50%_35%,rgba(19,91,236,0.35)_0%,rgba(147,51,234,0.18)_50%,rgba(16,22,34,0)_100%)]" />
-                          )}
-                        </div>
-
-                        <div className="mt-4 space-y-2 flex-1">
-                          <h2 className="text-xl font-black leading-snug text-foreground transition group-hover:text-primary">
-                            {post.title}
-                          </h2>
-                          <MarkdownExcerpt
-                            content={toExcerptMarkdown(post.content)}
-                          />
-                        </div>
-
-                        <div className="mt-5 flex items-center justify-between gap-3 text-xs text-muted">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={[
-                                "size-2 rounded-full",
-                                post.visibility === "private"
-                                  ? "bg-amber-400/80"
-                                  : "bg-emerald-400/80",
-                              ].join(" ")}
-                            />
-                            <span>
-                              {post.visibility === "private"
-                                ? "비공개"
-                                : "게시됨"}
-                            </span>
                           </div>
-                          {post.categorySlug ? (
-                            <span className="truncate font-semibold text-muted/90">
-                              {post.categorySlug}
-                            </span>
-                          ) : null}
+
+                          <div className="mt-5 flex items-center justify-between gap-3 text-xs text-muted">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={[
+                                  "size-2 rounded-full",
+                                  post.visibility === "private"
+                                    ? "bg-amber-400/80"
+                                    : "bg-emerald-400/80",
+                                ].join(" ")}
+                              />
+                              <span>
+                                {post.visibility === "private"
+                                  ? "비공개"
+                                  : "게시됨"}
+                              </span>
+                            </div>
+                            {post.categorySlug ? (
+                              <span className="truncate font-semibold text-muted/90">
+                                {post.categorySlug}
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
-                      </div>
-                    </article>
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
+                      </article>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 ? (
+              <div className="mt-12 flex justify-center gap-2">
+                <Link
+                  href={page > 1 ? `${baseUrl}page=${page - 1}` : "#"}
+                  className={`px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 ${
+                    page <= 1 ? "pointer-events-none opacity-50" : ""
+                  }`}
+                >
+                  이전
+                </Link>
+                <span className="flex items-center px-4 text-sm font-medium text-muted">
+                  {page} / {totalPages}
+                </span>
+                <Link
+                  href={page < totalPages ? `${baseUrl}page=${page + 1}` : "#"}
+                  className={`px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 ${
+                    page >= totalPages ? "pointer-events-none opacity-50" : ""
+                  }`}
+                >
+                  다음
+                </Link>
+              </div>
+            ) : null}
+          </>
         ) : (
           <div className="py-16 text-center">
             <p className="text-sm text-muted">아직 아티클이 없습니다.</p>
