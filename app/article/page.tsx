@@ -1,7 +1,5 @@
 import Link from "next/link";
-// import Image from "next/image";
 import CategorySettingsModal from "@/app/article/CategorySettingsModal";
-// import MarkdownExcerpt from "@/app/_components/MarkdownExcerpt"; (deleted in cleanup)
 import type { Post } from "@/lib/types";
 import { getPublicPosts, getPublicPostCounts } from "@/lib/server/publicPosts";
 import { getPosts } from "@/lib/api";

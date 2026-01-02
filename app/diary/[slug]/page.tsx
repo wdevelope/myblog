@@ -1,6 +1,5 @@
 import { getPostBySlug } from "@/lib/api";
 import PostImages from "@/app/_components/PostImages";
-// import Markdown from "@/app/_components/Markdown";
 import HtmlContent from "@/app/_components/HtmlContent";
 import BackButton from "@/app/_components/BackButton";
 import PostActionMenu from "@/app/_components/PostActionMenu";
