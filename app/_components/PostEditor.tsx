@@ -87,6 +87,10 @@ export default function PostEditor({
     () => `post-editor-files-${componentId}`,
     [componentId]
   );
+  const thumbnailInputId = useMemo(
+    () => `post-editor-thumbnail-${componentId}`,
+    [componentId]
+  );
   const [pendingDraft, setPendingDraft] = useState<DraftPayloadV1 | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
@@ -108,9 +112,9 @@ export default function PostEditor({
   const removeImageKey = useCallback(
     (key: string) => {
       setImageKeys((prev) => prev.filter((k) => k !== key));
-      setThumbnailImageKey((prev) => (prev === key ? "" : prev));
+      // setThumbnailImageKey((prev) => (prev === key ? "" : prev));
     },
-    [setImageKeys, setThumbnailImageKey]
+    [setImageKeys]
   );
 
   const categoryOptions = useMemo(() => {
@@ -211,12 +215,13 @@ export default function PostEditor({
     if (visibility !== "public") setVisibility("public");
   }, [type, visibility]);
 
-  useEffect(() => {
-    if (type !== "blog") return;
-    if (!thumbnailImageKey.trim()) return;
-    if (imageKeys.includes(thumbnailImageKey)) return;
-    setThumbnailImageKey("");
-  }, [type, imageKeys, thumbnailImageKey]);
+  // Removed auto-clear thumbnail logic to allow independent thumbnails
+  // useEffect(() => {
+  //   if (type !== "blog") return;
+  //   if (!thumbnailImageKey.trim()) return;
+  //   if (imageKeys.includes(thumbnailImageKey)) return;
+  //   setThumbnailImageKey("");
+  // }, [type, imageKeys, thumbnailImageKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -292,7 +297,7 @@ export default function PostEditor({
   }, [buildDraftPayload, draftKey, hasMeaningfulDraft]);
 
   const uploadFiles = useCallback(
-    async (files: FileList | null) => {
+    async (files: FileList | null, addToGallery = true) => {
       setError(null);
       if (!files?.length) return [];
 
@@ -317,7 +322,9 @@ export default function PostEditor({
 
       const payload = (await response.json()) as { keys: string[] };
       const newKeys = payload.keys ?? [];
-      setImageKeys((prev) => [...prev, ...newKeys]);
+      if (addToGallery) {
+        setImageKeys((prev) => [...prev, ...newKeys]);
+      }
       return newKeys;
     },
     [type, visibility]
@@ -329,7 +336,8 @@ export default function PostEditor({
       if (!files || files.length === 0) return;
 
       e.preventDefault();
-      const uploadedKeys = await uploadFiles(files);
+      // Pasted images are embedded directly, so don't add to gallery
+      const uploadedKeys = await uploadFiles(files, false);
       if (uploadedKeys.length === 0) return;
 
       const textarea = textareaRef.current;
@@ -657,12 +665,6 @@ export default function PostEditor({
                         >
                           <FiX className="size-3" />
                         </button>
-                        {/* Thumbnail Badge */}
-                        {key === thumbnailImageKey && type === "blog" && (
-                          <div className="absolute bottom-1 left-1 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                            대표
-                          </div>
-                        )}
                       </div>
                     ))}
                     <label
@@ -681,28 +683,61 @@ export default function PostEditor({
                     accept="image/*"
                     multiple
                     className="hidden"
-                    onChange={(e) => void uploadFiles(e.target.files)}
+                    onChange={(e) => void uploadFiles(e.target.files, true)}
                   />
                 </div>
 
-                {/* Thumbnail Picker */}
-                {type === "blog" && imageKeys.length > 0 && (
+                {/* Thumbnail Manager */}
+                {type === "blog" && (
                   <div className="space-y-3">
                     <label className="block text-sm font-bold text-muted">
-                      썸네일 설정
+                      대표 이미지 (썸네일)
                     </label>
-                    <select
-                      value={thumbnailImageKey}
-                      onChange={(e) => setThumbnailImageKey(e.target.value)}
-                      className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition"
-                    >
-                      <option value="">자동 설정</option>
-                      {imageKeys.map((key, idx) => (
-                        <option key={key} value={key}>
-                          이미지 {idx + 1}
-                        </option>
-                      ))}
-                    </select>
+                    {thumbnailImageKey ? (
+                      <div className="relative aspect-video rounded-xl bg-surface-2 border border-border overflow-hidden group">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={
+                            coverSrcFromImageKey(thumbnailImageKey) ??
+                            thumbnailImageKey
+                          }
+                          alt="Thumbnail"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setThumbnailImageKey("")}
+                          className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition"
+                        >
+                          <FiX className="size-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label
+                        htmlFor={thumbnailInputId}
+                        className="flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition cursor-pointer"
+                      >
+                        <FiImage className="size-8 text-muted mb-2" />
+                        <span className="text-sm font-bold text-muted">
+                          썸네일 업로드
+                        </span>
+                        <input
+                          id={thumbnailInputId}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const keys = await uploadFiles(
+                              e.target.files,
+                              false
+                            );
+                            if (keys.length > 0) {
+                              setThumbnailImageKey(keys[0]);
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
                   </div>
                 )}
 
