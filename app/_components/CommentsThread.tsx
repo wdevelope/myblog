@@ -86,7 +86,7 @@ function CommentComposer({
                       ? String((e as { message: unknown }).message)
                       : "댓글 등록에 실패했어요.";
                   setError(message);
-                }),
+                })
             );
           }}
           className="inline-flex h-8 items-center justify-center rounded-xl bg-primary px-4 text-xs font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
@@ -132,10 +132,13 @@ export default function CommentsThread({
       }),
     });
     if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string; details?: string }
-        | null;
-      throw new Error(payload?.error ?? payload?.details ?? "댓글 등록에 실패했어요.");
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        details?: string;
+      } | null;
+      throw new Error(
+        payload?.error ?? payload?.details ?? "댓글 등록에 실패했어요."
+      );
     }
 
     setReplyTo(null);
@@ -145,13 +148,13 @@ export default function CommentsThread({
   return (
     <section className="space-y-5">
       <div className="flex items-end justify-between gap-4">
-        <h2 className="text-xl font-black tracking-tight text-foreground">
+        <h2 className="text-sm font-black tracking-tight text-foreground">
           댓글 {comments.length}개
         </h2>
       </div>
 
       <CommentComposer
-        placeholder="댓글을 작성해주세요 ($종목, #키워드 태그 가능)"
+        placeholder="댓글을 작성해주세요"
         onSubmit={(content) => createComment(content, null)}
         disabled={!canWrite}
         submitLabel="등록"
@@ -182,7 +185,9 @@ export default function CommentsThread({
                     <div className="flex items-center gap-4 text-xs text-muted">
                       <button
                         type="button"
-                        onClick={() => setReplyTo((prev) => (prev === c.id ? null : c.id))}
+                        onClick={() =>
+                          setReplyTo((prev) => (prev === c.id ? null : c.id))
+                        }
                         className="inline-flex items-center gap-2 font-semibold hover:text-foreground transition"
                       >
                         <span aria-hidden>💬</span>
@@ -231,7 +236,7 @@ export default function CommentsThread({
           })}
         </div>
       ) : (
-        <div className="rounded-3xl border border-border bg-transparent px-6 py-16 text-center">
+        <div className="rounded-3xl bg-transparent px-6 py-6 text-center">
           <p className="text-xs text-muted">아직 작성된 댓글이 없습니다.</p>
         </div>
       )}
