@@ -27,7 +27,9 @@ function coverSrcFromImageKey(key: string) {
     return `${base}/storage/v1/object/public/${bucket}/${path}`;
   }
 
-  return `/api/images?bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(objectPath)}`;
+  return `/api/images?bucket=${encodeURIComponent(
+    bucket
+  )}&path=${encodeURIComponent(objectPath)}`;
 }
 
 function LockIcon({ className }: { className?: string }) {
@@ -89,7 +91,7 @@ export default async function BlogIndexPage({ searchParams }: Props) {
 
   const posts = selectedCategory
     ? allVisiblePosts.filter(
-        (post) => (post.categorySlug ?? "").trim() === selectedCategory,
+        (post) => (post.categorySlug ?? "").trim() === selectedCategory
       )
     : allVisiblePosts;
 
@@ -100,7 +102,7 @@ export default async function BlogIndexPage({ searchParams }: Props) {
       acc[key] = (acc[key] ?? 0) + 1;
       return acc;
     },
-    {},
+    {}
   );
 
   const supabase = await createSupabaseServerClient();
@@ -119,19 +121,27 @@ export default async function BlogIndexPage({ searchParams }: Props) {
   const missing = isAdmin
     ? Object.keys(categoryCounts)
         .filter((slug) => !existing.has(slug))
-        .map((slug) => ({ slug, visibility: "public" as const, sortOrder: 1_000_000 }))
+        .map((slug) => ({
+          slug,
+          visibility: "public" as const,
+          sortOrder: 1_000_000,
+        }))
     : [];
 
   const categories = [...fromDb, ...missing].sort(
-    (a, b) => a.sortOrder - b.sortOrder || a.slug.localeCompare(b.slug, "ko"),
+    (a, b) => a.sortOrder - b.sortOrder || a.slug.localeCompare(b.slug, "ko")
   );
 
-  if (!isAdmin && selectedCategory && !categories.some((c) => c.slug === selectedCategory)) {
+  if (
+    !isAdmin &&
+    selectedCategory &&
+    !categories.some((c) => c.slug === selectedCategory)
+  ) {
     notFound();
   }
 
   return (
-      <div className="grid gap-8 lg:grid-cols-12">
+    <div className="grid gap-8 lg:grid-cols-12">
       {/* Left sidebar - Categories */}
       <aside className="lg:col-span-3 lg:col-start-1 lg:self-start lg:sticky lg:top-20 xl:col-span-3 xl:col-start-1">
         <div className="space-y-4">
@@ -150,7 +160,9 @@ export default async function BlogIndexPage({ searchParams }: Props) {
               ].join(" ")}
             >
               <span className="font-medium">전체 글</span>
-              <span className="text-xs text-muted">{allVisiblePosts.length}</span>
+              <span className="text-xs text-muted">
+                {allVisiblePosts.length}
+              </span>
             </Link>
             {categories.map((category) => (
               <Link
@@ -205,15 +217,13 @@ export default async function BlogIndexPage({ searchParams }: Props) {
               const dateLabel = createdAt.toISOString().slice(0, 10);
               const coverKey =
                 post.thumbnailImageKey?.trim() || post.imageKeys?.[0] || null;
-              const coverSrc = coverKey
-                ? coverSrcFromImageKey(coverKey)
-                : null;
+              const coverSrc = coverKey ? coverSrcFromImageKey(coverKey) : null;
 
               return (
-                <div key={post.id} className="group">
-                  <Link href={`/article/${post.slug}`} className="block">
-                    <article className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10">
-                      <div className="p-5">
+                <div key={post.id} className="group h-full">
+                  <Link href={`/article/${post.slug}`} className="block h-full">
+                    <article className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 h-full flex flex-col">
+                      <div className="p-5 flex flex-col h-full">
                         <div className="flex items-center justify-between">
                           <span className="inline-flex rounded-xl bg-primary/15 px-3 py-1 text-xs font-bold text-primary ring-1 ring-primary/20">
                             {dateLabel}
@@ -241,7 +251,7 @@ export default async function BlogIndexPage({ searchParams }: Props) {
                           )}
                         </div>
 
-                        <div className="mt-4 space-y-2">
+                        <div className="mt-4 space-y-2 flex-1">
                           <h2 className="text-xl font-black leading-snug text-foreground transition group-hover:text-primary">
                             {post.title}
                           </h2>

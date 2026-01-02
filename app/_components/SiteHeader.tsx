@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/server/admin";
 import LogoutButton from "@/app/_components/LogoutButton";
 import MobileNav from "@/app/_components/MobileNav";
+import NavLink from "@/app/_components/NavLink";
 
 function Brand() {
   return (
@@ -13,23 +14,6 @@ function Brand() {
         <span className="text-base font-black tracking-tight">W</span>
       </span>
       <span className="text-base font-bold tracking-tight">인생일지</span>
-    </Link>
-  );
-}
-
-function NavLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="text-sm font-medium text-muted transition-colors hover:text-foreground"
-    >
-      {children}
     </Link>
   );
 }
