@@ -6,12 +6,12 @@ import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: {
-    default: "개발자 원스의 인생이야기",
-    template: "%s | 개발자 원스의 인생이야기",
+    default: "개발자 원스",
+    template: "%s | 개발자 원스",
   },
   description: "개발자 원스의 인생이야기",
   openGraph: {
-    title: "개발자 원스의 인생이야기",
+    title: "개발자 원스",
     description: "개발자 원스의 인생이야기",
     type: "website",
     locale: "ko_KR",
