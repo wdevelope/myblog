@@ -458,7 +458,7 @@ export default function PostEditor({
             </div>
           ) : null}
 
-          <div className="flex-1 overflow-auto p-6 md:p-12 max-w-3xl mx-auto w-full">
+          <div className="flex-1 overflow-auto p-6 md:p-12 max-w-3xl mx-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {type !== "feed" && (
               <input
                 value={title}

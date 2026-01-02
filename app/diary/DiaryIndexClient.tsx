@@ -183,7 +183,7 @@ export default function DiaryIndexClient({
     const sorted = [...filtered].sort((a, b) =>
       sortMode === "latest"
         ? b.createdAt.localeCompare(a.createdAt)
-        : a.createdAt.localeCompare(b.createdAt),
+        : a.createdAt.localeCompare(b.createdAt)
     );
     return sorted;
   }, [posts, selectedYmd, sortMode]);
@@ -198,6 +198,99 @@ export default function DiaryIndexClient({
 
   return (
     <div className="grid gap-10 lg:grid-cols-12">
+      <aside className="lg:col-span-4 xl:col-span-3">
+        <div className="space-y-6 lg:sticky lg:top-24">
+          <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-black tracking-tight text-foreground">
+                  {monthTitle}
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setMonth((m) => addMonths(m, -1))}
+                  className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
+                  aria-label="이전 달"
+                >
+                  <ChevronLeft className="size-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMonth((m) => addMonths(m, 1))}
+                  className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
+                  aria-label="다음 달"
+                >
+                  <ChevronRight className="size-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted">
+              {dayNames.map((d) => (
+                <div key={d} className="py-1">
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-2 grid grid-cols-7 gap-2 text-center">
+              {monthGrid.map(({ date, inMonth }) => {
+                const ymd = formatYmdKst(date);
+                const hasEntry = entryDays.has(ymd);
+                const isSelected = selectedYmd === ymd;
+
+                return (
+                  <button
+                    key={ymd}
+                    type="button"
+                    onClick={() => {
+                      setSelectedYmd((prev) => (prev === ymd ? null : ymd));
+                    }}
+                    className={[
+                      "relative flex h-9 w-full items-center justify-center rounded-xl text-sm font-semibold transition",
+                      inMonth ? "text-foreground" : "text-muted/50",
+                      hasEntry
+                        ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20"
+                        : "hover:bg-surface-2",
+                      isSelected ? "ring-2 ring-primary/60" : "ring-0",
+                    ].join(" ")}
+                    aria-label={`${ymd}${hasEntry ? " 다이어리 있음" : ""}`}
+                  >
+                    {date.getDate()}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {isAdmin ? (
+            <Link
+              href={buildWriteHref(selectedYmd)}
+              className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-background p-5 transition hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                  <WeatherIcon className="size-6" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-base font-bold text-foreground">
+                    오늘은 어떤 하루였나요?
+                  </p>
+                  <p className="text-sm text-muted">
+                    {selectedYmd
+                      ? `${selectedYmd.replaceAll("-", ".")} 작성하기`
+                      : "오늘 다이어리 작성하기"}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="size-5 text-muted transition group-hover:text-foreground" />
+            </Link>
+          ) : null}
+        </div>
+      </aside>
+
       <section className="lg:col-span-8 xl:col-span-9">
         <div className="flex items-center justify-between gap-4 border-b border-border pb-4">
           <div className="flex items-center gap-3">
@@ -316,101 +409,6 @@ export default function DiaryIndexClient({
           </div>
         </div>
       </section>
-
-      <aside className="lg:col-span-4 xl:col-span-3">
-        <div className="space-y-6 lg:sticky lg:top-24">
-          <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <p className="text-lg font-black tracking-tight text-foreground">
-                  {monthTitle}
-                </p>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setMonth((m) => addMonths(m, -1))}
-                  className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
-                  aria-label="이전 달"
-                >
-                  <ChevronLeft className="size-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMonth((m) => addMonths(m, 1))}
-                  className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
-                  aria-label="다음 달"
-                >
-                  <ChevronRight className="size-5" />
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted">
-              {dayNames.map((d) => (
-                <div key={d} className="py-1">
-                  {d}
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-2 grid grid-cols-7 gap-2 text-center">
-              {monthGrid.map(({ date, inMonth }) => {
-                const ymd = formatYmdKst(date);
-                const hasEntry = entryDays.has(ymd);
-                const isSelected = selectedYmd === ymd;
-
-                return (
-                  <button
-                    key={ymd}
-                    type="button"
-                    onClick={() => {
-                      setSelectedYmd((prev) => (prev === ymd ? null : ymd));
-                    }}
-                    className={[
-                      "relative flex h-9 w-full items-center justify-center rounded-xl text-sm font-semibold transition",
-                      inMonth
-                        ? "text-foreground"
-                        : "text-muted/50",
-                      hasEntry
-                        ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20"
-                        : "hover:bg-surface-2",
-                      isSelected ? "ring-2 ring-primary/60" : "ring-0",
-                    ].join(" ")}
-                    aria-label={`${ymd}${hasEntry ? " 다이어리 있음" : ""}`}
-                  >
-                    {date.getDate()}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {isAdmin ? (
-            <Link
-              href={buildWriteHref(selectedYmd)}
-              className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-background p-5 transition hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                  <WeatherIcon className="size-6" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-base font-bold text-foreground">
-                    오늘은 어떤 하루였나요?
-                  </p>
-                  <p className="text-sm text-muted">
-                    {selectedYmd
-                      ? `${selectedYmd.replaceAll("-", ".")} 작성하기`
-                      : "오늘 다이어리 작성하기"}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="size-5 text-muted transition group-hover:text-foreground" />
-            </Link>
-          ) : null}
-        </div>
-      </aside>
     </div>
   );
 }
