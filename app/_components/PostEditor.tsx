@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { useRouter } from "next/navigation";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
+import MarkdownClient from "@/app/_components/MarkdownClient";
 
 function imageSrcFromImageKey(key: string) {
   const [bucket, ...rest] = key.split(":");
@@ -145,7 +146,12 @@ export default function PostEditor({
       const response = await fetch("/api/categories", { method: "GET" });
       if (!response.ok) return;
       const payload = (await response.json()) as {
-        categories: Array<{ slug: string } | { slug: string; inUse?: number }>;
+        categories: Array<{
+          slug: string;
+          visibility: "public" | "private";
+          sortOrder: number;
+          inUse?: number;
+        }>;
       };
       const slugs = (payload.categories ?? [])
         .map((c) => c.slug)
@@ -172,35 +178,6 @@ export default function PostEditor({
     if (imageKeys.includes(thumbnailImageKey)) return;
     setThumbnailImageKey("");
   }, [type, imageKeys, thumbnailImageKey]);
-
-  const applyMarkdown = useCallback(
-    (prefix: string, suffix = "") => {
-      const el = textareaRef.current;
-      if (!el) return;
-
-      const start = el.selectionStart ?? 0;
-      const end = el.selectionEnd ?? 0;
-      const value = el.value ?? "";
-      const selected = value.slice(start, end);
-
-      const nextValue =
-        value.slice(0, start) + prefix + selected + suffix + value.slice(end);
-      const selectionStart = start + prefix.length;
-      const selectionEnd = selectionStart + selected.length;
-
-      setContent(nextValue);
-      requestAnimationFrame(() => {
-        el.focus();
-        el.setSelectionRange(selectionStart, selectionEnd);
-      });
-    },
-    [setContent]
-  );
-
-  const insertLinePrefix = useCallback(
-    (linePrefix: string) => applyMarkdown(`${linePrefix}`),
-    [applyMarkdown]
-  );
 
   async function uploadFiles(files: FileList | null) {
     setError(null);
@@ -303,266 +280,133 @@ export default function PostEditor({
         </div>
       </div>
 
-      <div className="grid gap-0 lg:grid-cols-[320px_1fr]">
-        <aside className="border-b border-border bg-background p-6 lg:sticky lg:top-20 lg:h-[calc(100dvh-7.5rem)] lg:overflow-auto lg:border-b-0 lg:border-r">
-          <div className="space-y-5">
-            <div className="grid gap-3">
-              {type !== "feed" ? (
-                <label className="space-y-1 text-sm">
-                  <span className="font-semibold text-foreground">공개 범위</span>
-                  <select
-                    value={visibility}
-                    onChange={(e) => setVisibility(e.target.value as Visibility)}
-                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
-                  >
-                    <option value="public">공개</option>
-                    <option value="private">비공개</option>
-                  </select>
-                </label>
-              ) : null}
+      <div className="border-b border-border bg-background p-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {type !== "feed" ? (
+            <label className="space-y-1 text-sm">
+              <span className="font-semibold text-foreground">공개 범위</span>
+              <select
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as Visibility)}
+                className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
+              >
+                <option value="public">공개</option>
+                <option value="private">비공개</option>
+              </select>
+            </label>
+          ) : null}
 
-              {type === "blog" ? (
-                <label className="space-y-1 text-sm">
-                  <span className="font-semibold text-foreground">카테고리</span>
-                  <div className="flex w-full items-center gap-2">
-                    <select
-                      value={categorySlug}
-                      onChange={(e) => setCategorySlug(e.target.value)}
-                      className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
-                    >
-                      <option value="">카테고리를 선택해주세요</option>
-                      {categoryOptions.map((slug) => (
-                        <option key={slug} value={slug}>
-                          {slug}
-                          {categories.includes(slug) ? "" : " (삭제됨)"}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => void refreshCategories()}
-                      className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-sm font-bold text-foreground transition hover:bg-surface-2 disabled:opacity-50"
-                      disabled={categoriesLoading}
-                      title="카테고리 새로고침"
-                      aria-label="카테고리 새로고침"
-                    >
-                      ↻
-                    </button>
-                  </div>
-                  {!categoriesLoading && categories.length === 0 ? (
-                    <p className="text-xs text-muted">
-                      먼저 아티클 페이지에서 카테고리를 생성해주세요.
-                    </p>
-                  ) : null}
-                </label>
+          {type === "blog" ? (
+            <label className="space-y-1 text-sm">
+              <span className="font-semibold text-foreground">카테고리</span>
+              <div className="flex w-full items-center gap-2">
+                <select
+                  value={categorySlug}
+                  onChange={(e) => setCategorySlug(e.target.value)}
+                  className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
+                >
+                  <option value="">카테고리를 선택해주세요</option>
+                  {categoryOptions.map((slug) => (
+                    <option key={slug} value={slug}>
+                      {slug}
+                      {categories.includes(slug) ? "" : " (삭제됨)"}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => void refreshCategories()}
+                  className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-sm font-bold text-foreground transition hover:bg-surface-2 disabled:opacity-50"
+                  disabled={categoriesLoading}
+                  title="카테고리 새로고침"
+                  aria-label="카테고리 새로고침"
+                >
+                  ↻
+                </button>
+              </div>
+              {!categoriesLoading && categories.length === 0 ? (
+                <p className="text-xs text-muted">
+                  먼저 아티클 페이지에서 카테고리를 생성해주세요.
+                </p>
               ) : null}
+            </label>
+          ) : null}
 
-              <label className="space-y-1 text-sm">
-                <span className="font-semibold text-foreground">이미지</span>
-                <div className="rounded-2xl border-2 border-dashed border-border bg-surface-2 p-4">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => void uploadFiles(e.target.files)}
-                    className="block w-full text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-surface file:px-3 file:py-2 file:text-sm file:font-bold file:text-foreground"
-                  />
-                  {imageKeys.length ? (
-                    <p className="mt-2 text-xs text-muted">
-                      첨부됨: {imageKeys.length}
-                    </p>
-                  ) : (
-                    <p className="mt-2 text-xs text-muted">
-                      클릭해서 이미지를 업로드하세요
-                    </p>
-                  )}
-                </div>
-                {imageKeys.length ? (
-                  <div className="mt-3 grid grid-cols-4 gap-2">
-                    {imageKeys.map((key) => {
-                      const src = imageSrcFromImageKey(key);
-                      return (
-                        <div
-                          key={key}
-                          className="relative aspect-square overflow-hidden rounded-xl ring-1 ring-border"
-                        >
-                          {src ? (
-                            <img
-                              src={src}
-                              alt=""
-                              className="absolute inset-0 h-full w-full object-cover"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 bg-surface-2" />
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => removeImageKey(key)}
-                            className="absolute right-1 top-1 inline-flex size-6 items-center justify-center rounded-full bg-black/45 text-xs font-black text-white transition hover:bg-black/60"
-                            aria-label="이미지 제거"
-                            title="이미지 제거"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
-              </label>
-
-              {type === "blog" && imageKeys.length ? (
-                <label className="space-y-1 text-sm">
-                  <span className="font-semibold text-foreground">
-                    썸네일 이미지
-                  </span>
-                  <select
-                    value={thumbnailImageKey}
-                    onChange={(e) => setThumbnailImageKey(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
-                  >
-                    <option value="">자동(첫 번째 이미지)</option>
-                    {imageKeys.map((key, idx) => (
-                      <option key={key} value={key}>
-                        이미지 {idx + 1}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
+          <label className="space-y-1 text-sm md:col-span-2 lg:col-span-1">
+            <span className="font-semibold text-foreground">이미지</span>
+            <div className="rounded-2xl border-2 border-dashed border-border bg-surface-2 p-4">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => void uploadFiles(e.target.files)}
+                className="block w-full text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-surface file:px-3 file:py-2 file:text-sm file:font-bold file:text-foreground"
+              />
+              {imageKeys.length ? (
+                <p className="mt-2 text-xs text-muted">첨부됨: {imageKeys.length}</p>
+              ) : (
+                <p className="mt-2 text-xs text-muted">클릭해서 이미지를 업로드하세요</p>
+              )}
             </div>
-
-            {error ? <p className="text-sm text-red-500">{error}</p> : null}
-          </div>
-        </aside>
-
-        <main className="min-w-0 bg-surface">
-          <div className="border-b border-border bg-surface px-7 py-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-surface-2 p-1">
-                <button
-                  type="button"
-                  onClick={() => insertLinePrefix("# ")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
-                  aria-label="제목 1"
-                  title="제목 1"
-                >
-                  H1
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertLinePrefix("## ")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
-                  aria-label="제목 2"
-                  title="제목 2"
-                >
-                  H2
-                </button>
+            {imageKeys.length ? (
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {imageKeys.map((key) => {
+                  const src = imageSrcFromImageKey(key);
+                  return (
+                    <div
+                      key={key}
+                      className="relative aspect-square overflow-hidden rounded-xl ring-1 ring-border"
+                    >
+                      {src ? (
+                        <img
+                          src={src}
+                          alt=""
+                          className="absolute inset-0 h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-surface-2" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeImageKey(key)}
+                        className="absolute right-1 top-1 inline-flex size-6 items-center justify-center rounded-full bg-black/45 text-xs font-black text-white transition hover:bg-black/60"
+                        aria-label="이미지 제거"
+                        title="이미지 제거"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
+            ) : null}
+          </label>
 
-              <div className="h-6 w-px bg-border" />
+          {type === "blog" && imageKeys.length ? (
+            <label className="space-y-1 text-sm">
+              <span className="font-semibold text-foreground">썸네일 이미지</span>
+              <select
+                value={thumbnailImageKey}
+                onChange={(e) => setThumbnailImageKey(e.target.value)}
+                className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary/60"
+              >
+                <option value="">자동(첫 번째 이미지)</option>
+                {imageKeys.map((key, idx) => (
+                  <option key={key} value={key}>
+                    이미지 {idx + 1}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </div>
 
-              <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-surface-2 p-1">
-                <button
-                  type="button"
-                  onClick={() => applyMarkdown("**", "**")}
-                  className="h-9 rounded-xl px-3 text-sm font-black text-foreground/80 transition hover:bg-surface hover:text-foreground"
-                  aria-label="굵게"
-                  title="굵게"
-                >
-                  B
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyMarkdown("*", "*")}
-                  className="h-9 rounded-xl px-3 text-sm font-black italic text-foreground/80 transition hover:bg-surface hover:text-foreground"
-                  aria-label="기울임"
-                  title="기울임"
-                >
-                  I
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyMarkdown("~~", "~~")}
-                  className="h-9 rounded-xl px-3 text-sm font-black text-foreground/80 transition hover:bg-surface hover:text-foreground"
-                  aria-label="취소선"
-                  title="취소선"
-                >
-                  S
-                </button>
-              </div>
+        {error ? <p className="mt-4 text-sm text-red-500">{error}</p> : null}
+      </div>
 
-              <div className="h-6 w-px bg-border" />
-
-              <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-surface-2 p-1">
-                <button
-                  type="button"
-                  onClick={() => insertLinePrefix("- ")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
-                  aria-label="불릿 리스트"
-                  title="불릿 리스트"
-                >
-                  •
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertLinePrefix("1. ")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
-                  aria-label="번호 리스트"
-                  title="번호 리스트"
-                >
-                  1.
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertLinePrefix("> ")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
-                  aria-label="인용"
-                  title="인용"
-                >
-                  &quot;
-                </button>
-              </div>
-
-              <div className="h-6 w-px bg-border" />
-
-              <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-surface-2 p-1">
-                <button
-                  type="button"
-                  onClick={() => applyMarkdown("`", "`")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
-                  aria-label="인라인 코드"
-                  title="인라인 코드"
-                >
-                  {"</>"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyMarkdown("\n```\n", "\n```\n")}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
-                  aria-label="코드 블록"
-                  title="코드 블록"
-                >
-                  {"```"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const url = window.prompt("링크 URL을 입력하세요");
-                    if (!url) return;
-                    applyMarkdown("[", `](${url})`);
-                  }}
-                  className="h-9 rounded-xl px-3 text-sm font-bold text-foreground/80 transition hover:bg-surface hover:text-foreground"
-                  aria-label="링크"
-                  title="링크"
-                >
-                  ⛓
-                </button>
-              </div>
-            </div>
-          </div>
-
+      <div className="grid min-h-[720px] gap-0 lg:grid-cols-2">
+        <div className="min-w-0 bg-surface">
           {type === "feed" ? (
             <div className="border-b border-border px-7 py-4">
               <p className="text-sm font-semibold text-muted">
@@ -603,7 +447,20 @@ export default function PostEditor({
               }}
             />
           </div>
-        </main>
+        </div>
+
+        <div className="min-w-0 border-t border-border bg-background lg:border-l lg:border-t-0">
+          <div className="border-b border-border px-7 py-4">
+            <p className="text-sm font-semibold text-muted">미리보기</p>
+          </div>
+          <div className="min-h-[540px] overflow-auto p-7">
+            {content.trim() ? (
+              <MarkdownClient content={content} />
+            ) : (
+              <p className="text-sm text-muted">내용을 입력하면 미리보기가 표시돼요.</p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
