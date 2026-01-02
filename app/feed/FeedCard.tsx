@@ -27,7 +27,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
           priority={false}
         />
         <div className="flex-1">
-          <p className="text-sm font-semibold text-foreground">인생일지</p>
+          <p className="text-sm font-semibold text-foreground">원스</p>
           <p className="text-xs text-muted">
             {new Date(post.createdAt).toLocaleDateString("ko-KR", {
               year: "numeric",
