@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -12,6 +13,19 @@ import { useRouter } from "next/navigation";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
 import MarkdownClient from "@/app/_components/MarkdownClient";
+
+type DraftPayloadV1 = {
+  version: 1;
+  type: PostType;
+  title: string;
+  content: string;
+  visibility: Visibility;
+  categorySlug: string;
+  imageKeys: string[];
+  thumbnailImageKey: string;
+  createdAtYmd?: string;
+  updatedAt: string;
+};
 
 function typeLabel(type: PostType) {
   if (type === "blog") return "아티클";
@@ -89,6 +103,7 @@ export default function PostEditor({
 }) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const componentId = useId();
   const [visibility, setVisibility] = useState<Visibility>(
     initial?.visibility ?? defaultVisibility ?? "public"
   );
@@ -106,11 +121,18 @@ export default function PostEditor({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [categories, setCategories] = useState<string[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
   const fileInputId = useMemo(
-    () => `post-editor-files-${Math.random().toString(16).slice(2)}`,
-    []
+    () => `post-editor-files-${componentId}`,
+    [componentId]
   );
+  const [pendingDraft, setPendingDraft] = useState<DraftPayloadV1 | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const saveTimerRef = useRef<number | null>(null);
+
+  const draftKey = useMemo(() => {
+    if (initial?.id) return `draft:post:edit:${initial.id}`;
+    return `draft:post:new:${type}`;
+  }, [initial?.id, type]);
 
   const removeImageKey = useCallback(
     (key: string) => {
@@ -127,9 +149,62 @@ export default function PostEditor({
     return list;
   }, [categories, categorySlug]);
 
+  const buildDraftPayload = useCallback((): DraftPayloadV1 => {
+    return {
+      version: 1,
+      type,
+      title,
+      content,
+      visibility: type === "feed" ? "public" : visibility,
+      categorySlug,
+      imageKeys,
+      thumbnailImageKey,
+      createdAtYmd,
+      updatedAt: new Date().toISOString(),
+    };
+  }, [
+    categorySlug,
+    content,
+    createdAtYmd,
+    imageKeys,
+    thumbnailImageKey,
+    title,
+    type,
+    visibility,
+  ]);
+
+  const hasMeaningfulDraft = useCallback((draft: DraftPayloadV1) => {
+    if (draft.type === "blog" && draft.categorySlug.trim()) return true;
+    if (draft.type !== "feed" && draft.title.trim()) return true;
+    if (draft.content.trim()) return true;
+    if (draft.imageKeys.length > 0) return true;
+    if (draft.type === "blog" && draft.thumbnailImageKey.trim()) return true;
+    if (draft.type === "diary" && draft.createdAtYmd?.trim()) return true;
+    return false;
+  }, []);
+
+  const clearDraft = useCallback(() => {
+    try {
+      localStorage.removeItem(draftKey);
+    } catch {
+      // ignore
+    }
+    setPendingDraft(null);
+    setDraftSavedAt(null);
+  }, [draftKey]);
+
+  const applyDraft = useCallback((draft: DraftPayloadV1) => {
+    setTitle(draft.title);
+    setContent(draft.content);
+    setVisibility(draft.visibility);
+    setCategorySlug(draft.categorySlug);
+    setImageKeys(draft.imageKeys);
+    setThumbnailImageKey(draft.thumbnailImageKey);
+    setDraftSavedAt(draft.updatedAt);
+  }, []);
+
   async function refreshCategories() {
     if (type !== "blog") return;
-    setCategoriesLoading(true);
     try {
       const response = await fetch("/api/categories", { method: "GET" });
       if (!response.ok) return;
@@ -148,7 +223,7 @@ export default function PostEditor({
         );
       setCategories(Array.from(new Set(slugs)));
     } finally {
-      setCategoriesLoading(false);
+      // ignore
     }
   }
 
@@ -168,6 +243,54 @@ export default function PostEditor({
     if (imageKeys.includes(thumbnailImageKey)) return;
     setThumbnailImageKey("");
   }, [type, imageKeys, thumbnailImageKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as DraftPayloadV1;
+      if (!parsed || parsed.version !== 1) return;
+      if (parsed.type !== type) return;
+      if (!hasMeaningfulDraft(parsed)) return;
+
+      const current = buildDraftPayload();
+      const differs =
+        parsed.title !== current.title ||
+        parsed.content !== current.content ||
+        parsed.visibility !== current.visibility ||
+        parsed.categorySlug !== current.categorySlug ||
+        parsed.thumbnailImageKey !== current.thumbnailImageKey ||
+        parsed.createdAtYmd !== current.createdAtYmd ||
+        JSON.stringify(parsed.imageKeys) !== JSON.stringify(current.imageKeys);
+      if (!differs) return;
+
+      setPendingDraft(parsed);
+      setDraftSavedAt(parsed.updatedAt);
+    } catch {
+      // ignore
+    }
+  }, [buildDraftPayload, draftKey, hasMeaningfulDraft, type]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+
+    saveTimerRef.current = window.setTimeout(() => {
+      try {
+        const draft = buildDraftPayload();
+        if (!hasMeaningfulDraft(draft)) return;
+        localStorage.setItem(draftKey, JSON.stringify(draft));
+        setDraftSavedAt(draft.updatedAt);
+      } catch {
+        // ignore
+      }
+    }, 800);
+
+    return () => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    };
+  }, [buildDraftPayload, draftKey, hasMeaningfulDraft]);
 
   async function uploadFiles(files: FileList | null) {
     setError(null);
@@ -236,6 +359,7 @@ export default function PostEditor({
     }
 
     const created = (await response.json()) as { slug: string; type: PostType };
+    clearDraft();
     startTransition(() => {
       if (created.type === "blog") router.push(`/article/${created.slug}`);
       else if (created.type === "feed") router.push(`/feed`);
@@ -257,7 +381,14 @@ export default function PostEditor({
             </span>
           ) : null}
           <span className="text-xs text-muted">
-            {isPending ? "저장 중..." : "임시"}
+            {isPending
+              ? "저장 중..."
+              : draftSavedAt
+                ? `임시저장 ${new Date(draftSavedAt).toLocaleTimeString("ko-KR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}`
+                : "임시"}
           </span>
         </div>
         <button
@@ -271,6 +402,40 @@ export default function PostEditor({
       </div>
 
       <div className="border-b border-border bg-background p-4">
+        {pendingDraft ? (
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-foreground">
+                임시저장본이 있어요.
+              </p>
+              <p className="text-xs text-muted">
+                {pendingDraft.updatedAt
+                  ? `저장 시각: ${new Date(pendingDraft.updatedAt).toLocaleString("ko-KR")}`
+                  : null}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  applyDraft(pendingDraft);
+                  setPendingDraft(null);
+                }}
+                className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+              >
+                불러오기
+              </button>
+              <button
+                type="button"
+                onClick={clearDraft}
+                className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-transparent px-4 text-sm font-bold text-foreground transition hover:border-primary/30"
+              >
+                무시
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         <div className="rounded-2xl">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="inline-flex items-center gap-3">
