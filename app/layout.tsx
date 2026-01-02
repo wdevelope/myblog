@@ -6,10 +6,16 @@ import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: {
-    default: "인생일지",
-    template: "%s | 인생일지",
+    default: "개발자 원스의 인생이야기",
+    template: "%s | 개발자 원스의 인생이야기",
   },
-  description: "나의 삶과 기록을 담는 개인 블로그",
+  description: "개발자 원스의 인생이야기",
+  openGraph: {
+    title: "개발자 원스의 인생이야기",
+    description: "개발자 원스의 인생이야기",
+    type: "website",
+    locale: "ko_KR",
+  },
   verification: {
     google: "ayNa-MzflCN8eeUwrEeXN9-8QD1ZWwxaHPpUFFCgWrw",
     other: {
