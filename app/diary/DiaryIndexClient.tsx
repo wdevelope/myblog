@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 
 type DiaryPost = {
@@ -22,17 +23,6 @@ function formatYmdKst(date: Date) {
     day: "2-digit",
   });
   return formatter.format(date);
-}
-
-function formatDateKorean(date: Date) {
-  return date
-    .toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    })
-    .replace(/\. /g, ".")
-    .replace(/\.$/, "");
 }
 
 function buildWriteHref(selectedYmd: string | null) {
@@ -163,9 +153,93 @@ export default function DiaryIndexClient({
   posts: DiaryPost[];
   isAdmin: boolean;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [sortMode, setSortMode] = useState<SortMode>("latest");
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
+  const [viewMode, setViewMode] = useState<"day" | "month">("day");
   const [selectedYmd, setSelectedYmd] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize state from URL or localStorage
+  // Initialize state from URL or localStorage
+  useEffect(() => {
+    // 1. Check URL Params
+    const urlYear = searchParams.get("year");
+    const urlMonth = searchParams.get("month");
+    const urlDate = searchParams.get("date");
+
+    if (urlYear && urlMonth) {
+      const m = parseInt(urlMonth, 10) - 1;
+      const y = parseInt(urlYear, 10);
+      if (!isNaN(m) && !isNaN(y)) {
+        setMonth(new Date(y, m, 1));
+      }
+      if (urlDate) {
+        setSelectedYmd(urlDate);
+      }
+    } else {
+      // 2. Check LocalStorage
+      try {
+        const storedYm = sessionStorage.getItem("diary_view_ym"); // "YYYY-MM"
+        const storedDate = sessionStorage.getItem("diary_selected_date"); // "YYYY-MM-DD" or null
+
+        if (storedYm) {
+          const [y, m] = storedYm.split("-").map(Number);
+          if (!isNaN(y) && !isNaN(m)) {
+            setMonth(new Date(y, m - 1, 1));
+          }
+        }
+        if (storedDate) {
+          setSelectedYmd(storedDate);
+        }
+      } catch {
+        // Ignore errors
+      }
+    }
+    setIsInitialized(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
+
+  // Sync state to URL and LocalStorage
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    // Save to SessionStorage
+    const ymStr = `${month.getFullYear()}-${String(
+      month.getMonth() + 1
+    ).padStart(2, "0")}`;
+    sessionStorage.setItem("diary_view_ym", ymStr);
+    if (selectedYmd) {
+      sessionStorage.setItem("diary_selected_date", selectedYmd);
+    } else {
+      sessionStorage.removeItem("diary_selected_date");
+    }
+
+    // Update URL (Shallow) if changed
+    const currentParams = new URLSearchParams(searchParams.toString());
+    const newYear = month.getFullYear().toString();
+    const newMonth = (month.getMonth() + 1).toString();
+
+    const needsUpdate =
+      currentParams.get("year") !== newYear ||
+      currentParams.get("month") !== newMonth ||
+      currentParams.get("date") !== (selectedYmd ?? null);
+
+    if (needsUpdate) {
+      const params = new URLSearchParams(currentParams);
+      params.set("year", newYear);
+      params.set("month", newMonth);
+      if (selectedYmd) {
+        params.set("date", selectedYmd);
+      } else {
+        params.delete("date");
+      }
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [month, selectedYmd, isInitialized, pathname, router]); // Remove searchParams from dep to avoid loop
 
   const entryDays = useMemo(() => {
     const set = new Set<string>();
@@ -173,12 +247,31 @@ export default function DiaryIndexClient({
     return set;
   }, [posts]);
 
-  const distinctDayCount = entryDays.size;
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  // Reset page when month or selection changes
 
   const visiblePosts = useMemo(() => {
-    const filtered = selectedYmd
-      ? posts.filter((p) => formatYmdKst(new Date(p.createdAt)) === selectedYmd)
-      : posts;
+    let filtered = posts;
+
+    if (selectedYmd) {
+      filtered = posts.filter(
+        (p) => formatYmdKst(new Date(p.createdAt)) === selectedYmd
+      );
+    } else {
+      // If no date selected, show only posts for the current view month
+      const start = startOfMonth(month);
+      const end = endOfMonth(month);
+      // Extend end to include the last second of the month
+      const endOfDay = new Date(end);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      filtered = posts.filter((p) => {
+        const d = new Date(p.createdAt);
+        return d >= start && d <= endOfDay;
+      });
+    }
 
     const sorted = [...filtered].sort((a, b) =>
       sortMode === "latest"
@@ -186,7 +279,13 @@ export default function DiaryIndexClient({
         : a.createdAt.localeCompare(b.createdAt)
     );
     return sorted;
-  }, [posts, selectedYmd, sortMode]);
+  }, [posts, selectedYmd, sortMode, month]);
+
+  const totalPages = Math.ceil(visiblePosts.length / ITEMS_PER_PAGE);
+  const paginatedPosts = visiblePosts.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE
+  );
 
   const monthGrid = useMemo(() => buildCalendarGrid(month), [month]);
 
@@ -202,67 +301,126 @@ export default function DiaryIndexClient({
         <div className="space-y-6 lg:sticky lg:top-24">
           <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setViewMode((prev) => (prev === "day" ? "month" : "day"))
+                }
+                className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-surface-2 transition"
+              >
                 <p className="text-lg font-black tracking-tight text-foreground">
-                  {monthTitle}
+                  {viewMode === "day" ? monthTitle : `${month.getFullYear()}년`}
                 </p>
-              </div>
+                <ChevronRight
+                  className={`size-4 text-muted transition-transform duration-200 ${
+                    viewMode === "month" ? "rotate-90" : ""
+                  }`}
+                />
+              </button>
+
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => setMonth((m) => addMonths(m, -1))}
+                  onClick={() => {
+                    setMonth((m) =>
+                      viewMode === "day"
+                        ? addMonths(m, -1)
+                        : new Date(m.getFullYear() - 1, m.getMonth(), 1)
+                    );
+                    setPage(1);
+                  }}
                   className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
-                  aria-label="이전 달"
+                  aria-label={viewMode === "day" ? "이전 달" : "이전 연도"}
                 >
                   <ChevronLeft className="size-5" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMonth((m) => addMonths(m, 1))}
+                  onClick={() => {
+                    setMonth((m) =>
+                      viewMode === "day"
+                        ? addMonths(m, 1)
+                        : new Date(m.getFullYear() + 1, m.getMonth(), 1)
+                    );
+                    setPage(1);
+                  }}
                   className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
-                  aria-label="다음 달"
+                  aria-label={viewMode === "day" ? "다음 달" : "다음 연도"}
                 >
                   <ChevronRight className="size-5" />
                 </button>
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted">
-              {dayNames.map((d) => (
-                <div key={d} className="py-1">
-                  {d}
+            {viewMode === "day" ? (
+              <>
+                <div className="mt-4 grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted">
+                  {dayNames.map((d) => (
+                    <div key={d} className="py-1">
+                      {d}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div className="mt-2 grid grid-cols-7 gap-2 text-center">
-              {monthGrid.map(({ date, inMonth }) => {
-                const ymd = formatYmdKst(date);
-                const hasEntry = entryDays.has(ymd);
-                const isSelected = selectedYmd === ymd;
+                <div className="mt-2 grid grid-cols-7 gap-2 text-center">
+                  {monthGrid.map(({ date, inMonth }) => {
+                    const ymd = formatYmdKst(date);
+                    const hasEntry = entryDays.has(ymd);
+                    const isSelected = selectedYmd === ymd;
 
-                return (
-                  <button
-                    key={ymd}
-                    type="button"
-                    onClick={() => {
-                      setSelectedYmd((prev) => (prev === ymd ? null : ymd));
-                    }}
-                    className={[
-                      "relative flex h-9 w-full items-center justify-center rounded-xl text-sm font-semibold transition",
-                      inMonth ? "text-foreground" : "text-muted/50",
-                      hasEntry
-                        ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20"
-                        : "hover:bg-surface-2",
-                      isSelected ? "ring-2 ring-primary/60" : "ring-0",
-                    ].join(" ")}
-                    aria-label={`${ymd}${hasEntry ? " 다이어리 있음" : ""}`}
-                  >
-                    {date.getDate()}
-                  </button>
-                );
-              })}
-            </div>
+                    return (
+                      <button
+                        key={ymd}
+                        type="button"
+                        onClick={() => {
+                          setSelectedYmd((prev) => (prev === ymd ? null : ymd));
+                          setPage(1);
+                        }}
+                        className={[
+                          "relative flex h-9 w-full items-center justify-center rounded-xl text-sm font-semibold transition",
+                          inMonth ? "text-foreground" : "text-muted/50",
+                          hasEntry
+                            ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20"
+                            : "hover:bg-surface-2",
+                          isSelected ? "ring-2 ring-primary/60" : "ring-0",
+                        ].join(" ")}
+                        aria-label={`${ymd}${hasEntry ? " 다이어리 있음" : ""}`}
+                      >
+                        {date.getDate()}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const currentMonth = new Date(month.getFullYear(), i, 1);
+                  const isCurrentMonth = i === month.getMonth();
+                  const monthLabel = `${i + 1}월`;
+
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        setMonth(currentMonth);
+                        setViewMode("day");
+                        setPage(1);
+                      }}
+                      className={[
+                        "flex h-12 items-center justify-center rounded-xl text-sm font-bold transition",
+                        isCurrentMonth
+                          ? "bg-primary text-white shadow-lg shadow-primary/25"
+                          : "bg-surface text-foreground hover:bg-surface-2",
+                      ].join(" ")}
+                    >
+                      {monthLabel}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {isAdmin ? (
@@ -308,7 +466,10 @@ export default function DiaryIndexClient({
             {selectedYmd ? (
               <button
                 type="button"
-                onClick={() => setSelectedYmd(null)}
+                onClick={() => {
+                  setSelectedYmd(null);
+                  setPage(1);
+                }}
                 className="text-sm font-semibold text-primary hover:opacity-80"
               >
                 전체 보기
@@ -317,7 +478,7 @@ export default function DiaryIndexClient({
           </div>
           <div className="flex items-center gap-3">
             <p className="text-sm font-semibold text-muted">
-              {distinctDayCount}일의 기록
+              이번달 {visiblePosts.length}개의 기록
             </p>
             {isAdmin ? (
               <Link
@@ -332,59 +493,72 @@ export default function DiaryIndexClient({
 
         <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-background shadow-sm">
           <div className="divide-y divide-border">
-            {visiblePosts.length ? (
-              visiblePosts.map((post) => (
-                <div
-                  key={post.id}
-                  className="px-5 py-6 transition hover:bg-surface-2/60"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 text-muted/80">
-                      {post.visibility === "private" ? (
-                        <LockIcon className="size-5" />
-                      ) : (
-                        <span className="inline-flex size-5" aria-hidden />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <div className="flex items-start justify-between gap-3">
-                        {post.visibility === "public" || isAdmin ? (
-                          <Link
-                            href={`/diary/${post.slug}`}
-                            className="block min-w-0 flex-1"
-                          >
-                            <h2 className="truncate text-lg font-bold text-foreground transition hover:text-primary">
+            {paginatedPosts.length ? (
+              paginatedPosts.map((post) => {
+                const date = new Date(post.createdAt);
+
+                return (
+                  <div
+                    key={post.id}
+                    className="px-5 py-6 transition hover:bg-surface-2/60"
+                  >
+                    <div className="flex items-start gap-5">
+                      {/* Prominent Date Display */}
+                      <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-2 px-3 py-2 min-w-[3.5rem] border border-border/50">
+                        <span className="text-xs font-semibold text-muted/80">
+                          {date.getMonth() + 1}월
+                        </span>
+                        <span className="text-2xl font-black text-foreground">
+                          {date.getDate()}
+                        </span>
+                      </div>
+
+                      <div className="min-w-0 flex-1 space-y-2 py-0.5">
+                        <div className="flex items-start justify-between gap-3">
+                          {post.visibility === "public" || isAdmin ? (
+                            <Link
+                              href={`/diary/${post.slug}`}
+                              className="block min-w-0 flex-1"
+                            >
+                              <h2 className="truncate text-lg font-bold text-foreground transition hover:text-primary">
+                                {post.title}
+                              </h2>
+                            </Link>
+                          ) : (
+                            <h2 className="truncate text-lg font-bold text-foreground/80">
                               {post.title}
                             </h2>
-                          </Link>
-                        ) : (
-                          <h2 className="truncate text-lg font-bold text-foreground/80">
-                            {post.title}
-                          </h2>
-                        )}
-                        {isAdmin ? (
-                          <PostActionMenu
-                            editHref={`/diary/edit/${post.slug}`}
-                            deleteSlug={post.slug}
-                            deleteRedirectTo="/diary"
-                            ariaLabel="다이어리 더보기"
-                          />
+                          )}
+                          <div className="flex items-center gap-2">
+                            {post.visibility === "private" && (
+                              <LockIcon className="size-4 text-muted/50" />
+                            )}
+                            {isAdmin ? (
+                              <PostActionMenu
+                                editHref={`/diary/edit/${post.slug}`}
+                                deleteSlug={post.slug}
+                                deleteRedirectTo="/diary"
+                                ariaLabel="다이어리 더보기"
+                              />
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
+                          <p className="text-sm text-muted">
+                            {date.getFullYear()}년 {date.getMonth() + 1}월{" "}
+                            {date.getDate()}일 ({dayNames[date.getDay()]})
+                          </p>
+                        </div>
+                        {post.visibility === "private" && !isAdmin ? (
+                          <p className="text-sm text-muted">
+                            해당 글은 비공개입니다.
+                          </p>
                         ) : null}
                       </div>
-                      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                        <p className="text-sm text-muted">
-                          {formatDateKorean(new Date(post.createdAt))}
-                        </p>
-                      </div>
-                      {post.visibility === "private" && !isAdmin ? (
-                        <p className="text-sm text-muted">
-                          해당 글은 비공개입니다.
-                        </p>
-                      ) : null}
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="py-16 text-center">
                 <p className="text-sm text-muted">
@@ -408,6 +582,31 @@ export default function DiaryIndexClient({
             )}
           </div>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="mt-8 flex justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 disabled:opacity-50 disabled:pointer-events-none"
+            >
+              이전
+            </button>
+            <span className="flex items-center px-4 text-sm font-medium text-muted">
+              {page} / {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 disabled:opacity-50 disabled:pointer-events-none"
+            >
+              다음
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );
