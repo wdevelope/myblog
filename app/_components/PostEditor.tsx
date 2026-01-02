@@ -10,14 +10,20 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
-import { FiArrowLeft, FiImage, FiMenu, FiX, FiTrash2 } from "react-icons/fi";
+import { FiArrowLeft, FiImage, FiX, FiTrash2 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
 import { coverSrcFromImageKey } from "@/lib/image";
-import MarkdownClient from "@/app/_components/MarkdownClient";
+// import PostImages from "@/app/_components/PostImages";
+// import HtmlContent from "@/app/_components/HtmlContent";
 import DeletePostButton from "@/app/_components/DeletePostButton";
 import { cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
+
+const CkEditor = dynamic(() => import("@/app/_components/CkEditor"), {
+  ssr: false,
+});
 
 type DraftPayloadV1 = {
   version: 1;
@@ -33,11 +39,11 @@ type DraftPayloadV1 = {
 };
 
 // ... (Helper functions like typeLabel can remain or be inline)
-function typeLabel(type: PostType) {
-  if (type === "blog") return "아티클";
-  if (type === "feed") return "피드";
-  return "다이어리";
-}
+// function typeLabel(type: PostType) {
+//   if (type === "blog") return "아티클";
+//   if (type === "feed") return "피드";
+//   return "다이어리";
+// }
 
 export default function PostEditor({
   type,
@@ -64,7 +70,7 @@ export default function PostEditor({
   deleteRedirectTo?: string;
 }) {
   const router = useRouter();
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  // const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const componentId = useId();
   const [visibility, setVisibility] = useState<Visibility>(
     initial?.visibility ?? defaultVisibility ?? "public"
@@ -92,7 +98,8 @@ export default function PostEditor({
     [componentId]
   );
   const [pendingDraft, setPendingDraft] = useState<DraftPayloadV1 | null>(null);
-  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  // const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [, setDraftSavedAt] = useState<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
 
   // Guard to ensure we check for drafts only once per session
@@ -330,43 +337,9 @@ export default function PostEditor({
     [type, visibility]
   );
 
-  const handlePaste = useCallback(
-    async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-      const files = e.clipboardData.files;
-      if (!files || files.length === 0) return;
+  // const textareaRef = useRef<HTMLTextAreaElement | null>(null); // Removed: CKEditor handles this
 
-      e.preventDefault();
-      // Pasted images are embedded directly, so don't add to gallery
-      const uploadedKeys = await uploadFiles(files, false);
-      if (uploadedKeys.length === 0) return;
-
-      const textarea = textareaRef.current;
-      if (!textarea) return;
-
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const before = content.substring(0, start);
-      const after = content.substring(end);
-
-      const toInsert = uploadedKeys
-        .map((key) => {
-          const src = coverSrcFromImageKey(key) ?? key;
-          return `\n![이미지](${src})\n`;
-        })
-        .join("");
-
-      const newContent = before + toInsert + after;
-      setContent(newContent);
-
-      // Need to defer cursor update slightly or use layout effect, but simple state update usually works okay enough.
-      // Ideally we set selection after render but let's keep it simple for now.
-    },
-    [content, uploadFiles]
-    // Using uploadFiles in dependency. Since it's not memoized, we should probably wrap it or ignore.
-    // Actually uploadFiles uses state so it changes on render.
-    // It's better to useCallback uploadFiles or just ignore warning for now to move fast?
-    // Let's wrap uploadFiles in useCallback first to be clean.
-  );
+  // handlePaste removed: CKEditor handles uploads internally via Adapter
 
   async function submit() {
     setError(null);
@@ -425,66 +398,56 @@ export default function PostEditor({
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col h-dvh">
       {/* Top Bar */}
-      <header className="flex h-16 items-center justify-between border-b border-border bg-background px-4 shrink-0">
+      <header className="flex h-16 items-center justify-between border-b border-gray-100 bg-white px-6 shrink-0 z-50 sticky top-0">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex items-center justify-center size-9 rounded-lg hover:bg-surface transition"
+            className="flex items-center justify-center size-10 rounded-full hover:bg-gray-100 transition text-gray-600"
             title="뒤로 가기"
           >
-            <FiArrowLeft className="size-5" />
+            <FiArrowLeft className="size-6" />
           </button>
-          <div className="h-6 w-px bg-border" />
-          <nav className="flex items-center gap-2 text-sm">
-            <span className="font-bold text-foreground">
-              {typeLabel(type)} {initial ? "수정" : "글쓰기"}
-            </span>
-          </nav>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-xs text-muted hidden sm:block">
-            {isPending
-              ? "저장 중..."
-              : draftSavedAt
-              ? `저장됨 ${new Date(draftSavedAt).toLocaleTimeString("ko-KR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}`
-              : ""}
+          <span className="text-sm text-gray-400 font-medium mr-2">
+            {content.replace(/<[^>]*>/g, "").length}자
           </span>
           <button
             type="button"
-            onClick={submit}
-            disabled={isPending}
-            className="h-9 px-4 rounded-lg bg-primary text-white text-sm font-bold shadow-md hover:brightness-110 transition disabled:opacity-50 flex items-center gap-2"
+            onClick={() => {
+              const draft = buildDraftPayload();
+              if (!hasMeaningfulDraft(draft)) return;
+              localStorage.setItem(draftKey, JSON.stringify(draft));
+              setDraftSavedAt(draft.updatedAt);
+            }}
+            className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-lg transition"
           >
-            {isPending ? "발행 중" : initial ? "수정 완료" : "발행"}
+            저장
           </button>
+
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
-            className="flex items-center justify-center size-9 rounded-lg hover:bg-surface text-foreground transition border border-border"
-            title="설정"
+            className="px-5 py-2 rounded-lg bg-emerald-400 hover:bg-emerald-500 text-white text-sm font-bold shadow-sm transition disabled:opacity-50"
           >
-            <FiMenu className="size-5" />
+            발행
           </button>
         </div>
       </header>
 
-      {/* Main Content: Split View */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Editor Area */}
-        <div className="flex-1 flex flex-col min-w-0 bg-background overflow-hidden relative border-r border-border">
+      {/* ... (Editor Content remains same) */}
+      <div className="flex-1 flex overflow-hidden bg-white">
+        <div className="flex-1 flex flex-col min-w-0 overflow-visible relative">
           {pendingDraft ? (
-            <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm p-4 rounded-xl bg-surface border border-border shadow-2xl flex flex-col gap-3 animate-in slide-in-from-bottom-2 fade-in duration-300">
+            <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm p-4 rounded-xl bg-white border border-gray-100 shadow-2xl flex flex-col gap-3 animate-in slide-in-from-bottom-2 fade-in duration-300">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-foreground">
+                  <p className="text-sm font-bold text-gray-900">
                     임시저장된 글이 있습니다
                   </p>
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-gray-500">
                     {new Date(pendingDraft.updatedAt).toLocaleTimeString()}에
                     저장됨
                   </p>
@@ -494,7 +457,7 @@ export default function PostEditor({
                 <button
                   type="button"
                   onClick={dismissDraft}
-                  className="px-3 py-1.5 text-xs font-bold hover:bg-surface-2 rounded-lg text-muted hover:text-foreground transition"
+                  className="px-3 py-1.5 text-xs font-bold hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-900 transition"
                 >
                   닫기
                 </button>
@@ -504,7 +467,7 @@ export default function PostEditor({
                     applyDraft(pendingDraft);
                     setPendingDraft(null);
                   }}
-                  className="px-3 py-1.5 text-xs font-bold bg-primary text-white rounded-lg hover:brightness-110 shadow-sm transition"
+                  className="px-3 py-1.5 text-xs font-bold bg-emerald-500 text-white rounded-lg hover:brightness-110 shadow-sm transition"
                 >
                   불러오기
                 </button>
@@ -512,40 +475,15 @@ export default function PostEditor({
             </div>
           ) : null}
 
-          <div className="flex-1 overflow-auto p-6 md:p-12 max-w-3xl mx-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {type !== "feed" && (
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="제목을 입력하세요..."
-                className="w-full text-4xl font-black bg-transparent border-none outline-none placeholder:text-muted/50 mb-8"
+          <div className="flex-1 overflow-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative">
+            <div className="h-full">
+              <CkEditor
+                title={title}
+                onTitleChange={type === "feed" ? undefined : setTitle}
+                value={content}
+                onChange={setContent}
+                placeholder="내용을 입력하세요."
               />
-            )}
-
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onPaste={(e) => void handlePaste(e)}
-              placeholder="내용을 입력하세요..."
-              className="w-full h-full resize-none bg-transparent border-none outline-none text-base leading-relaxed placeholder:text-muted/50 font-sans"
-              spellCheck={false}
-            />
-          </div>
-        </div>
-
-        {/* Preview Area (Hidden on mobile, visible on lg) */}
-        <div className="hidden lg:flex flex-1 flex-col bg-surface-2/30 min-w-0 overflow-hidden">
-          <div className="flex-1 overflow-auto p-6 md:p-12 max-w-3xl mx-auto w-full">
-            <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none">
-              {title && <h1 className="mb-8 font-black text-4xl">{title}</h1>}
-              {content ? (
-                <MarkdownClient content={content} />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-64 text-muted">
-                  <p>미리보기가 여기에 표시됩니다</p>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -748,18 +686,27 @@ export default function PostEditor({
                 )}
               </div>
 
-              {deleteSlug && (
-                <div className="p-4 border-t border-border mt-auto">
+              <div className="p-4 border-t border-border mt-auto flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={submit}
+                  disabled={isPending}
+                  className="w-full h-11 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isPending ? "발행 중..." : "발행하기"}
+                </button>
+
+                {deleteSlug && (
                   <DeletePostButton
                     slug={deleteSlug}
                     redirectTo={deleteRedirectTo}
-                    className="w-full h-10 rounded-xl border border-red-500/20 text-red-500 font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-2"
+                    className="w-full h-11 rounded-xl border border-red-500/20 text-red-500 font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-2"
                   >
                     <FiTrash2 className="size-4" />
                     삭제하기
                   </DeletePostButton>
-                </div>
-              )}
+                )}
+              </div>
             </motion.div>
           </>
         )}
