@@ -328,6 +328,7 @@ export default function DiaryIndexClient({
                         : new Date(m.getFullYear() - 1, m.getMonth(), 1)
                     );
                     setPage(1);
+                    setSelectedYmd(null);
                   }}
                   className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
                   aria-label={viewMode === "day" ? "이전 달" : "이전 연도"}
@@ -343,6 +344,7 @@ export default function DiaryIndexClient({
                         : new Date(m.getFullYear() + 1, m.getMonth(), 1)
                     );
                     setPage(1);
+                    setSelectedYmd(null);
                   }}
                   className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
                   aria-label={viewMode === "day" ? "다음 달" : "다음 연도"}
@@ -407,6 +409,7 @@ export default function DiaryIndexClient({
                         setMonth(currentMonth);
                         setViewMode("day");
                         setPage(1);
+                        setSelectedYmd(null);
                       }}
                       className={[
                         "flex h-12 items-center justify-center rounded-xl text-sm font-bold transition",
@@ -491,7 +494,7 @@ export default function DiaryIndexClient({
           </div>
         </div>
 
-        <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-background shadow-sm">
+        <div className="mt-6 rounded-3xl border border-border bg-background shadow-sm">
           <div className="divide-y divide-border">
             {paginatedPosts.length ? (
               paginatedPosts.map((post) => {
@@ -500,7 +503,7 @@ export default function DiaryIndexClient({
                 return (
                   <div
                     key={post.id}
-                    className="px-5 py-6 transition hover:bg-surface-2/60"
+                    className="px-5 py-6 transition hover:bg-surface-2/60 first:rounded-t-3xl last:rounded-b-3xl"
                   >
                     <div className="flex items-start gap-5">
                       {/* Prominent Date Display */}
