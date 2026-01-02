@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
@@ -23,14 +30,16 @@ function VisibilitySegmented({
 }) {
   const isPublic = value === "public";
   return (
-    <div className="inline-flex overflow-hidden rounded-xl border border-border bg-surface-2 p-1">
+    <div className="inline-flex overflow-hidden rounded-xl border border-border bg-background p-1">
       <button
         type="button"
         disabled={disabled}
         onClick={() => onChange("public")}
         className={[
           "h-9 rounded-lg px-3 text-sm font-bold transition",
-          isPublic ? "bg-surface text-foreground shadow-sm" : "text-muted hover:text-foreground",
+          isPublic
+            ? "bg-surface text-foreground shadow-sm"
+            : "text-muted hover:text-foreground",
           disabled ? "opacity-50" : null,
         ]
           .filter(Boolean)
@@ -88,7 +97,9 @@ export default function PostEditor({
     initial?.categorySlug?.trim() ?? ""
   );
   const [content, setContent] = useState(initial?.content ?? "");
-  const [imageKeys, setImageKeys] = useState<string[]>(initial?.imageKeys ?? []);
+  const [imageKeys, setImageKeys] = useState<string[]>(
+    initial?.imageKeys ?? []
+  );
   const [thumbnailImageKey, setThumbnailImageKey] = useState<string>(
     initial?.thumbnailImageKey?.trim() ?? ""
   );
@@ -98,7 +109,7 @@ export default function PostEditor({
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const fileInputId = useMemo(
     () => `post-editor-files-${Math.random().toString(16).slice(2)}`,
-    [],
+    []
   );
 
   const removeImageKey = useCallback(
@@ -106,7 +117,7 @@ export default function PostEditor({
       setImageKeys((prev) => prev.filter((k) => k !== key));
       setThumbnailImageKey((prev) => (prev === key ? "" : prev));
     },
-    [setImageKeys, setThumbnailImageKey],
+    [setImageKeys, setThumbnailImageKey]
   );
 
   const categoryOptions = useMemo(() => {
@@ -132,7 +143,9 @@ export default function PostEditor({
       };
       const slugs = (payload.categories ?? [])
         .map((c) => c.slug)
-        .filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+        .filter(
+          (v): v is string => typeof v === "string" && v.trim().length > 0
+        );
       setCategories(Array.from(new Set(slugs)));
     } finally {
       setCategoriesLoading(false);
@@ -168,9 +181,10 @@ export default function PostEditor({
 
     const response = await fetch("/api/images", { method: "POST", body: form });
     if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string; details?: string }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        details?: string;
+      } | null;
       setError(payload?.details ?? payload?.error ?? "업로드에 실패했어요.");
       return;
     }
@@ -190,7 +204,8 @@ export default function PostEditor({
 
     const trimmedTitle =
       type === "feed" ? toAutoTitle(trimmedContent) : title.trim();
-    if (type !== "feed" && !trimmedTitle) return setError("제목을 입력해주세요.");
+    if (type !== "feed" && !trimmedTitle)
+      return setError("제목을 입력해주세요.");
 
     const response = await fetch("/api/posts", {
       method: "POST",
@@ -205,7 +220,7 @@ export default function PostEditor({
         categorySlug: type === "blog" ? categorySlug.trim() : null,
         imageKeys,
         thumbnailImageKey:
-          type === "blog" ? (thumbnailImageKey.trim() || null) : null,
+          type === "blog" ? thumbnailImageKey.trim() || null : null,
         ...(type === "diary" && !initial?.id && createdAtYmd
           ? { createdAtYmd }
           : null),
@@ -213,9 +228,9 @@ export default function PostEditor({
     });
 
     if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       setError(payload?.error ?? "글 저장에 실패했어요.");
       return;
     }
@@ -241,7 +256,9 @@ export default function PostEditor({
               작성 날짜: {createdAtYmd.replaceAll("-", ".")}
             </span>
           ) : null}
-          <span className="text-xs text-muted">{isPending ? "저장 중..." : "임시"}</span>
+          <span className="text-xs text-muted">
+            {isPending ? "저장 중..." : "임시"}
+          </span>
         </div>
         <button
           type="button"
@@ -254,27 +271,18 @@ export default function PostEditor({
       </div>
 
       <div className="border-b border-border bg-background p-6">
-        <div className="rounded-2xl border border-border bg-surface p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="space-y-1">
-              <p className="text-sm font-black text-foreground">글 설정</p>
-              <p className="text-xs text-muted">
-                카테고리 / 공개범위 / 이미지
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div className="rounded-2xl border border-border bg-surface px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3">
             {type === "blog" ? (
-              <label className="space-y-2 text-sm">
-                <span className="text-xs font-bold text-muted">카테고리</span>
-                <div className="flex w-full items-center gap-2">
+              <>
+                <div className="flex min-w-[220px] items-center gap-2">
                   <select
                     value={categorySlug}
                     onChange={(e) => setCategorySlug(e.target.value)}
-                    className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary/60"
+                    className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm font-bold text-foreground outline-none transition focus:border-primary/60"
+                    aria-label="카테고리 선택"
                   >
-                    <option value="">카테고리를 선택해주세요</option>
+                    <option value="">카테고리 선택</option>
                     {categoryOptions.map((slug) => (
                       <option key={slug} value={slug}>
                         {slug}
@@ -285,7 +293,7 @@ export default function PostEditor({
                   <button
                     type="button"
                     onClick={() => void refreshCategories()}
-                    className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-sm font-bold text-foreground transition hover:border-primary/30 disabled:opacity-50"
+                    className="inline-flex size-10 items-center justify-center rounded-xl border border-border bg-background text-sm font-black text-foreground transition hover:border-primary/30 disabled:opacity-50"
                     disabled={categoriesLoading}
                     title="카테고리 새로고침"
                     aria-label="카테고리 새로고침"
@@ -293,65 +301,68 @@ export default function PostEditor({
                     ↻
                   </button>
                 </div>
-              </label>
+                <div className="h-6 w-px bg-border" aria-hidden />
+              </>
             ) : null}
 
-            <div className="space-y-2 text-sm">
-              <span className="text-xs font-bold text-muted">공개 범위</span>
-              {type === "feed" ? (
-                <div className="flex h-11 items-center justify-between rounded-xl border border-border bg-background px-3">
-                  <span className="text-sm font-bold text-foreground">공개</span>
-                  <span className="rounded-lg bg-primary/10 px-2 py-1 text-xs font-bold text-primary">
-                    고정
-                  </span>
-                </div>
-              ) : (
-                <div className="flex h-11 items-center justify-between gap-3 rounded-xl border border-border bg-background px-3">
-                  <span className="text-sm font-bold text-foreground">
-                    {visibility === "public" ? "공개" : "비공개"}
-                  </span>
-                  <VisibilitySegmented
-                    value={visibility}
-                    onChange={(next) => setVisibility(next)}
-                  />
-                </div>
-              )}
-            </div>
+            <VisibilitySegmented
+              value={type === "feed" ? "public" : visibility}
+              onChange={(next) => setVisibility(next)}
+              disabled={type === "feed"}
+            />
 
-            <div className="space-y-2 text-sm">
-              <span className="text-xs font-bold text-muted">이미지</span>
-              <div className="flex h-11 items-center justify-between gap-3 rounded-xl border border-border bg-background px-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-foreground">
-                    {imageKeys.length ? `첨부됨 ${imageKeys.length}개` : "첨부 없음"}
-                  </p>
-                </div>
-                <label
-                  htmlFor={fileInputId}
-                  className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-transparent px-3 text-xs font-bold text-foreground transition hover:border-primary/30"
-                >
-                  이미지 선택
-                </label>
-                <input
-                  id={fileInputId}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => void uploadFiles(e.target.files)}
+            <div className="h-6 w-px bg-border" aria-hidden />
+
+            <label
+              htmlFor={fileInputId}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-background px-3 text-sm font-bold text-foreground transition hover:border-primary/30"
+            >
+              <svg
+                className="size-4 text-muted"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.7}
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 7a2 2 0 0 1 2-2h2l1-1h6l1 1h2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"
                 />
-              </div>
-            </div>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8 14l2-2 2 2 3-3 3 3"
+                />
+              </svg>
+              이미지 첨부
+              {imageKeys.length ? (
+                <span className="rounded-lg bg-surface-2 px-2 py-1 text-xs font-black text-muted">
+                  {imageKeys.length}
+                </span>
+              ) : null}
+            </label>
+            <input
+              id={fileInputId}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => void uploadFiles(e.target.files)}
+            />
+          </div>
 
-            {type === "blog" && imageKeys.length ? (
-              <label className="space-y-2 text-sm">
+          {type === "blog" && imageKeys.length ? (
+            <div className="mt-3">
+              <label className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2 text-sm">
                 <span className="text-xs font-bold text-muted">썸네일</span>
                 <select
                   value={thumbnailImageKey}
                   onChange={(e) => setThumbnailImageKey(e.target.value)}
-                  className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary/60"
+                  className="h-9 rounded-xl border border-border bg-background px-3 text-sm font-bold text-foreground outline-none transition focus:border-primary/60"
                 >
-                  <option value="">자동(첫 번째 이미지)</option>
+                  <option value="">자동</option>
                   {imageKeys.map((key, idx) => (
                     <option key={key} value={key}>
                       이미지 {idx + 1}
@@ -359,11 +370,11 @@ export default function PostEditor({
                   ))}
                 </select>
               </label>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
 
           {imageKeys.length ? (
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
               {imageKeys.map((key, idx) => (
                 <button
                   key={key}
@@ -386,7 +397,9 @@ export default function PostEditor({
       <div className="grid min-h-[720px] gap-0 lg:grid-cols-2">
         <div className="min-w-0 bg-background">
           <div className="border-b border-border px-7 py-4">
-            <p className="text-lg font-black tracking-tight text-foreground">제목</p>
+            <p className="text-lg font-black tracking-tight text-foreground">
+              제목
+            </p>
           </div>
           <div className="border-b border-border px-7 py-5">
             {type === "feed" ? (
@@ -421,7 +434,9 @@ export default function PostEditor({
             {content.trim() ? (
               <MarkdownClient content={content} />
             ) : (
-              <p className="text-sm text-muted">내용을 입력하면 미리보기가 표시돼요.</p>
+              <p className="text-sm text-muted">
+                내용을 입력하면 미리보기가 표시돼요.
+              </p>
             )}
           </div>
         </div>
