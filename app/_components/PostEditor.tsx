@@ -90,6 +90,10 @@ export default function PostEditor({
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
 
+  // Guard to ensure we check for drafts only once per session
+  const hasCheckedDraft = useRef(false);
+  const lastCheckedKey = useRef<string | null>(null);
+
   // Layout state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -159,6 +163,10 @@ export default function PostEditor({
     setDraftSavedAt(null);
   }, [draftKey]);
 
+  const dismissDraft = useCallback(() => {
+    setPendingDraft(null);
+  }, []);
+
   const applyDraft = useCallback((draft: DraftPayloadV1) => {
     setTitle(draft.title);
     setContent(draft.content);
@@ -211,13 +219,34 @@ export default function PostEditor({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    // Reset check status if key changes
+    if (lastCheckedKey.current !== draftKey) {
+      hasCheckedDraft.current = false;
+      lastCheckedKey.current = draftKey;
+    }
+
+    if (hasCheckedDraft.current) return;
+
     try {
       const raw = localStorage.getItem(draftKey);
-      if (!raw) return;
+      if (!raw) {
+        hasCheckedDraft.current = true;
+        return;
+      }
       const parsed = JSON.parse(raw) as DraftPayloadV1;
-      if (!parsed || parsed.version !== 1) return;
-      if (parsed.type !== type) return;
-      if (!hasMeaningfulDraft(parsed)) return;
+      if (!parsed || parsed.version !== 1) {
+        hasCheckedDraft.current = true;
+        return;
+      }
+      if (parsed.type !== type) {
+        hasCheckedDraft.current = true;
+        return;
+      }
+      if (!hasMeaningfulDraft(parsed)) {
+        hasCheckedDraft.current = true;
+        return;
+      }
 
       const current = buildDraftPayload();
       const differs =
@@ -228,12 +257,16 @@ export default function PostEditor({
         parsed.thumbnailImageKey !== current.thumbnailImageKey ||
         parsed.createdAtYmd !== current.createdAtYmd ||
         JSON.stringify(parsed.imageKeys) !== JSON.stringify(current.imageKeys);
+
+      hasCheckedDraft.current = true;
+
       if (!differs) return;
 
       setPendingDraft(parsed);
       setDraftSavedAt(parsed.updatedAt);
     } catch {
       // ignore
+      hasCheckedDraft.current = true;
     }
   }, [buildDraftPayload, draftKey, hasMeaningfulDraft, type]);
 
@@ -391,28 +424,35 @@ export default function PostEditor({
         {/* Editor Area */}
         <div className="flex-1 flex flex-col min-w-0 bg-background overflow-hidden relative border-r border-border">
           {pendingDraft ? (
-            <div className="absolute top-4 left-4 right-4 z-10 p-3 rounded-xl bg-surface border border-border shadow-lg flex items-center justify-between animate-in slide-in-from-top-2">
-              <span className="text-sm font-medium">
-                임시저장된 글이 있습니다 (
-                {new Date(pendingDraft.updatedAt).toLocaleTimeString()})
-              </span>
-              <div className="flex gap-2">
+            <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm p-4 rounded-xl bg-surface border border-border shadow-2xl flex flex-col gap-3 animate-in slide-in-from-bottom-2 fade-in duration-300">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-foreground">
+                    임시저장된 글이 있습니다
+                  </p>
+                  <p className="text-xs text-muted">
+                    {new Date(pendingDraft.updatedAt).toLocaleTimeString()}에
+                    저장됨
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={dismissDraft}
+                  className="px-3 py-1.5 text-xs font-bold hover:bg-surface-2 rounded-lg text-muted hover:text-foreground transition"
+                >
+                  닫기
+                </button>
                 <button
                   type="button"
                   onClick={() => {
                     applyDraft(pendingDraft);
                     setPendingDraft(null);
                   }}
-                  className="px-3 py-1.5 text-xs font-bold bg-primary text-white rounded-lg hover:brightness-110"
+                  className="px-3 py-1.5 text-xs font-bold bg-primary text-white rounded-lg hover:brightness-110 shadow-sm transition"
                 >
                   불러오기
-                </button>
-                <button
-                  type="button"
-                  onClick={clearDraft}
-                  className="px-3 py-1.5 text-xs font-medium hover:bg-surface-2 rounded-lg"
-                >
-                  무시
                 </button>
               </div>
             </div>
