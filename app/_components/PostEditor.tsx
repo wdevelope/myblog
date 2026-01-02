@@ -1,28 +1,10 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element */
-
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
 import MarkdownClient from "@/app/_components/MarkdownClient";
-
-function imageSrcFromImageKey(key: string) {
-  const [bucket, ...rest] = key.split(":");
-  const objectPath = rest.join(":");
-  const looksLikeSupabaseKey = Boolean(bucket && objectPath);
-  if (!looksLikeSupabaseKey) return key;
-
-  if (bucket === "post-images-public") {
-    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!base) return null;
-    const path = encodeURIComponent(objectPath).replaceAll("%2F", "/");
-    return `${base}/storage/v1/object/public/${bucket}/${path}`;
-  }
-
-  return `/api/images?bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(objectPath)}`;
-}
 
 function typeLabel(type: PostType) {
   if (type === "blog") return "아티클";
@@ -30,7 +12,7 @@ function typeLabel(type: PostType) {
   return "다이어리";
 }
 
-function VisibilitySwitch({
+function VisibilitySegmented({
   value,
   onChange,
   disabled,
@@ -39,23 +21,40 @@ function VisibilitySwitch({
   onChange: (next: Visibility) => void;
   disabled?: boolean;
 }) {
-  const checked = value === "public";
+  const isPublic = value === "public";
   return (
-    <label className="inline-flex select-none items-center gap-3">
-      <input
-        type="checkbox"
-        checked={checked}
+    <div className="inline-flex overflow-hidden rounded-xl border border-border bg-surface-2 p-1">
+      <button
+        type="button"
         disabled={disabled}
-        onChange={(e) => onChange(e.target.checked ? "public" : "private")}
-        className="peer sr-only"
-      />
-      <span className="text-sm font-bold text-foreground">
-        {checked ? "공개" : "비공개"}
-      </span>
-      <span className="relative inline-flex h-7 w-12 items-center rounded-full bg-border transition peer-checked:bg-primary peer-disabled:opacity-50">
-        <span className="absolute left-1 top-1 size-5 rounded-full bg-white shadow-sm transition peer-checked:translate-x-5" />
-      </span>
-    </label>
+        onClick={() => onChange("public")}
+        className={[
+          "h-9 rounded-lg px-3 text-sm font-bold transition",
+          isPublic ? "bg-surface text-foreground shadow-sm" : "text-muted hover:text-foreground",
+          disabled ? "opacity-50" : null,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        공개
+      </button>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onChange("private")}
+        className={[
+          "h-9 rounded-lg px-3 text-sm font-bold transition",
+          !isPublic
+            ? "bg-surface text-foreground shadow-sm"
+            : "text-muted hover:text-foreground",
+          disabled ? "opacity-50" : null,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        비공개
+      </button>
+    </div>
   );
 }
 
@@ -97,6 +96,10 @@ export default function PostEditor({
   const [isPending, startTransition] = useTransition();
   const [categories, setCategories] = useState<string[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const fileInputId = useMemo(
+    () => `post-editor-files-${Math.random().toString(16).slice(2)}`,
+    [],
+  );
 
   const removeImageKey = useCallback(
     (key: string) => {
@@ -251,16 +254,25 @@ export default function PostEditor({
       </div>
 
       <div className="border-b border-border bg-background p-6">
-        <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-          <div className="space-y-4 rounded-2xl border border-border bg-surface p-4">
+        <div className="rounded-2xl border border-border bg-surface p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-1">
+              <p className="text-sm font-black text-foreground">글 설정</p>
+              <p className="text-xs text-muted">
+                카테고리 / 공개범위 / 이미지
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {type === "blog" ? (
               <label className="space-y-2 text-sm">
-                <span className="font-bold text-foreground">카테고리</span>
+                <span className="text-xs font-bold text-muted">카테고리</span>
                 <div className="flex w-full items-center gap-2">
                   <select
                     value={categorySlug}
                     onChange={(e) => setCategorySlug(e.target.value)}
-                    className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-surface-2 px-3 text-sm text-foreground outline-none focus:border-primary/60"
+                    className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary/60"
                   >
                     <option value="">카테고리를 선택해주세요</option>
                     {categoryOptions.map((slug) => (
@@ -273,7 +285,7 @@ export default function PostEditor({
                   <button
                     type="button"
                     onClick={() => void refreshCategories()}
-                    className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-2 text-sm font-bold text-foreground transition hover:bg-surface disabled:opacity-50"
+                    className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-sm font-bold text-foreground transition hover:border-primary/30 disabled:opacity-50"
                     disabled={categoriesLoading}
                     title="카테고리 새로고침"
                     aria-label="카테고리 새로고침"
@@ -284,92 +296,88 @@ export default function PostEditor({
               </label>
             ) : null}
 
-            <label className="space-y-2 text-sm">
-              <span className="font-bold text-foreground">이미지</span>
-              <div className="rounded-2xl border border-border bg-surface-2 p-4">
+            <div className="space-y-2 text-sm">
+              <span className="text-xs font-bold text-muted">공개 범위</span>
+              {type === "feed" ? (
+                <div className="flex h-11 items-center justify-between rounded-xl border border-border bg-background px-3">
+                  <span className="text-sm font-bold text-foreground">공개</span>
+                  <span className="rounded-lg bg-primary/10 px-2 py-1 text-xs font-bold text-primary">
+                    고정
+                  </span>
+                </div>
+              ) : (
+                <div className="flex h-11 items-center justify-between gap-3 rounded-xl border border-border bg-background px-3">
+                  <span className="text-sm font-bold text-foreground">
+                    {visibility === "public" ? "공개" : "비공개"}
+                  </span>
+                  <VisibilitySegmented
+                    value={visibility}
+                    onChange={(next) => setVisibility(next)}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <span className="text-xs font-bold text-muted">이미지</span>
+              <div className="flex h-11 items-center justify-between gap-3 rounded-xl border border-border bg-background px-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-foreground">
+                    {imageKeys.length ? `첨부됨 ${imageKeys.length}개` : "첨부 없음"}
+                  </p>
+                </div>
+                <label
+                  htmlFor={fileInputId}
+                  className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-transparent px-3 text-xs font-bold text-foreground transition hover:border-primary/30"
+                >
+                  이미지 선택
+                </label>
                 <input
+                  id={fileInputId}
                   type="file"
                   accept="image/*"
                   multiple
+                  className="hidden"
                   onChange={(e) => void uploadFiles(e.target.files)}
-                  className="block w-full text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-surface file:px-3 file:py-2 file:text-sm file:font-bold file:text-foreground"
                 />
-                {imageKeys.length ? (
-                  <p className="mt-2 text-xs text-muted">첨부됨: {imageKeys.length}</p>
-                ) : (
-                  <p className="mt-2 text-xs text-muted">클릭해서 이미지를 업로드하세요</p>
-                )}
               </div>
+            </div>
 
-              {type === "blog" && imageKeys.length ? (
-                <div className="space-y-2">
-                  <span className="text-xs font-bold text-muted">썸네일</span>
-                  <select
-                    value={thumbnailImageKey}
-                    onChange={(e) => setThumbnailImageKey(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-border bg-surface-2 px-3 text-sm text-foreground outline-none focus:border-primary/60"
-                  >
-                    <option value="">자동(첫 번째 이미지)</option>
-                    {imageKeys.map((key, idx) => (
-                      <option key={key} value={key}>
-                        이미지 {idx + 1}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
-            </label>
-
-            {imageKeys.length ? (
-              <div className="grid grid-cols-4 gap-2">
-                {imageKeys.map((key) => {
-                  const src = imageSrcFromImageKey(key);
-                  return (
-                    <div
-                      key={key}
-                      className="relative aspect-square overflow-hidden rounded-xl ring-1 ring-border"
-                    >
-                      {src ? (
-                        <img
-                          src={src}
-                          alt=""
-                          className="absolute inset-0 h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 bg-surface-2" />
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => removeImageKey(key)}
-                        className="absolute right-1 top-1 inline-flex size-6 items-center justify-center rounded-full bg-black/45 text-xs font-black text-white transition hover:bg-black/60"
-                        aria-label="이미지 제거"
-                        title="이미지 제거"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+            {type === "blog" && imageKeys.length ? (
+              <label className="space-y-2 text-sm">
+                <span className="text-xs font-bold text-muted">썸네일</span>
+                <select
+                  value={thumbnailImageKey}
+                  onChange={(e) => setThumbnailImageKey(e.target.value)}
+                  className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary/60"
+                >
+                  <option value="">자동(첫 번째 이미지)</option>
+                  {imageKeys.map((key, idx) => (
+                    <option key={key} value={key}>
+                      이미지 {idx + 1}
+                    </option>
+                  ))}
+                </select>
+              </label>
             ) : null}
           </div>
 
-          <div className="rounded-2xl border border-border bg-surface p-5">
-            <div className="flex items-center justify-between gap-4">
-              <div className="space-y-1">
-                <p className="text-sm font-black text-foreground">공개 범위</p>
-                {type === "feed" ? (
-                  <p className="text-xs text-muted">피드는 항상 공개로 저장돼요.</p>
-                ) : null}
-              </div>
-              <VisibilitySwitch
-                value={type === "feed" ? "public" : visibility}
-                onChange={(next) => setVisibility(next)}
-                disabled={type === "feed"}
-              />
+          {imageKeys.length ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {imageKeys.map((key, idx) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => removeImageKey(key)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs font-bold text-foreground transition hover:border-primary/30"
+                  title="클릭해서 제거"
+                >
+                  <span className="text-muted">이미지 {idx + 1}</span>
+                  <span className="text-muted/80">×</span>
+                </button>
+              ))}
             </div>
-          </div>
+          ) : null}
         </div>
 
         {error ? <p className="mt-4 text-sm text-red-500">{error}</p> : null}
