@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { isAdminDb, requireAdmin } from "@/lib/server/admin";
@@ -17,6 +17,12 @@ function normalizeSlug(input: string) {
   return slug;
 }
 
+type CategoryRow = {
+  slug: string;
+  visibility: "public" | "private";
+  sort_order: number;
+};
+
 export async function GET() {
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
@@ -24,16 +30,20 @@ export async function GET() {
 
   const { data: categories, error } = await supabase
     .from("categories")
-    .select("slug")
+    .select("slug,visibility,sort_order")
+    .order("sort_order", { ascending: true })
     .order("slug", { ascending: true });
 
   if (error) {
     return NextResponse.json({ error: "db_error", details: error.message }, { status: 500 });
   }
 
-  if (!isAdmin) {
-    return NextResponse.json({ categories: categories ?? [] }, { status: 200 });
-  }
+  const base = ((categories ?? []) as CategoryRow[]).map((c) => ({
+    slug: c.slug,
+    visibility: c.visibility,
+    sortOrder: c.sort_order,
+  }));
+  if (!isAdmin) return NextResponse.json({ categories: base }, { status: 200 });
 
   const service = createSupabaseServiceClient();
   const { data: posts, error: postsError } = await service
@@ -58,8 +68,8 @@ export async function GET() {
 
   return NextResponse.json(
     {
-      categories: (categories ?? []).map((c) => ({
-        slug: c.slug,
+      categories: base.map((c) => ({
+        ...c,
         inUse: counts[c.slug] ?? 0,
       })),
     },
@@ -86,21 +96,45 @@ export async function POST(request: Request) {
   if (!slug) return badRequest("카테고리 이름을 확인해주세요.");
 
   const service = createSupabaseServiceClient();
+  const { data: existing, error: existingError } = await service
+    .from("categories")
+    .select("slug")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (existingError) {
+    return NextResponse.json(
+      { error: "db_error", details: existingError.message },
+      { status: 500 },
+    );
+  }
+  if (existing) {
+    return NextResponse.json({ error: "conflict" }, { status: 409 });
+  }
+
+  const { data: maxRow, error: maxError } = await service
+    .from("categories")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .order("slug", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (maxError) {
+    return NextResponse.json({ error: "db_error", details: maxError.message }, { status: 500 });
+  }
+
+  const nextSortOrder = Math.max(0, Number(maxRow?.sort_order ?? 0)) + 1;
   const { data: saved, error } = await service
     .from("categories")
-    .upsert({ slug }, { onConflict: "slug" })
+    .insert({ slug, visibility: "public", sort_order: nextSortOrder })
     .select("slug")
     .single();
 
   if (error) {
-    const isConflict = typeof error.code === "string" && error.code === "23505";
-    return NextResponse.json(
-      { error: isConflict ? "conflict" : "db_error", details: error.message },
-      { status: isConflict ? 409 : 500 },
-    );
+    return NextResponse.json({ error: "db_error", details: error.message }, { status: 500 });
   }
 
   revalidateTag(publicPostsTag("blog"), "default");
+  revalidatePath("/article");
   return NextResponse.json({ slug: saved.slug }, { status: 200 });
 }
-

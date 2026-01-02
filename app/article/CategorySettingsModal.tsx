@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FiSettings, FiX } from "react-icons/fi";
 
-type Category = { slug: string; inUse?: number };
+type Category = {
+  slug: string;
+  visibility: "public" | "private";
+  sortOrder: number;
+  inUse?: number;
+};
 
 export default function CategorySettingsModal() {
   const router = useRouter();
@@ -41,7 +46,8 @@ export default function CategorySettingsModal() {
         return;
       }
       const data = (await response.json()) as { categories: Category[] };
-      setCategories(Array.isArray(data.categories) ? data.categories : []);
+      const list = Array.isArray(data.categories) ? data.categories : [];
+      setCategories(list);
     } finally {
       setLoading(false);
     }
@@ -84,6 +90,38 @@ export default function CategorySettingsModal() {
 
     toast.success("카테고리 생성 완료");
     setNewSlug("");
+    await refreshList();
+    router.refresh();
+  }
+
+  async function onMove(slug: string, direction: "up" | "down") {
+    const response = await fetch("/api/categories/reorder", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slug, direction }),
+    });
+
+    if (!response.ok) {
+      toast.error("카테고리 순서 변경에 실패했어요.");
+      return;
+    }
+
+    await refreshList();
+    router.refresh();
+  }
+
+  async function onChangeVisibility(slug: string, visibility: "public" | "private") {
+    const response = await fetch(`/api/categories/${encodeURIComponent(slug)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ visibility }),
+    });
+
+    if (!response.ok) {
+      toast.error("카테고리 공개 범위 변경에 실패했어요.");
+      return;
+    }
+
     await refreshList();
     router.refresh();
   }
@@ -239,12 +277,14 @@ export default function CategorySettingsModal() {
               </button>
             </div>
 
-            <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
+              <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
               {categories.length ? (
-                categories.map((c) => {
+                categories.map((c, index) => {
                   const inUse = c.inUse ?? 0;
                   const isEditing = editingSlug === c.slug;
                   const isDeleting = pendingDelete === c.slug;
+                  const canMoveUp = index > 0;
+                  const canMoveDown = index < categories.length - 1;
 
                   return (
                     <div key={c.slug} className="bg-surface px-4 py-3">
@@ -255,10 +295,62 @@ export default function CategorySettingsModal() {
                             <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-muted">
                               사용 {inUse}
                             </span>
+                            <span
+                              className={[
+                                "rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1",
+                                c.visibility === "public"
+                                  ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20"
+                                  : "bg-amber-500/10 text-amber-600 ring-amber-500/20",
+                              ].join(" ")}
+                            >
+                              {c.visibility === "public" ? "공개" : "비공개"}
+                            </span>
                           </div>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
+                          {!isEditing && !isDeleting ? (
+                            <>
+                              <div className="inline-flex items-center overflow-hidden rounded-lg border border-border bg-surface">
+                                <button
+                                  type="button"
+                                  onClick={() => void onMove(c.slug, "up")}
+                                  disabled={!canMoveUp}
+                                  className="px-2 py-1.5 text-xs font-bold text-foreground transition hover:bg-surface-2 disabled:opacity-40"
+                                  aria-label="위로"
+                                  title="위로"
+                                >
+                                  ↑
+                                </button>
+                                <div className="h-7 w-px bg-border" />
+                                <button
+                                  type="button"
+                                  onClick={() => void onMove(c.slug, "down")}
+                                  disabled={!canMoveDown}
+                                  className="px-2 py-1.5 text-xs font-bold text-foreground transition hover:bg-surface-2 disabled:opacity-40"
+                                  aria-label="아래로"
+                                  title="아래로"
+                                >
+                                  ↓
+                                </button>
+                              </div>
+                              <select
+                                value={c.visibility}
+                                onChange={(e) =>
+                                  void onChangeVisibility(
+                                    c.slug,
+                                    e.target.value as "public" | "private",
+                                  )
+                                }
+                                className="h-8 rounded-lg border border-border bg-surface px-2 text-xs font-bold outline-none focus:border-primary/40"
+                                aria-label="공개 범위"
+                                title="공개 범위"
+                              >
+                                <option value="public">공개</option>
+                                <option value="private">비공개</option>
+                              </select>
+                            </>
+                          ) : null}
                           <button
                             type="button"
                             onClick={() => startEdit(c.slug)}

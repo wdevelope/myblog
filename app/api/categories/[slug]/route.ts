@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "@/lib/server/admin";
 import { publicBlogCategoryTag, publicPostsTag } from "@/lib/server/publicPosts";
@@ -14,6 +14,11 @@ function normalizeSlug(input: string) {
   if (slug.length > 50) return null;
   if (slug.includes("/")) return null;
   return slug;
+}
+
+function normalizeVisibility(input: unknown) {
+  if (input === "public" || input === "private") return input;
+  return null;
 }
 
 export async function PATCH(
@@ -37,51 +42,72 @@ export async function PATCH(
 
   await requireAdmin(from);
 
-  const body = (await request.json()) as Partial<{ slug: string }>;
+  const body = (await request.json()) as Partial<{ slug: string; visibility: unknown }>;
   const newSlug = body.slug ? normalizeSlug(body.slug) : null;
-  if (!newSlug) return badRequest("새 카테고리 이름을 확인해주세요.");
-  if (newSlug === oldSlug) return NextResponse.json({ ok: true }, { status: 200 });
+  const nextVisibility = normalizeVisibility(body.visibility);
+  if (!newSlug && !nextVisibility) return badRequest("변경할 값이 없어요.");
 
   const service = createSupabaseServiceClient();
 
-  const { data: existing } = await service
-    .from("categories")
-    .select("slug")
-    .eq("slug", newSlug)
-    .maybeSingle();
-  if (existing) return NextResponse.json({ error: "conflict" }, { status: 409 });
+  let finalSlug = oldSlug;
+  if (newSlug && newSlug !== oldSlug) {
+    const { data: existing } = await service
+      .from("categories")
+      .select("slug")
+      .eq("slug", newSlug)
+      .maybeSingle();
+    if (existing) return NextResponse.json({ error: "conflict" }, { status: 409 });
 
-  const { data: updated, error } = await service
-    .from("categories")
-    .update({ slug: newSlug })
-    .eq("slug", oldSlug)
-    .select("slug")
-    .maybeSingle();
+    const { data: updated, error } = await service
+      .from("categories")
+      .update({ slug: newSlug })
+      .eq("slug", oldSlug)
+      .select("slug")
+      .maybeSingle();
 
-  if (error) {
-    return NextResponse.json({ error: "db_error", details: error.message }, { status: 500 });
+    if (error) {
+      return NextResponse.json(
+        { error: "db_error", details: error.message },
+        { status: 500 },
+      );
+    }
+    if (!updated) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    finalSlug = updated.slug;
+
+    const { error: postsError } = await service
+      .from("posts")
+      .update({ category_slug: finalSlug })
+      .eq("type", "blog")
+      .eq("category_slug", oldSlug);
+
+    if (postsError) {
+      await service.from("categories").update({ slug: oldSlug }).eq("slug", finalSlug);
+      return NextResponse.json(
+        { error: "db_error", details: postsError.message },
+        { status: 500 },
+      );
+    }
   }
-  if (!updated) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  const { error: postsError } = await service
-    .from("posts")
-    .update({ category_slug: newSlug })
-    .eq("type", "blog")
-    .eq("category_slug", oldSlug);
-
-  if (postsError) {
-    await service.from("categories").update({ slug: oldSlug }).eq("slug", newSlug);
-    return NextResponse.json(
-      { error: "db_error", details: postsError.message },
-      { status: 500 },
-    );
+  if (nextVisibility) {
+    const { data: updated, error } = await service
+      .from("categories")
+      .update({ visibility: nextVisibility })
+      .eq("slug", finalSlug)
+      .select("slug,visibility")
+      .maybeSingle();
+    if (error) {
+      return NextResponse.json({ error: "db_error", details: error.message }, { status: 500 });
+    }
+    if (!updated) return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
   revalidateTag(publicPostsTag("blog"), "default");
   revalidateTag(publicBlogCategoryTag(oldSlug), "default");
-  revalidateTag(publicBlogCategoryTag(newSlug), "default");
+  revalidateTag(publicBlogCategoryTag(finalSlug), "default");
+  revalidatePath("/article");
 
-  return NextResponse.json({ slug: newSlug }, { status: 200 });
+  return NextResponse.json({ slug: finalSlug }, { status: 200 });
 }
 
 export async function DELETE(
@@ -172,7 +198,7 @@ export async function DELETE(
   revalidateTag(publicPostsTag("blog"), "default");
   revalidateTag(publicBlogCategoryTag(slug), "default");
   if (moveTo) revalidateTag(publicBlogCategoryTag(moveTo), "default");
+  revalidatePath("/article");
 
   return NextResponse.json({ ok: true }, { status: 200 });
 }
-

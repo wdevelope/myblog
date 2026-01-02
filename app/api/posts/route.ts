@@ -172,14 +172,49 @@ export async function POST(request: Request) {
     body.type === "blog" ? (body.categorySlug?.trim() ?? null) : null;
 
   if (body.type === "blog" && categorySlug) {
-    const { error: categoryError } = await service
+    const { data: existingCategory, error: categoryLookupError } = await service
       .from("categories")
-      .upsert({ slug: categorySlug }, { onConflict: "slug" });
-    if (categoryError) {
+      .select("slug")
+      .eq("slug", categorySlug)
+      .maybeSingle();
+
+    if (categoryLookupError) {
       return NextResponse.json(
-        { error: "db_error", details: categoryError.message },
+        { error: "db_error", details: categoryLookupError.message },
         { status: 500 },
       );
+    }
+
+    if (!existingCategory) {
+      const { data: maxRow, error: maxError } = await service
+        .from("categories")
+        .select("sort_order")
+        .order("sort_order", { ascending: false })
+        .order("slug", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (maxError) {
+        return NextResponse.json(
+          { error: "db_error", details: maxError.message },
+          { status: 500 },
+        );
+      }
+
+      const nextSortOrder = Math.max(0, Number(maxRow?.sort_order ?? 0)) + 1;
+      const { error: insertError } = await service
+        .from("categories")
+        .insert({ slug: categorySlug, visibility: "public", sort_order: nextSortOrder });
+
+      if (insertError) {
+        const isConflict = typeof insertError.code === "string" && insertError.code === "23505";
+        if (!isConflict) {
+          return NextResponse.json(
+            { error: "db_error", details: insertError.message },
+            { status: 500 },
+          );
+        }
+      }
     }
   }
 

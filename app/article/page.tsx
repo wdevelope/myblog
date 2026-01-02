@@ -6,6 +6,7 @@ import { getPosts } from "@/lib/api";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toExcerptMarkdown } from "@/lib/markdown";
+import { notFound } from "next/navigation";
 
 export const metadata = {
   title: "아티클",
@@ -105,17 +106,28 @@ export default async function BlogIndexPage({ searchParams }: Props) {
   const supabase = await createSupabaseServerClient();
   const { data: categoryRows } = await supabase
     .from("categories")
-    .select("slug")
+    .select("slug,visibility,sort_order")
+    .order("sort_order", { ascending: true })
     .order("slug", { ascending: true });
-  let categories = Array.from(
-    new Set([...(categoryRows ?? []).map((row) => row.slug), ...Object.keys(categoryCounts)]),
-  ).sort(
-    (a, b) =>
-      (categoryCounts[b] ?? 0) - (categoryCounts[a] ?? 0) ||
-      a.localeCompare(b, "ko"),
+
+  const fromDb = (categoryRows ?? []).map((row) => ({
+    slug: row.slug,
+    visibility: row.visibility as "public" | "private",
+    sortOrder: Number(row.sort_order ?? 0),
+  }));
+  const existing = new Set(fromDb.map((c) => c.slug));
+  const missing = isAdmin
+    ? Object.keys(categoryCounts)
+        .filter((slug) => !existing.has(slug))
+        .map((slug) => ({ slug, visibility: "public" as const, sortOrder: 1_000_000 }))
+    : [];
+
+  const categories = [...fromDb, ...missing].sort(
+    (a, b) => a.sortOrder - b.sortOrder || a.slug.localeCompare(b.slug, "ko"),
   );
-  if (!isAdmin) {
-    categories = categories.filter((slug) => (categoryCounts[slug] ?? 0) > 0);
+
+  if (!isAdmin && selectedCategory && !categories.some((c) => c.slug === selectedCategory)) {
+    notFound();
   }
 
   return (
@@ -140,19 +152,28 @@ export default async function BlogIndexPage({ searchParams }: Props) {
               <span className="font-medium">전체 글</span>
               <span className="text-xs text-muted">{allVisiblePosts.length}</span>
             </Link>
-            {categories.map((slug) => (
+            {categories.map((category) => (
               <Link
-                key={slug}
-                href={`/article?category=${encodeURIComponent(slug)}`}
+                key={category.slug}
+                href={`/article?category=${encodeURIComponent(category.slug)}`}
                 className={[
                   "flex items-center justify-between py-2 text-sm transition",
-                  slug === selectedCategory
+                  category.slug === selectedCategory
                     ? "text-foreground"
                     : "text-muted hover:text-foreground",
                 ].join(" ")}
               >
-                <span className="truncate">{slug}</span>
-                <span className="text-xs text-muted">{categoryCounts[slug] ?? 0}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  {isAdmin && category.visibility === "private" ? (
+                    <span className="text-xs text-amber-500/80" aria-hidden>
+                      🔒
+                    </span>
+                  ) : null}
+                  <span className="truncate">{category.slug}</span>
+                </span>
+                <span className="text-xs text-muted">
+                  {categoryCounts[category.slug] ?? 0}
+                </span>
               </Link>
             ))}
           </nav>

@@ -58,6 +58,30 @@ export async function GET(
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 
+    if (servicePost.type === "blog") {
+      const categorySlug = servicePost.category_slug?.trim();
+      if (!categorySlug) {
+        return NextResponse.json({ error: "not_found" }, { status: 404 });
+      }
+
+      const { data: category, error: categoryError } = await service
+        .from("categories")
+        .select("visibility")
+        .eq("slug", categorySlug)
+        .maybeSingle();
+
+      if (categoryError) {
+        return NextResponse.json(
+          { error: "db_error", details: categoryError.message },
+          { status: 500 },
+        );
+      }
+
+      if (category?.visibility !== "public") {
+        return NextResponse.json({ error: "not_found" }, { status: 404 });
+      }
+    }
+
     const isPrivate = servicePost.visibility === "private";
     if (isPrivate && !isAdmin) {
       return NextResponse.json(
