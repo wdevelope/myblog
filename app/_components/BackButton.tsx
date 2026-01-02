@@ -4,12 +4,10 @@ import { useRouter } from "next/navigation";
 
 export default function BackButton({
   fallbackHref = "/",
-  mode = "back",
   className,
   children = "뒤로",
 }: {
   fallbackHref?: string;
-  mode?: "back" | "href";
   className?: string;
   children?: React.ReactNode;
 }) {
@@ -19,16 +17,7 @@ export default function BackButton({
     <button
       type="button"
       onClick={() => {
-        if (mode === "href") {
-          router.push(fallbackHref);
-          return;
-        }
-
-        try {
-          router.back();
-        } catch {
-          router.replace(fallbackHref);
-        }
+        router.push(fallbackHref);
       }}
       className={className}
     >

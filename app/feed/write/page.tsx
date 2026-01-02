@@ -18,7 +18,7 @@ export default async function FeedWritePage() {
       <div className="flex items-center gap-3 text-sm text-muted">
         <BackButton
           fallbackHref="/feed"
-          className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
+          className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-transparent px-3 text-sm font-bold text-foreground transition hover:border-primary/30"
         >
           ← 뒤로
         </BackButton>

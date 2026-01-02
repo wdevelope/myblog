@@ -46,6 +46,10 @@ body {
   font-family: var(--font-sans);
 }
 
+a {
+  cursor: pointer;
+}
+
 button:not(:disabled),
 input[type="button"]:not(:disabled),
 input[type="submit"]:not(:disabled),
