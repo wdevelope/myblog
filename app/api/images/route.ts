@@ -19,6 +19,8 @@ function safeExtension(file: File) {
   return candidate.replaceAll(/[^a-z0-9]+/g, "").slice(0, 10) || "bin";
 }
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const bucket = url.searchParams.get("bucket");
@@ -26,12 +28,25 @@ export async function GET(request: Request) {
   if (!bucket || !path) {
     return NextResponse.json(
       { error: "bucket_and_path_required" },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
-  await requireAdmin(url.pathname);
+  if (bucket !== "post-images-public") {
+    await requireAdmin(url.pathname);
+  }
 
+  // For public bucket, redirect directly to public URL
+  if (bucket === "post-images-public") {
+    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (base) {
+      const encodedPath = encodeURIComponent(path).replaceAll("%2F", "/");
+      const publicUrl = `${base}/storage/v1/object/public/${bucket}/${encodedPath}`;
+      return NextResponse.redirect(publicUrl);
+    }
+  }
+
+  // For private buckets, generate signed URL
   const service = createSupabaseServiceClient();
   const { data, error } = await service.storage
     .from(bucket)
@@ -39,7 +54,7 @@ export async function GET(request: Request) {
   if (error || !data?.signedUrl) {
     return NextResponse.json(
       { error: "signed_url_failed", details: error?.message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 
@@ -56,19 +71,24 @@ export async function POST(request: Request) {
     visibility === "public"
       ? "post-images-public"
       : visibility === "private"
-        ? "post-images-private"
-        : null;
+      ? "post-images-private"
+      : null;
 
   if (!bucket) {
     return NextResponse.json(
       { error: "공개 범위(visibility)는 public 또는 private 이어야 합니다." },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
-  const files = form.getAll("files").filter((v): v is File => v instanceof File);
+  const files = form
+    .getAll("files")
+    .filter((v): v is File => v instanceof File);
   if (!files.length) {
-    return NextResponse.json({ error: "업로드할 파일이 없습니다." }, { status: 400 });
+    return NextResponse.json(
+      { error: "업로드할 파일이 없습니다." },
+      { status: 400 }
+    );
   }
 
   const service = createSupabaseServiceClient();
@@ -78,7 +98,7 @@ export async function POST(request: Request) {
     if (!file.type.startsWith("image/")) {
       return NextResponse.json(
         { error: "이미지 파일만 업로드할 수 있어요." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -91,7 +111,10 @@ export async function POST(request: Request) {
       .upload(path, buffer, { contentType: file.type, upsert: false });
 
     if (error) {
-      return NextResponse.json({ error: "upload_failed", details: error.message }, { status: 500 });
+      return NextResponse.json(
+        { error: "upload_failed", details: error.message },
+        { status: 500 }
+      );
     }
 
     keys.push(`${bucket}:${path}`);

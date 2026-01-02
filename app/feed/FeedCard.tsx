@@ -6,21 +6,7 @@ import type { Post } from "@/lib/types";
 import { Card, CardBody } from "@/app/_components/ui";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 
-function coverSrcFromImageKey(key: string) {
-  const [bucket, ...rest] = key.split(":");
-  const objectPath = rest.join(":");
-  const looksLikeSupabaseKey = Boolean(bucket && objectPath);
-  if (!looksLikeSupabaseKey) return key;
-
-  if (bucket === "post-images-public") {
-    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!base) return null;
-    const path = encodeURIComponent(objectPath).replaceAll("%2F", "/");
-    return `${base}/storage/v1/object/public/${bucket}/${path}`;
-  }
-
-  return `/api/images?bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(objectPath)}`;
-}
+import { coverSrcFromImageKey } from "@/lib/image";
 
 export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
   const [expanded, setExpanded] = useState(false);

@@ -14,6 +14,7 @@ import { FiArrowLeft, FiImage, FiMenu, FiX, FiTrash2 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
+import { coverSrcFromImageKey } from "@/lib/image";
 import MarkdownClient from "@/app/_components/MarkdownClient";
 import DeletePostButton from "@/app/_components/DeletePostButton";
 import { cn } from "@/lib/utils";
@@ -290,29 +291,74 @@ export default function PostEditor({
     };
   }, [buildDraftPayload, draftKey, hasMeaningfulDraft]);
 
-  async function uploadFiles(files: FileList | null) {
-    setError(null);
-    if (!files?.length) return;
+  const uploadFiles = useCallback(
+    async (files: FileList | null) => {
+      setError(null);
+      if (!files?.length) return [];
 
-    const form = new FormData();
-    form.set("visibility", type === "feed" ? "public" : visibility);
-    for (const file of Array.from(files)) {
-      form.append("files", file);
-    }
+      const form = new FormData();
+      form.set("visibility", type === "feed" ? "public" : visibility);
+      for (const file of Array.from(files)) {
+        form.append("files", file);
+      }
 
-    const response = await fetch("/api/images", { method: "POST", body: form });
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-        details?: string;
-      } | null;
-      setError(payload?.details ?? payload?.error ?? "업로드에 실패했어요.");
-      return;
-    }
+      const response = await fetch("/api/images", {
+        method: "POST",
+        body: form,
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+          details?: string;
+        } | null;
+        setError(payload?.details ?? payload?.error ?? "업로드에 실패했어요.");
+        return [];
+      }
 
-    const payload = (await response.json()) as { keys: string[] };
-    setImageKeys((prev) => [...prev, ...(payload.keys ?? [])]);
-  }
+      const payload = (await response.json()) as { keys: string[] };
+      const newKeys = payload.keys ?? [];
+      setImageKeys((prev) => [...prev, ...newKeys]);
+      return newKeys;
+    },
+    [type, visibility]
+  );
+
+  const handlePaste = useCallback(
+    async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const files = e.clipboardData.files;
+      if (!files || files.length === 0) return;
+
+      e.preventDefault();
+      const uploadedKeys = await uploadFiles(files);
+      if (uploadedKeys.length === 0) return;
+
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = content.substring(0, start);
+      const after = content.substring(end);
+
+      const toInsert = uploadedKeys
+        .map((key) => {
+          const src = coverSrcFromImageKey(key) ?? key;
+          return `\n![이미지](${src})\n`;
+        })
+        .join("");
+
+      const newContent = before + toInsert + after;
+      setContent(newContent);
+
+      // Need to defer cursor update slightly or use layout effect, but simple state update usually works okay enough.
+      // Ideally we set selection after render but let's keep it simple for now.
+    },
+    [content, uploadFiles]
+    // Using uploadFiles in dependency. Since it's not memoized, we should probably wrap it or ignore.
+    // Actually uploadFiles uses state so it changes on render.
+    // It's better to useCallback uploadFiles or just ignore warning for now to move fast?
+    // Let's wrap uploadFiles in useCallback first to be clean.
+  );
 
   async function submit() {
     setError(null);
@@ -472,8 +518,9 @@ export default function PostEditor({
               ref={textareaRef}
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              onPaste={(e) => void handlePaste(e)}
               placeholder="내용을 입력하세요..."
-              className="w-full h-full resize-none bg-transparent border-none outline-none text-base leading-relaxed placeholder:text-muted/50 font-mono"
+              className="w-full h-full resize-none bg-transparent border-none outline-none text-base leading-relaxed placeholder:text-muted/50 font-sans"
               spellCheck={false}
             />
           </div>
