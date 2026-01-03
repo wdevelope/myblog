@@ -11,6 +11,7 @@ import {
   TableProperties,
   TableCellProperties,
   List,
+  ListProperties,
   TableCaption,
   TodoList,
   ImageUtils,
@@ -129,7 +130,7 @@ export default function CkEditor({
 
   const { editorConfig } = useMemo(() => {
     if (!isLayoutReady) {
-      return {};
+      return { editorConfig: null };
     }
 
     return {
@@ -169,6 +170,7 @@ export default function CkEditor({
           Link,
           LinkImage,
           List,
+          ListProperties,
           Mention,
           Paragraph,
           PlainTableOutput,
@@ -208,6 +210,9 @@ export default function CkEditor({
             "insertTable",
             "highlight",
             "removeFormat",
+            "|",
+            "outdent",
+            "indent",
           ],
         },
         fontSize: {
@@ -282,6 +287,13 @@ export default function CkEditor({
             alignment: ["left", "center", "right"],
           },
         },
+        list: {
+          properties: {
+            styles: true,
+            startIndex: true,
+            reversed: true,
+          },
+        },
         translations: [translations],
       } as EditorConfig,
     };
@@ -340,6 +352,22 @@ export default function CkEditor({
                       classes.forEach((cls) => writer.addClass(cls, root));
                     }
                   });
+
+                  // Handle Tab key for indentation
+                  editor.editing.view.document.on(
+                    "keydown",
+                    (evt, data) => {
+                      if (data.domEvent.key === "Tab") {
+                        // Prevent focus change or default tab behavior
+                        evt.stop();
+                        data.preventDefault();
+
+                        const commandName = data.domEvent.shiftKey ? "outdent" : "indent";
+                        editor.execute(commandName);
+                      }
+                    },
+                    { priority: "high" }
+                  );
                 }}
                 onChange={(_, editor) => {
                   const data = editor.getData();
@@ -383,6 +411,13 @@ export default function CkEditor({
           margin-top: 0;
           margin-bottom: 0;
           line-height: 1.6;
+        }
+        .document-editor .ck-content h1,
+        .document-editor .ck-content h2,
+        .document-editor .ck-content h3 {
+          margin-top: 1.5em;
+          margin-bottom: 0.6em;
+          line-height: 1.3;
         }
       `}</style>
     </div>
