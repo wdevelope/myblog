@@ -80,7 +80,9 @@ async function HomePage() {
                     <div className="flex items-center gap-2 text-xs text-muted">
                       <Badge variant="primary">아티클</Badge>
                       <span>•</span>
-                      <span>{new Date(post.createdAt).toLocaleString()}</span>
+                      <span>
+                        {new Date(post.createdAt).toLocaleDateString()}
+                      </span>
                       <span className="flex-1" />
                       {post.categorySlug ? (
                         <span className="text-muted">{post.categorySlug}</span>
