@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.w-life.store"),
   title: {
     default: "개발자 원스",
     template: "%s | 개발자 원스",
