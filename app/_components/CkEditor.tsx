@@ -109,7 +109,7 @@ class MyBlogImageUploadAdapter {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  abort() {}
+  abort() { }
 }
 
 export default function CkEditor({
@@ -368,9 +368,9 @@ export default function CkEditor({
           color: inherit;
         }
         .document-editor .ck-content p {
-          margin-top: 0.5rem;
-          margin-bottom: 0.5rem;
-          line-height: 1.4;
+          margin-top: 0;
+          margin-bottom: 0;
+          line-height: 1.6;
         }
       `}</style>
     </div>

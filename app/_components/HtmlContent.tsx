@@ -14,9 +14,9 @@ export default function HtmlContent({ content }: { content: string }) {
       />
       <style jsx global>{`
         .html-content p {
-          margin-top: 0.5rem;
-          margin-bottom: 0.5rem;
-          line-height: 1.4;
+          margin-top: 0;
+          margin-bottom: 0;
+          line-height: 1.6;
         }
         .html-content ol > li::marker,
         .html-content ul > li::marker {
