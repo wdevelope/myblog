@@ -35,7 +35,7 @@ export default async function BlogPostPage({
   const comments = user ? await getComments({ postId: post.id }) : [];
 
   return (
-    <article className="mx-auto max-w-4xl space-y-10">
+    <article className="mx-auto max-w-4xl space-y-5">
       <div className="flex items-center justify-between gap-4">
         <BackButton
           fallbackHref="/article"

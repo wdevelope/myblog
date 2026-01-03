@@ -34,7 +34,7 @@ export default async function DiaryEntryPage({
   if (post && post.type !== "diary") notFound();
 
   return (
-    <article className="mx-auto max-w-4xl space-y-10">
+    <article className="mx-auto max-w-4xl space-y-5">
       <div className="flex items-center justify-between gap-4">
         <BackButton
           fallbackHref="/diary"
