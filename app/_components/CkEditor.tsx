@@ -296,7 +296,7 @@ export default function CkEditor({
         {/* Toolbar will be injected here */}
       </div>
 
-      <div className="content-container max-w-[800px] mx-auto px-6 md:px-0 pb-20">
+      <div className="content-container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         {onTitleChange && (
           <input
             value={title}
