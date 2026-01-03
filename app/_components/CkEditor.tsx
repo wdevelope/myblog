@@ -110,7 +110,7 @@ class MyBlogImageUploadAdapter {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  abort() { }
+  abort() {}
 }
 
 export default function CkEditor({
@@ -329,7 +329,9 @@ export default function CkEditor({
                   const toolbarContainer = toolbarRef.current;
                   if (toolbarContainer) {
                     toolbarContainer.innerHTML = "";
-                    toolbarContainer.appendChild(editor.ui.view.toolbar.element!);
+                    toolbarContainer.appendChild(
+                      editor.ui.view.toolbar.element!
+                    );
                   }
 
                   const fileRepository = editor.plugins.get(
@@ -362,7 +364,9 @@ export default function CkEditor({
                         evt.stop();
                         data.preventDefault();
 
-                        const commandName = data.domEvent.shiftKey ? "outdent" : "indent";
+                        const commandName = data.domEvent.shiftKey
+                          ? "outdent"
+                          : "indent";
                         editor.execute(commandName);
                       }
                     },
@@ -393,9 +397,11 @@ export default function CkEditor({
           justify-content: center;
         }
         /* Hide some toolbar borders/separators if needed or customize */
-        .document-editor .ck-content ol > li::marker,
         .document-editor .ck-content ul > li::marker {
           color: #d1d5db;
+        }
+        .document-editor .ck-content ol > li::marker {
+          color: inherit;
         }
         .document-editor .ck-content ul,
         .document-editor .ck-content ol {

@@ -75,7 +75,7 @@ async function HomePage() {
                 key={post.id}
                 className="overflow-hidden transition hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
               >
-                <CardBody className="flex flex-col gap-4 md:flex-row md:items-stretch">
+                <CardBody className="flex flex-col gap-4 md:flex-row md:items-start">
                   <div className="flex flex-1 flex-col justify-between gap-3">
                     <div className="flex items-center gap-2 text-xs text-muted">
                       <Badge variant="primary">아티클</Badge>
@@ -110,7 +110,7 @@ async function HomePage() {
                   </div>
 
                   {post.thumbnailImageKey ? (
-                    <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-2xl ring-1 ring-border md:h-auto md:w-64">
+                    <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-2xl ring-1 ring-border md:h-48 md:w-64">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={coverSrcFromImageKey(post.thumbnailImageKey) ?? ""}

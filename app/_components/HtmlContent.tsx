@@ -25,9 +25,11 @@ export default function HtmlContent({ content }: { content: string }) {
           margin-bottom: 0.6em;
           line-height: 1.3;
         }
-        .html-content ol > li::marker,
         .html-content ul > li::marker {
           color: #d1d5db;
+        }
+        .html-content ol > li::marker {
+          color: inherit;
         }
         .html-content ul,
         .html-content ol {
