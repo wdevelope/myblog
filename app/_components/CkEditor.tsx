@@ -296,56 +296,58 @@ export default function CkEditor({
         {/* Toolbar will be injected here */}
       </div>
 
-      <div className="content-container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-        {onTitleChange && (
-          <input
-            value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
-            placeholder="제목을 입력하세요."
-            className="w-full text-4xl font-bold text-gray-900 border-none outline-none placeholder:text-gray-300 mt-12 mb-6 bg-transparent"
-          />
-        )}
-
-        <div className="editor-container">
-          {editorConfig && (
-            <CKEditor
-              editor={DecoupledEditor}
-              config={editorConfig}
-              data={value}
-              onReady={(editor: DecoupledEditor) => {
-                const toolbarContainer = toolbarRef.current;
-                if (toolbarContainer) {
-                  toolbarContainer.innerHTML = "";
-                  toolbarContainer.appendChild(editor.ui.view.toolbar.element!);
-                }
-
-                const fileRepository = editor.plugins.get(
-                  "FileRepository"
-                ) as unknown as {
-                  createUploadAdapter: (loader: Loader) => unknown;
-                };
-
-                fileRepository.createUploadAdapter = (loader: Loader) =>
-                  new MyBlogImageUploadAdapter(loader);
-
-                // Apply Tailwind Typography classes to the editor content
-                editor.editing.view.change((writer) => {
-                  const root = editor.editing.view.document.getRoot();
-                  if (root) {
-                    const classes =
-                      "ck-content prose prose-lg max-w-none placeholder:text-gray-300 focus:outline-none min-h-[400px] text-gray-900 marker:text-gray-900 prose-headings:text-gray-900 prose-strong:text-gray-900".split(
-                        " "
-                      );
-                    classes.forEach((cls) => writer.addClass(cls, root));
-                  }
-                });
-              }}
-              onChange={(_, editor) => {
-                const data = editor.getData();
-                onChange(data);
-              }}
+      <div className="content-container w-full px-4 sm:px-6 lg:px-8 pb-20">
+        <div className="mx-auto max-w-4xl">
+          {onTitleChange && (
+            <input
+              value={title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              placeholder="제목을 입력하세요."
+              className="w-full text-4xl font-bold text-gray-900 border-none outline-none placeholder:text-gray-300 mt-12 mb-6 bg-transparent"
             />
           )}
+
+          <div className="editor-container">
+            {editorConfig && (
+              <CKEditor
+                editor={DecoupledEditor}
+                config={editorConfig}
+                data={value}
+                onReady={(editor: DecoupledEditor) => {
+                  const toolbarContainer = toolbarRef.current;
+                  if (toolbarContainer) {
+                    toolbarContainer.innerHTML = "";
+                    toolbarContainer.appendChild(editor.ui.view.toolbar.element!);
+                  }
+
+                  const fileRepository = editor.plugins.get(
+                    "FileRepository"
+                  ) as unknown as {
+                    createUploadAdapter: (loader: Loader) => unknown;
+                  };
+
+                  fileRepository.createUploadAdapter = (loader: Loader) =>
+                    new MyBlogImageUploadAdapter(loader);
+
+                  // Apply Tailwind Typography classes to the editor content
+                  editor.editing.view.change((writer) => {
+                    const root = editor.editing.view.document.getRoot();
+                    if (root) {
+                      const classes =
+                        "ck-content prose prose-lg max-w-none placeholder:text-gray-300 focus:outline-none min-h-[400px] text-gray-900 marker:text-gray-900 prose-headings:text-gray-900 prose-strong:text-gray-900".split(
+                          " "
+                        );
+                      classes.forEach((cls) => writer.addClass(cls, root));
+                    }
+                  });
+                }}
+                onChange={(_, editor) => {
+                  const data = editor.getData();
+                  onChange(data);
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
 
