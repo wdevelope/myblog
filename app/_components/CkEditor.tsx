@@ -369,6 +369,16 @@ export default function CkEditor({
         .document-editor .ck-content ul > li::marker {
           color: inherit;
         }
+        .document-editor .ck-content ul,
+        .document-editor .ck-content ol {
+          margin-top: 0.6rem;
+          margin-bottom: 0.6rem;
+        }
+        .document-editor .ck-content li {
+          margin-top: 0;
+          margin-bottom: 0;
+          line-height: 1.6;
+        }
         .document-editor .ck-content p {
           margin-top: 0;
           margin-bottom: 0;

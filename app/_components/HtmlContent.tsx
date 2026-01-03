@@ -22,6 +22,16 @@ export default function HtmlContent({ content }: { content: string }) {
         .html-content ul > li::marker {
           color: inherit;
         }
+        .html-content ul,
+        .html-content ol {
+          margin-top: 0.6rem;
+          margin-bottom: 0.6rem;
+        }
+        .html-content li {
+          margin-top: 0;
+          margin-bottom: 0;
+          line-height: 1.6;
+        }
       `}</style>
     </>
   );
