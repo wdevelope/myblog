@@ -395,7 +395,7 @@ export default function CkEditor({
         /* Hide some toolbar borders/separators if needed or customize */
         .document-editor .ck-content ol > li::marker,
         .document-editor .ck-content ul > li::marker {
-          color: inherit;
+          color: #d1d5db;
         }
         .document-editor .ck-content ul,
         .document-editor .ck-content ol {

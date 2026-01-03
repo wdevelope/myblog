@@ -27,7 +27,7 @@ export default function HtmlContent({ content }: { content: string }) {
         }
         .html-content ol > li::marker,
         .html-content ul > li::marker {
-          color: inherit;
+          color: #d1d5db;
         }
         .html-content ul,
         .html-content ol {
