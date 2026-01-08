@@ -63,41 +63,36 @@ export default function LoginForm() {
       return;
     }
 
-    const result = await (mode === "login"
-      ? supabase.auth.signInWithPassword({
+    const promise = (async () => {
+      const result = await (mode === "login"
+        ? supabase.auth.signInWithPassword({
           email: trimmedEmail,
           password,
         })
-      : supabase.auth.signUp({
+        : supabase.auth.signUp({
           email: trimmedEmail,
           password,
           options: {
-            emailRedirectTo: `${
-              window.location.origin
-            }/auth/callback?next=${encodeURIComponent(
-              from.startsWith("/") ? from : "/"
-            )}`,
+            emailRedirectTo: `${window.location.origin
+              }/auth/callback?next=${encodeURIComponent(
+                from.startsWith("/") ? from : "/"
+              )}`,
           },
         }));
 
-    if (result.error) {
-      setError(result.error.message);
-      return;
-    }
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
 
-    const hasSession = Boolean(result.data?.session);
-    if (!hasSession && mode === "signup") {
-      setNotice(
-        "가입 확인 이메일을 보냈어요. 메일의 링크를 클릭하면 로그인됩니다."
-      );
-      toast.success(
-        "가입 확인 이메일을 보냈어요. 메일의 링크를 클릭하면 로그인됩니다."
-      );
-      setMode("login");
-      return;
-    }
+      const hasSession = Boolean(result.data?.session);
+      if (!hasSession && mode === "signup") {
+        setNotice(
+          "가입 확인 이메일을 보냈어요. 메일의 링크를 클릭하면 로그인됩니다."
+        );
+        setMode("login");
+        return "가입 확인 이메일 발송 완료";
+      }
 
-    startTransition(() => {
       if (mode === "login" && typeof window !== "undefined") {
         if (rememberEmail) {
           window.localStorage.setItem(REMEMBER_EMAIL_KEY, "1");
@@ -107,9 +102,17 @@ export default function LoginForm() {
           window.localStorage.removeItem(SAVED_EMAIL_KEY);
         }
       }
-      toast.success(mode === "login" ? "로그인 완료" : "회원가입 완료");
+
       router.replace(from.startsWith("/") ? from : "/");
       router.refresh();
+
+      return mode === "login" ? "로그인 완료" : "회원가입 완료";
+    })();
+
+    toast.promise(promise, {
+      loading: mode === "login" ? "로그인 중..." : "회원가입 중...",
+      success: (data) => data,
+      error: (err: Error) => err.message,
     });
   }
 

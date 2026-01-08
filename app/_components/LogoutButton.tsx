@@ -14,15 +14,20 @@ export default function LogoutButton({
   const router = useRouter();
 
   async function onLogout() {
-    try {
+    const promise = (async () => {
       const supabase = createSupabaseBrowserClient();
       await supabase.auth.signOut();
       await fetch("/logout", { redirect: "manual" }).catch(() => null);
-    } finally {
-      toast.success("로그아웃 완료");
       router.replace("/login");
       router.refresh();
-    }
+      return "로그아웃 완료";
+    })();
+
+    toast.promise(promise, {
+      loading: "로그아웃 중...",
+      success: (data) => data,
+      error: "로그아웃에 실패했어요.",
+    });
   }
 
   return (

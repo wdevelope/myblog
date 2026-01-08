@@ -73,25 +73,31 @@ export default function CategorySettingsModal() {
       return;
     }
 
-    const response = await fetch("/api/categories", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ slug }),
+    const promise = (async () => {
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slug }),
+      });
+
+      if (response.status === 409) {
+        throw new Error("이미 존재하는 카테고리예요.");
+      }
+      if (!response.ok) {
+        throw new Error("카테고리 생성에 실패했어요.");
+      }
+
+      setNewSlug("");
+      await refreshList();
+      router.refresh();
+      return "카테고리 생성 완료";
+    })();
+
+    toast.promise(promise, {
+      loading: "카테고리 생성 중...",
+      success: (data) => data,
+      error: (err: Error) => err.message,
     });
-
-    if (response.status === 409) {
-      toast.error("이미 존재하는 카테고리예요.");
-      return;
-    }
-    if (!response.ok) {
-      toast.error("카테고리 생성에 실패했어요.");
-      return;
-    }
-
-    toast.success("카테고리 생성 완료");
-    setNewSlug("");
-    await refreshList();
-    router.refresh();
   }
 
   async function onMove(slug: string, direction: "up" | "down") {
@@ -140,26 +146,35 @@ export default function CategorySettingsModal() {
       return;
     }
 
-    const response = await fetch(`/api/categories/${encodeURIComponent(editingSlug)}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ slug: next }),
+    const promise = (async () => {
+      const response = await fetch(
+        `/api/categories/${encodeURIComponent(editingSlug)}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ slug: next }),
+        }
+      );
+
+      if (response.status === 409) {
+        throw new Error("이미 존재하는 카테고리예요.");
+      }
+      if (!response.ok) {
+        throw new Error("카테고리 이름 변경에 실패했어요.");
+      }
+
+      setEditingSlug(null);
+      setEditingValue("");
+      await refreshList();
+      router.refresh();
+      return "카테고리 이름 변경 완료";
+    })();
+
+    toast.promise(promise, {
+      loading: "이름 변경 중...",
+      success: (data) => data,
+      error: (err: Error) => err.message,
     });
-
-    if (response.status === 409) {
-      toast.error("이미 존재하는 카테고리예요.");
-      return;
-    }
-    if (!response.ok) {
-      toast.error("카테고리 이름 변경에 실패했어요.");
-      return;
-    }
-
-    toast.success("카테고리 이름 변경 완료");
-    setEditingSlug(null);
-    setEditingValue("");
-    await refreshList();
-    router.refresh();
   }
 
   function requestDelete(slug: string) {
@@ -182,30 +197,39 @@ export default function CategorySettingsModal() {
     const ok = window.confirm(
       inUse > 0
         ? `정말 삭제할까요? (${inUse}개 글을 '${deleteMoveTo}'로 이동 후 삭제)`
-        : "정말 삭제할까요? 이 작업은 되돌릴 수 없어요.",
+        : "정말 삭제할까요? 이 작업은 되돌릴 수 없어요."
     );
     if (!ok) return;
 
-    const response = await fetch(`/api/categories/${encodeURIComponent(pendingDelete)}`, {
-      method: "DELETE",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
+    const promise = (async () => {
+      const response = await fetch(
+        `/api/categories/${encodeURIComponent(pendingDelete)}`,
+        {
+          method: "DELETE",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (response.status === 409) {
+        throw new Error("사용 중인 카테고리라서 이동 카테고리가 필요해요.");
+      }
+      if (!response.ok) {
+        throw new Error("카테고리 삭제에 실패했어요.");
+      }
+
+      setPendingDelete(null);
+      setDeleteMoveTo("");
+      await refreshList();
+      router.refresh();
+      return "카테고리 삭제 완료";
+    })();
+
+    toast.promise(promise, {
+      loading: "카테고리 삭제 중...",
+      success: (data) => data,
+      error: (err: Error) => err.message,
     });
-
-    if (response.status === 409) {
-      toast.error("사용 중인 카테고리라서 이동 카테고리가 필요해요.");
-      return;
-    }
-    if (!response.ok) {
-      toast.error("카테고리 삭제에 실패했어요.");
-      return;
-    }
-
-    toast.success("카테고리 삭제 완료");
-    setPendingDelete(null);
-    setDeleteMoveTo("");
-    await refreshList();
-    router.refresh();
   }
 
   return (
@@ -277,7 +301,7 @@ export default function CategorySettingsModal() {
               </button>
             </div>
 
-              <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
+            <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
               {categories.length ? (
                 categories.map((c, index) => {
                   const inUse = c.inUse ?? 0;

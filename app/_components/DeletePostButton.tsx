@@ -20,17 +20,24 @@ export default function DeletePostButton({
     const ok = window.confirm("정말 삭제할까요? 이 작업은 되돌릴 수 없어요.");
     if (!ok) return;
 
-    const response = await fetch(`/api/posts/${encodeURIComponent(slug)}`, {
-      method: "DELETE",
-    });
-    if (!response.ok) {
-      toast.error("삭제에 실패했어요.");
-      return;
-    }
+    const promise = (async () => {
+      const response = await fetch(`/api/posts/${encodeURIComponent(slug)}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("삭제에 실패했어요.");
+      }
 
-    toast.success("삭제 완료");
-    if (redirectTo) router.replace(redirectTo);
-    router.refresh();
+      if (redirectTo) router.replace(redirectTo);
+      router.refresh();
+      return "삭제 완료";
+    })();
+
+    toast.promise(promise, {
+      loading: "삭제 중...",
+      success: (data) => data,
+      error: (err: Error) => err.message,
+    });
   }
 
   return (
