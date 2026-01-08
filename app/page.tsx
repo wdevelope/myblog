@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getCurrentUser } from "@/lib/server/admin";
-import { getPublicPosts } from "@/lib/server/publicPosts";
+import { getPostsDirectly } from "@/lib/server/posts";
 import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
 import { toExcerpt } from "@/lib/markdown";
 import { coverSrcFromImageKey } from "@/lib/image";
@@ -16,8 +16,9 @@ export const dynamic = "force-dynamic";
 async function HomePage() {
   const user = await getCurrentUser();
   const loggedIn = Boolean(user);
-  const latestArticlesResult = await getPublicPosts({ type: "blog", limit: 6 });
-  const latestArticles = latestArticlesResult.data;
+  const [latestArticles] = await Promise.all([
+    getPostsDirectly({ type: "blog", limit: 6, user }),
+  ]);
 
   return (
     <div className="space-y-10">

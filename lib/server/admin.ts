@@ -1,13 +1,14 @@
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async () => {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
   return data.user ?? null;
-}
+});
 
-export async function isAdminDb(user: { id: string; email?: string | null } | null | undefined) {
+export const isAdminDb = cache(async (user: { id: string; email?: string | null } | null | undefined) => {
   if (!user?.id) return false;
 
   const supabase = await createSupabaseServerClient();
@@ -19,7 +20,7 @@ export async function isAdminDb(user: { id: string; email?: string | null } | nu
 
   if (error) return false;
   return Boolean(data?.is_admin);
-}
+});
 
 export async function requireLogin(from: string) {
   const user = await getCurrentUser();

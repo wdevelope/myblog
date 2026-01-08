@@ -1,5 +1,5 @@
-import { getPosts } from "@/lib/api";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
+import { getPostsDirectly } from "@/lib/server/posts";
 import DiaryIndexClient from "@/app/diary/DiaryIndexClient";
 
 export const metadata = {
@@ -10,8 +10,11 @@ export const dynamic = "force-dynamic";
 
 export default async function DiaryPage() {
   const user = await getCurrentUser();
-  const isAdmin = await isAdminDb(user);
-  const posts = await getPosts({ type: "diary" });
+  const [isAdmin, posts] = await Promise.all([
+    isAdminDb(user),
+    getPostsDirectly({ type: "diary", user }),
+  ]);
+
   return (
     <DiaryIndexClient posts={posts} isAdmin={isAdmin} />
   );

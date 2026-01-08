@@ -2,8 +2,8 @@ import Link from "next/link";
 import CategorySettingsModal from "@/app/article/CategorySettingsModal";
 import type { Post } from "@/lib/types";
 import { getPublicPosts, getPublicPostCounts } from "@/lib/server/publicPosts";
-import { getPosts } from "@/lib/api";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
+import { getPostsDirectly } from "@/lib/server/posts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toExcerpt } from "@/lib/markdown";
 import { notFound } from "next/navigation";
@@ -101,7 +101,7 @@ export default async function BlogIndexPage({ searchParams }: Props) {
     // To get SIDEBAR counts correctly for Admin, we actually need to fetch ALL posts regardless of category?
     // The original code fetched "getPosts({ type: 'blog' })" regardless of selection, then filtered in memory.
     // Let's replicate that to ensure sidebar counts are correct.
-    const allVisiblePosts = await getPosts({ type: "blog" });
+    const allVisiblePosts = await getPostsDirectly({ type: "blog", user });
     sidebarTotalCount = allVisiblePosts.length;
 
     categoryCounts = allVisiblePosts.reduce<Record<string, number>>(
@@ -116,8 +116,8 @@ export default async function BlogIndexPage({ searchParams }: Props) {
 
     const filtered = selectedCategory
       ? allVisiblePosts.filter(
-          (p) => (p.categorySlug ?? "").trim() === selectedCategory
-        )
+        (p) => (p.categorySlug ?? "").trim() === selectedCategory
+      )
       : allVisiblePosts;
 
     totalCount = filtered.length;
@@ -157,12 +157,12 @@ export default async function BlogIndexPage({ searchParams }: Props) {
   const existing = new Set(fromDb.map((c) => c.slug));
   const missing = isAdmin
     ? Object.keys(categoryCounts)
-        .filter((slug) => !existing.has(slug))
-        .map((slug) => ({
-          slug,
-          visibility: "public" as const,
-          sortOrder: 1_000_000,
-        }))
+      .filter((slug) => !existing.has(slug))
+      .map((slug) => ({
+        slug,
+        visibility: "public" as const,
+        sortOrder: 1_000_000,
+      }))
     : [];
 
   const categories = [...fromDb, ...missing].sort(
@@ -178,9 +178,8 @@ export default async function BlogIndexPage({ searchParams }: Props) {
   }
 
   const totalPages = Math.ceil(totalCount / LIMIT);
-  const baseUrl = `/article?${
-    selectedCategory ? `category=${encodeURIComponent(selectedCategory)}&` : ""
-  }`;
+  const baseUrl = `/article?${selectedCategory ? `category=${encodeURIComponent(selectedCategory)}&` : ""
+    }`;
 
   return (
     <div className="grid gap-8 lg:grid-cols-12">
@@ -343,9 +342,8 @@ export default async function BlogIndexPage({ searchParams }: Props) {
               <div className="mt-12 flex justify-center gap-2">
                 <Link
                   href={page > 1 ? `${baseUrl}page=${page - 1}` : "#"}
-                  className={`px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 ${
-                    page <= 1 ? "pointer-events-none opacity-50" : ""
-                  }`}
+                  className={`px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 ${page <= 1 ? "pointer-events-none opacity-50" : ""
+                    }`}
                 >
                   이전
                 </Link>
@@ -354,9 +352,8 @@ export default async function BlogIndexPage({ searchParams }: Props) {
                 </span>
                 <Link
                   href={page < totalPages ? `${baseUrl}page=${page + 1}` : "#"}
-                  className={`px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 ${
-                    page >= totalPages ? "pointer-events-none opacity-50" : ""
-                  }`}
+                  className={`px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 ${page >= totalPages ? "pointer-events-none opacity-50" : ""
+                    }`}
                 >
                   다음
                 </Link>

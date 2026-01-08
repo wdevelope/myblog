@@ -1,5 +1,4 @@
-import { getPostBySlug } from "@/lib/api";
-import { getComments } from "@/lib/api";
+import { getPostBySlugDirectly, getCommentsDirectly } from "@/lib/server/posts";
 import PostImages from "@/app/_components/PostImages";
 import BackButton from "@/app/_components/BackButton";
 import PostActionMenu from "@/app/_components/PostActionMenu";
@@ -19,20 +18,24 @@ export default async function BlogPostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  let post: Awaited<ReturnType<typeof getPostBySlug>>;
+  const user = await getCurrentUser();
+
+  let post;
   try {
-    post = await getPostBySlug({ slug });
+    post = await getPostBySlugDirectly({ slug, user });
   } catch (e) {
     const err = e as { status?: number };
-    if (err.status === 401)
-      redirect(`/login?from=${encodeURIComponent(`/article/${slug}`)}`);
     if (err.status === 403) redirect("/");
+    if (err.status === 404) notFound();
     throw e;
   }
+
   if (post.type !== "blog") notFound();
-  const user = await getCurrentUser();
-  const isAdmin = await isAdminDb(user);
-  const comments = user ? await getComments({ postId: post.id }) : [];
+
+  const [isAdmin, comments] = await Promise.all([
+    isAdminDb(user),
+    user ? getCommentsDirectly({ postId: post.id, user }) : Promise.resolve([]),
+  ]);
 
   return (
     <article className="mx-auto max-w-4xl space-y-5">
