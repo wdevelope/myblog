@@ -1,4 +1,4 @@
-import { getPostBySlug } from "@/lib/api";
+import { getPostBySlugDirectly } from "@/lib/server/posts";
 import PostImages from "@/app/_components/PostImages";
 import HtmlContent from "@/app/_components/HtmlContent";
 import BackButton from "@/app/_components/BackButton";
@@ -19,12 +19,12 @@ export default async function DiaryEntryPage({
   const user = await getCurrentUser();
   const isAdmin = await isAdminDb(user);
 
-  let post: Awaited<ReturnType<typeof getPostBySlug>> | null = null;
+  let post = null;
   try {
-    post = await getPostBySlug({ slug });
+    post = await getPostBySlugDirectly({ slug, user });
   } catch (e) {
     const err = e as { status?: number };
-    if (err.status === 401 || err.status === 403) {
+    if (err.status === 403 || err.status === 404) {
       post = null;
     } else {
       throw e;
