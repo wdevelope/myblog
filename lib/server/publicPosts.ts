@@ -2,40 +2,11 @@ import "server-only";
 
 import type { Post, PostType } from "@/lib/types";
 import { getSupabaseEnv } from "@/lib/supabase/env";
+import { mapPost, type PostRow } from "@/lib/server/posts";
 
 type NextRequestInit = RequestInit & {
   next?: { revalidate?: number; tags?: string[] };
 };
-
-type PostRow = {
-  id: string;
-  slug: string;
-  type: PostType;
-  visibility: "public" | "private";
-  title: string;
-  content: string;
-  category_slug: string | null;
-  created_at: string;
-  updated_at: string | null;
-  image_keys: string[] | null;
-  thumbnail_image_key: string | null;
-};
-
-function mapPost(row: PostRow): Post {
-  return {
-    id: row.id,
-    slug: row.slug,
-    type: row.type,
-    visibility: row.visibility,
-    title: row.title,
-    content: row.content,
-    categorySlug: row.category_slug,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at ?? row.created_at,
-    imageKeys: row.image_keys ?? [],
-    thumbnailImageKey: row.thumbnail_image_key,
-  };
-}
 
 export function publicPostsTag(type: PostType) {
   return `posts:public:${type}`;

@@ -1,7 +1,39 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { isAdminDb, getCurrentUser } from "@/lib/server/admin";
-import type { Post, PostType, Comment } from "@/lib/types";
+import type { Post, PostType, Comment, Visibility } from "@/lib/types";
+
+export type PostRow = {
+    id: string;
+    slug: string;
+    type: PostType;
+    visibility: Visibility;
+    title: string;
+    content: string;
+    category_slug: string | null;
+    created_at: string;
+    updated_at: string | null;
+    image_keys: string[] | null;
+    thumbnail_image_key: string | null;
+    view_count?: number;
+};
+
+export function mapPost(row: PostRow): Post {
+    return {
+        id: row.id,
+        slug: row.slug,
+        type: row.type,
+        visibility: row.visibility,
+        title: row.title,
+        content: row.content,
+        categorySlug: row.category_slug,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at ?? row.created_at,
+        imageKeys: row.image_keys ?? [],
+        thumbnailImageKey: row.thumbnail_image_key,
+        viewCount: row.view_count,
+    };
+}
 
 export async function getPostsDirectly(params: {
     type: PostType;
@@ -26,8 +58,8 @@ export async function getPostsDirectly(params: {
         return (posts ?? []).map((p) => ({
             id: p.id,
             slug: p.slug,
-            type: p.type,
-            visibility: p.visibility,
+            type: p.type as PostType,
+            visibility: p.visibility as Visibility,
             title: p.title,
             content: "",
             categorySlug: null,
@@ -53,19 +85,7 @@ export async function getPostsDirectly(params: {
     const { data: posts, error } = await query;
     if (error) throw new Error(`DB Error: ${error.message}`);
 
-    return (posts ?? []).map((p) => ({
-        id: p.id,
-        slug: p.slug,
-        type: p.type,
-        visibility: p.visibility,
-        title: p.title,
-        content: p.content,
-        categorySlug: p.category_slug,
-        createdAt: p.created_at,
-        updatedAt: p.updated_at ?? p.created_at,
-        imageKeys: p.image_keys ?? [],
-        thumbnailImageKey: p.thumbnail_image_key,
-    }));
+    return (posts ?? []).map((p) => mapPost(p as PostRow));
 }
 
 export async function getPostBySlugDirectly(params: {
@@ -94,20 +114,7 @@ export async function getPostBySlugDirectly(params: {
         throw error;
     }
 
-    return {
-        id: post.id,
-        slug: post.slug,
-        type: post.type,
-        visibility: post.visibility,
-        title: post.title,
-        content: post.content,
-        categorySlug: post.category_slug,
-        createdAt: post.created_at,
-        updatedAt: post.updated_at ?? post.created_at,
-        imageKeys: post.image_keys ?? [],
-        thumbnailImageKey: post.thumbnail_image_key,
-        viewCount: post.view_count,
-    };
+    return mapPost(post as PostRow);
 }
 
 export async function getCommentsDirectly(params: {
