@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/server/admin";
 import LogoutButton from "@/app/_components/LogoutButton";
 import MobileNav from "@/app/_components/MobileNav";
 import NavLink from "@/app/_components/NavLink";
+import Image from "next/image";
 
 function Brand() {
   return (
@@ -10,10 +11,16 @@ function Brand() {
       href="/"
       className="group flex items-center gap-3 text-foreground transition-opacity hover:opacity-90"
     >
-      <span className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20">
-        <span className="text-base font-black tracking-tight">W</span>
+      <span className="flex size-9 items-center justify-center overflow-hidden rounded-xl bg-primary/15 ring-1 ring-primary/20">
+        <Image
+          src="/logo.png"
+          alt="Logo"
+          width={36}
+          height={36}
+          className="size-full object-cover"
+        />
       </span>
-      <span className="text-base font-bold tracking-tight">인생일지</span>
+      <span className="text-base font-bold tracking-tight">Wonse</span>
     </Link>
   );
 }
