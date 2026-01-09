@@ -13,7 +13,7 @@ function Brand() {
     >
       <span className="flex size-9 items-center justify-center overflow-hidden rounded-xl bg-primary/15 ring-1 ring-primary/20">
         <Image
-          src="/logo.png"
+          src="/site-logo.png"
           alt="Logo"
           width={36}
           height={36}
