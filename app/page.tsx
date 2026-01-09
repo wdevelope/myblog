@@ -11,7 +11,8 @@ export default function Home() {
   return <HomePage />;
 }
 
-export const dynamic = "force-dynamic";
+// 60초마다 페이지만 재생성하여 성능을 높입니다 (ISR)
+export const revalidate = 60;
 
 async function HomePage() {
   const user = await getCurrentUser();
