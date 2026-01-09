@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { FiHeart, FiMessageCircle, FiBookmark } from "react-icons/fi";
+import { AnimatePresence, motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import type { Post } from "@/lib/types";
 import { Card, CardBody } from "@/app/_components/ui";
 import PostActionMenu from "@/app/_components/PostActionMenu";
@@ -11,6 +14,20 @@ import { toExcerpt } from "@/lib/markdown";
 
 export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
   const [expanded, setExpanded] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isCommented, setIsCommented] = useState(false);
+  const [showSaveToast, setShowSaveToast] = useState(false);
+
+  const handleSave = () => {
+    const nextSaved = !isSaved;
+    setIsSaved(nextSaved);
+    if (nextSaved) {
+      setShowSaveToast(true);
+      setTimeout(() => setShowSaveToast(false), 1200);
+    }
+  };
+
   const coverKey = post.imageKeys?.[0];
   const coverSrc = coverKey ? coverSrcFromImageKey(coverKey) : null;
   const textContent = toExcerpt(post.content, 1000);
@@ -30,7 +47,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
         />
         <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">원스</p>
-          <p className="text-xs text-muted">
+          <p className="text-xs text-muted" suppressHydrationWarning>
             {new Date(post.createdAt).toLocaleDateString("ko-KR", {
               year: "numeric",
               month: "long",
@@ -80,37 +97,126 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
         </div>
       )}
 
-      {/* Content area */}
-      <CardBody className="space-y-3">
-        {expanded ? (
-          <>
-            <div className="text-sm leading-relaxed text-muted">
-              <HtmlContent content={post.content} />
-            </div>
-            <button
-              type="button"
-              onClick={() => setExpanded(false)}
-              className="text-sm font-semibold text-primary hover:opacity-80 transition"
+      {/* Interaction Icons and Content area */}
+      <CardBody className="pt-3 pb-5 px-4 space-y-3">
+        {/* Row 1: Action Icons */}
+        <div className="flex items-center justify-between -mx-1 text-[#262626]">
+          <div className="flex items-center gap-4">
+            <motion.button
+              whileTap={{ scale: 0.8 }}
+              onClick={() => setIsLiked(!isLiked)}
+              className="p-1 hover:opacity-60 transition outline-none"
             >
-              접기
-            </button>
-          </>
-        ) : (
+              <FiHeart
+                className={cn(
+                  "size-6 transition-colors",
+                  isLiked ? "fill-red-500 text-red-500" : ""
+                )}
+              />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.8 }}
+              onClick={() => setIsCommented(!isCommented)}
+              className="p-1 hover:opacity-60 transition outline-none"
+            >
+              <FiMessageCircle
+                className={cn(
+                  "size-6 transition-colors",
+                  isCommented ? "fill-[#0095f6] text-[#0095f6]" : ""
+                )}
+              />
+            </motion.button>
+          </div>
           <div className="relative">
-            <p className="line-clamp-3 pr-14 text-sm leading-relaxed text-muted">
-              {textContent}
-            </p>
-            {shouldShowMore ? (
+            <AnimatePresence>
+              {showSaveToast && (
+                <motion.div
+                  initial={{ opacity: 0, y: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, y: -45, scale: 1 }}
+                  exit={{ opacity: 0, y: -60, scale: 1.1 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  className="absolute right-0 top-0 whitespace-nowrap text-[11px] font-black text-primary pointer-events-none drop-shadow-sm bg-white/80 px-2 py-1 rounded-full border border-primary/20"
+                >
+                  내 마음속에 저장 ✨
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <motion.button
+              whileTap={{ scale: 0.8 }}
+              onClick={handleSave}
+              className="p-1 hover:opacity-60 transition outline-none"
+            >
+              <FiBookmark
+                className={cn(
+                  "size-6 transition-colors",
+                  isSaved ? "fill-current" : ""
+                )}
+              />
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Row 2: Likes (Dummy count adjustment) */}
+        <div className="mt-1">
+          <p className="text-[14px] font-bold text-[#262626]">
+            좋아요 {isLiked ? 8 : 7}개
+          </p>
+        </div>
+
+        {/* Row 3: Caption */}
+        <div className="flex flex-col gap-1">
+          {expanded ? (
+            <div className="space-y-3">
+              <div className="text-[14px] leading-[1.5] text-[#262626] font-normal">
+                <span className="font-bold mr-2 text-black">원스</span>
+                <HtmlContent content={post.content} isFeed />
+              </div>
               <button
                 type="button"
-                onClick={() => setExpanded(true)}
-                className="absolute bottom-0 right-0 text-sm font-semibold text-primary hover:opacity-80 transition"
+                onClick={() => setExpanded(false)}
+                className="text-[14px] font-medium text-muted hover:text-foreground transition"
               >
-                더 보기
+                접기
               </button>
-            ) : null}
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="relative group/content">
+              <p className="line-clamp-2 text-[14px] leading-[1.5] text-[#262626] font-normal">
+                <span className="font-bold mr-2 text-black border-none bg-transparent p-0">
+                  원스
+                </span>
+                {textContent}
+              </p>
+              {shouldShowMore ? (
+                <button
+                  type="button"
+                  onClick={() => setExpanded(true)}
+                  className="mt-1 text-[14px] font-medium text-muted hover:text-gray-500 transition"
+                >
+                  더 보기
+                </button>
+              ) : null}
+            </div>
+          )}
+        </div>
+
+        {/* Row 4: Dummy Comment Animation */}
+        <AnimatePresence>
+          {isCommented && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="overflow-hidden pt-1"
+            >
+              <div className="text-[14px] leading-[1.5] text-[#262626]">
+                <span className="font-bold mr-2 text-black">방문객</span>
+                피드가 좋네요 😊
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </CardBody>
     </Card>
   );

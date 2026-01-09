@@ -15,5 +15,5 @@ export function coverSrcFromImageKey(key: string) {
 
   return `/api/images?bucket=${encodeURIComponent(
     bucket
-  )}&path=${encodeURIComponent(objectPath)}&t=${Date.now()}`;
+  )}&path=${encodeURIComponent(objectPath)}`;
 }

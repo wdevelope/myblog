@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import DeletePostButton from "@/app/_components/DeletePostButton";
 
 function DotsIcon({ className }: { className?: string }) {
@@ -32,7 +32,7 @@ export default function PostActionMenu({
   ariaLabel?: string;
   className?: string;
 }) {
-  const menuId = useId();
+  const menuId = `menu-${deleteSlug}`;
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -59,7 +59,10 @@ export default function PostActionMenu({
   }, [open]);
 
   return (
-    <div className={["relative", className].filter(Boolean).join(" ")} ref={rootRef}>
+    <div
+      className={["relative", className].filter(Boolean).join(" ")}
+      ref={rootRef}
+    >
       <button
         type="button"
         aria-label={ariaLabel}

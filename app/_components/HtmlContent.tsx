@@ -1,15 +1,25 @@
 "use client";
 
 import "ckeditor5/ckeditor5.css";
+import { cn } from "@/lib/utils";
 
 // This component is responsible for rendering HTML content created by CKEditor.
 // It applies necessary styles to match the WYSIWYG look.
 
-export default function HtmlContent({ content }: { content: string }) {
+export default function HtmlContent({
+  content,
+  isFeed = false,
+}: {
+  content: string;
+  isFeed?: boolean;
+}) {
   return (
     <>
       <div
-        className="html-content ck-content prose prose-lg dark:prose-invert max-w-none text-gray-900 marker:text-gray-900 prose-headings:text-gray-900 prose-strong:text-gray-900"
+        className={cn(
+          "html-content ck-content prose dark:prose-invert max-w-none text-gray-900 marker:text-gray-900 prose-headings:text-gray-900 prose-strong:text-gray-900",
+          !isFeed && "prose-lg"
+        )}
         dangerouslySetInnerHTML={{ __html: content }}
       />
       <style jsx global>{`
