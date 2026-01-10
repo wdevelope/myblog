@@ -37,7 +37,14 @@ export default async function FeedPage() {
       <div className="space-y-7">
         {posts.length ? (
           posts.map((post) => (
-            <FeedCard key={post.id} post={post} isAdmin={isAdmin} />
+            <FeedCard
+              key={post.id}
+              post={{
+                ...post,
+                content: post.content, // explicitly include to show we are aware
+              }}
+              isAdmin={isAdmin}
+            />
           ))
         ) : (
           <Card>

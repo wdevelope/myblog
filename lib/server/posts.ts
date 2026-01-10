@@ -46,6 +46,9 @@ export async function getPostsDirectly(params: {
     const supabase = await createSupabaseServerClient();
 
     if (params.type === "diary" && !isAdmin) {
+        // [SECURITY] 비공개 다이어리의 제목을 목록에 노출하기 위해 서비스 클라이언트를 사용합니다.
+        // 상세 내용(content)은 절대 노출되면 안 되므로 여기서 반드시 빈 문자열로 초기화해야 합니다.
+        // 이 로직을 수정할 때 content 필드가 포함되지 않도록 주의하십시오.
         const service = createSupabaseServiceClient();
         const { data: posts, error } = await service
             .from("posts")
@@ -61,7 +64,7 @@ export async function getPostsDirectly(params: {
             type: p.type as PostType,
             visibility: p.visibility as Visibility,
             title: p.title,
-            content: "",
+            content: "", // 🔒 보안: 본문은 절대 클라이언트로 전송하지 않음
             categorySlug: null,
             createdAt: p.created_at,
             updatedAt: p.updated_at ?? p.created_at,
@@ -95,11 +98,16 @@ export async function getPostBySlugDirectly(params: {
     const isAdmin = await isAdminDb(params.user);
     const supabase = await createSupabaseServerClient();
 
-    const { data: post, error } = await supabase
+    let query = supabase
         .from("posts")
         .select("*")
-        .eq("slug", params.slug)
-        .maybeSingle();
+        .eq("slug", params.slug);
+
+    if (!isAdmin) {
+        query = query.eq("visibility", "public");
+    }
+
+    const { data: post, error } = await query.maybeSingle();
 
     if (error) throw new Error(`DB Error: ${error.message}`);
     if (!post) {
