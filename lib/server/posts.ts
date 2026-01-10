@@ -63,7 +63,7 @@ export async function getPostsDirectly(params: {
             slug: p.slug,
             type: p.type as PostType,
             visibility: p.visibility as Visibility,
-            title: p.title,
+            title: p.visibility === "private" ? "비공개된 일기입니다" : p.title,
             content: "", // 🔒 보안: 본문은 절대 클라이언트로 전송하지 않음
             categorySlug: null,
             createdAt: p.created_at,
