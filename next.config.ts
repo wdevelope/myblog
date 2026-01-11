@@ -5,14 +5,20 @@ const supabaseHostname = supabaseUrl ? new URL(supabaseUrl).hostname : null;
 
 const nextConfig: NextConfig = {
   images: {
+    localPatterns: [
+      {
+        pathname: "/api/images",
+        search: "?*",
+      },
+    ],
     remotePatterns: [
       ...(supabaseHostname
         ? [
-            {
-              protocol: "https" as const,
-              hostname: supabaseHostname,
-            },
-          ]
+          {
+            protocol: "https" as const,
+            hostname: supabaseHostname,
+          },
+        ]
         : []),
       // Fallback or additional pattern if env var is missing during build
       {
