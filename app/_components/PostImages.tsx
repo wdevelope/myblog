@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { coverSrcFromImageKey } from "@/lib/image";
 
 export default function PostImages({ imageKeys }: { imageKeys?: string[] }) {
@@ -8,14 +9,16 @@ export default function PostImages({ imageKeys }: { imageKeys?: string[] }) {
       {imageKeys.map((key) => {
         const src = coverSrcFromImageKey(key) ?? key;
         return (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={key}
-            src={src}
-            alt=""
-            className="h-auto w-full rounded-2xl border border-border bg-surface"
-            loading="lazy"
-          />
+          <div key={key} className="relative aspect-auto min-h-[200px] w-full overflow-hidden rounded-2xl border border-border bg-surface">
+            <Image
+              src={src}
+              alt=""
+              width={800}
+              height={600}
+              className="h-auto w-full object-contain"
+              sizes="(min-width: 640px) 50vw, 100vw"
+            />
+          </div>
         );
       })}
     </div>

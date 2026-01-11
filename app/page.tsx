@@ -71,7 +71,7 @@ async function HomePage() {
         </div>
 
         <div className="space-y-4">
-          {latestArticles.map((post) => {
+          {latestArticles.map((post, index) => {
             return (
               <Card
                 key={post.id}
@@ -113,15 +113,17 @@ async function HomePage() {
 
                   {post.thumbnailImageKey ? (
                     <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-2xl ring-1 ring-border md:h-48 md:w-64">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <Image
                         src={coverSrcFromImageKey(post.thumbnailImageKey) ?? ""}
                         alt={post.title}
-                        className="h-full w-full object-cover"
+                        fill
+                        sizes="(min-width: 768px) 256px, 100vw"
+                        className="object-cover"
+                        priority={index === 0}
                       />
                     </div>
                   ) : (
-                    <div className="h-28 w-full shrink-0 rounded-2xl bg-surface-2 ring-1 ring-border md:h-auto md:w-64" />
+                    <div className="h-28 w-full shrink-0 rounded-2xl bg-surface-2 ring-1 ring-border md:h-48 md:w-64" />
                   )}
                 </CardBody>
               </Card>

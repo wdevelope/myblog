@@ -67,12 +67,12 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
       {/* Image area */}
       {coverSrc ? (
         <div className="relative aspect-square w-full bg-surface-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={coverSrc}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-            loading="lazy"
+            fill
+            sizes="(min-width: 768px) 600px, 100vw"
+            className="object-cover"
           />
         </div>
       ) : (
