@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { isAdminDb, requireAdmin } from "@/lib/server/admin";
@@ -182,6 +182,13 @@ export async function DELETE(
   revalidateTag(publicPostsTag(deleted.type), "default");
   if (deleted.type === "blog" && deleted.category_slug) {
     revalidateTag(publicBlogCategoryTag(deleted.category_slug), "default");
+  }
+
+  // [PERF] 온디맨드 재검증: 글이 삭제되면 관련 페이지의 캐시를 즉시 파기하여 실시간 반영되게 합니다.
+  revalidatePath("/", "page");
+  revalidatePath(`/${deleted.type}`, "page");
+  if (deleted.type === "blog") {
+    revalidatePath("/article", "page");
   }
 
   return NextResponse.json({ ok: true }, { status: 200 });

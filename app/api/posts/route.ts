@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, revalidatePath } from "next/cache";
 import type { PostType, Visibility } from "@/lib/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
@@ -269,6 +269,13 @@ export async function POST(request: Request) {
   revalidateTag(publicPostsTag(saved.type), "default");
   if (saved.type === "blog" && saved.category_slug) {
     revalidateTag(publicBlogCategoryTag(saved.category_slug), "default");
+  }
+
+  // [PERF] 온디맨드 재검증: 글이 변경되면 관련 페이지의 캐시를 즉시 파기하여 실시간 반영되게 합니다.
+  revalidatePath("/", "page");
+  revalidatePath(`/${saved.type}`, "page");
+  if (saved.type === "blog") {
+    revalidatePath("/article", "page");
   }
 
   return NextResponse.json(
