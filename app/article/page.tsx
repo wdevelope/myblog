@@ -209,8 +209,8 @@ export default async function BlogIndexPage({ searchParams }: Props) {
                 className={[
                   "inline-flex items-center justify-center min-w-[1.75rem] h-5 px-1.5 rounded-lg text-[10px] font-black transition-colors",
                   selectedCategory
-                    ? "bg-surface-2 text-muted group-hover:bg-surface-3"
-                    : "bg-primary/20 text-primary",
+                    ? "text-muted/40 group-hover:text-muted/60"
+                    : "text-primary/60",
                 ].join(" ")}
               >
                 {sidebarTotalCount}
@@ -241,8 +241,8 @@ export default async function BlogIndexPage({ searchParams }: Props) {
                     className={[
                       "inline-flex items-center justify-center min-w-[1.75rem] h-5 px-1.5 rounded-lg text-[10px] font-black transition-colors",
                       isActive
-                        ? "bg-primary/20 text-primary"
-                        : "bg-surface-2 text-muted group-hover:bg-surface-3",
+                        ? "text-primary/60"
+                        : "text-muted/40 group-hover:text-muted/60",
                     ].join(" ")}
                   >
                     {categoryCounts[category.slug] ?? 0}
