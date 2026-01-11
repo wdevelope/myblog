@@ -312,9 +312,8 @@ export default function DiaryIndexClient({
                   {viewMode === "day" ? monthTitle : `${month.getFullYear()}년`}
                 </p>
                 <ChevronRight
-                  className={`size-4 text-muted transition-transform duration-200 ${
-                    viewMode === "month" ? "rotate-90" : ""
-                  }`}
+                  className={`size-4 text-muted transition-transform duration-200 ${viewMode === "month" ? "rotate-90" : ""
+                    }`}
                 />
               </button>
 
@@ -522,6 +521,7 @@ export default function DiaryIndexClient({
                             <Link
                               href={`/diary/${post.slug}`}
                               className="block min-w-0 flex-1"
+                              prefetch={false}
                             >
                               <h2 className="truncate text-lg font-bold text-foreground transition hover:text-primary">
                                 {post.title}

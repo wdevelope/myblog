@@ -267,6 +267,7 @@ export default async function BlogIndexPage({ searchParams }: Props) {
                     <Link
                       href={`/article/${post.slug}`}
                       className="block h-full"
+                      prefetch={false}
                     >
                       <article className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 h-full flex flex-col">
                         <div className="p-5 flex flex-col h-full">
