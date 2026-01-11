@@ -7,7 +7,7 @@ export const metadata = {
   title: "피드",
 };
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export default async function FeedPage() {
   const user = await getCurrentUser();

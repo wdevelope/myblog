@@ -6,7 +6,7 @@ export const metadata = {
   title: "다이어리",
 };
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export default async function DiaryPage() {
   const user = await getCurrentUser();

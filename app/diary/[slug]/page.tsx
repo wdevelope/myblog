@@ -8,7 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export default async function DiaryEntryPage({
   params,

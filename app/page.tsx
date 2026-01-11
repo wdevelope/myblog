@@ -51,8 +51,8 @@ export default function Home() {
   );
 }
 
-// 60초마다 페이지만 재생성하여 성능을 높입니다 (ISR)
-export const revalidate = 60;
+// 1시간마다 페이지만 재생성하여 성능을 높입니다 (ISR)
+export const revalidate = 3600;
 
 async function UserActionButtons() {
   const user = await getCurrentUser();
