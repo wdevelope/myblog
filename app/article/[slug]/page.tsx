@@ -10,7 +10,7 @@ import { CardBody } from "@/app/_components/ui";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 import HtmlContent from "@/app/_components/HtmlContent";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function BlogPostPage({
   params,
