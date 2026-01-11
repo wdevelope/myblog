@@ -2,30 +2,21 @@ import { Skeleton } from "@/app/_components/ui";
 
 export default function ArticleLoading() {
     return (
-        <div className="grid gap-8 lg:grid-cols-12">
+        <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
             {/* Sidebar Skeleton */}
-            <aside className="lg:col-span-3 lg:col-start-1">
-                <div className="space-y-4">
-                    <Skeleton className="h-5 w-32" />
-                    <div className="space-y-2">
+            <aside className="lg:col-span-2 lg:col-start-1">
+                <div className="space-y-6">
+                    <Skeleton className="h-4 w-24 mx-1" />
+                    <div className="space-y-1.5 font-bold">
                         {[...Array(6)].map((_, i) => (
-                            <Skeleton key={i} className="h-9 w-full" />
+                            <Skeleton key={i} className="h-11 w-full rounded-2xl" />
                         ))}
                     </div>
                 </div>
             </aside>
 
             {/* Main Content Skeleton */}
-            <main className="lg:col-span-9 lg:col-start-4">
-                <header className="mb-6 border-b border-border pb-4">
-                    <div className="flex items-end justify-between gap-4">
-                        <div className="space-y-2">
-                            <Skeleton className="h-8 w-40" />
-                            <Skeleton className="h-4 w-56" />
-                        </div>
-                    </div>
-                </header>
-
+            <main className="lg:col-span-10 lg:col-start-3">
                 <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                     {[...Array(6)].map((_, i) => (
                         <div key={i} className="rounded-3xl border border-border bg-surface p-5 space-y-4">

@@ -56,7 +56,7 @@ async function HomePage() {
       </section>
 
       <section className="space-y-4">
-        <div className="flex items-end justify-between gap-4 border-b border-border pb-3">
+        <div className="flex items-end justify-between gap-4 mb-3">
           <div className="flex items-center gap-5">
             <span className="border-b-2 border-primary pb-3 text-sm font-bold text-primary">
               최신 아티클

@@ -49,7 +49,7 @@ export default function MobileNav({ loggedIn }: { loggedIn: boolean }) {
           if (e.target === e.currentTarget) close();
         }}
       >
-        <div className="ml-auto flex h-full w-[min(360px,100%)] flex-col border-l border-border bg-surface shadow-2xl">
+        <div className="ml-auto flex h-full w-[250px] flex-col border-l border-border bg-surface shadow-2xl">
           <div className="flex items-center justify-between gap-3 border-b border-border p-4">
             <span className="text-sm font-black">메뉴</span>
             <button

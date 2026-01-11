@@ -18,21 +18,13 @@ export default async function FeedPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-8">
-      <header className="space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">피드</h1>
-            <p className="text-sm text-muted">
-              짧은 생각과 기록을 모아둔 타임라인.
-            </p>
-          </div>
-          {isAdmin ? (
-            <ButtonLink href="/feed/write" variant="secondary">
-              피드 쓰기
-            </ButtonLink>
-          ) : null}
-        </div>
-      </header>
+      {isAdmin ? (
+        <header className="flex justify-end mb-4">
+          <ButtonLink href="/feed/write" variant="secondary">
+            피드 쓰기
+          </ButtonLink>
+        </header>
+      ) : null}
 
       <div className="space-y-7">
         {posts.length ? (

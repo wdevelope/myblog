@@ -8,6 +8,7 @@ import { getPostsDirectly } from "@/lib/server/posts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toExcerpt } from "@/lib/markdown";
 import { notFound } from "next/navigation";
+import CategorySelect from "./CategorySelect";
 
 export const metadata = {
   title: "아티클",
@@ -183,64 +184,79 @@ export default async function BlogIndexPage({ searchParams }: Props) {
     }`;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-12">
+    <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
       {/* Left sidebar - Categories */}
-      <aside className="lg:col-span-3 lg:col-start-1 lg:self-start lg:sticky lg:top-20 xl:col-span-3 xl:col-start-1">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-bold text-primary">전체 카테고리</h3>
+      <aside className="hidden lg:block lg:col-span-2 lg:col-start-1 lg:sticky lg:top-24 xl:col-span-2 xl:col-start-1">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xs font-black uppercase tracking-wider text-muted/60">
+              전체 카테고리
+            </h3>
             {isAdmin ? <CategorySettingsModal /> : null}
           </div>
-          <nav className="space-y-1">
+          <nav className="flex flex-col gap-1.5">
             <Link
               href="/article"
               className={[
-                "flex items-center justify-between py-2 text-sm transition",
+                "group flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition-all duration-200",
                 selectedCategory
-                  ? "text-muted hover:text-foreground"
-                  : "text-foreground hover:text-primary",
+                  ? "text-muted hover:bg-surface-2 hover:text-foreground"
+                  : "bg-primary/10 text-primary shadow-sm shadow-primary/5",
               ].join(" ")}
             >
-              <span className="font-medium">전체 글</span>
-              <span className="text-xs text-muted">{sidebarTotalCount}</span>
-            </Link>
-            {categories.map((category) => (
-              <Link
-                key={category.slug}
-                href={`/article?category=${encodeURIComponent(category.slug)}`}
+              <span className="text-sm font-bold">전체 글</span>
+              <span
                 className={[
-                  "flex items-center justify-between py-2 text-sm transition",
-                  category.slug === selectedCategory
-                    ? "text-foreground"
-                    : "text-muted hover:text-foreground",
+                  "inline-flex items-center justify-center min-w-[1.75rem] h-5 px-1.5 rounded-lg text-[10px] font-black transition-colors",
+                  selectedCategory
+                    ? "bg-surface-2 text-muted group-hover:bg-surface-3"
+                    : "bg-primary/20 text-primary",
                 ].join(" ")}
               >
-                <span className="flex min-w-0 items-center gap-2">
-                  {isAdmin && category.visibility === "private" ? (
-                    <span className="text-xs text-amber-500/80" aria-hidden>
-                      🔒
-                    </span>
-                  ) : null}
-                  <span className="truncate">{category.slug}</span>
-                </span>
-                <span className="text-xs text-muted">
-                  {categoryCounts[category.slug] ?? 0}
-                </span>
-              </Link>
-            ))}
+                {sidebarTotalCount}
+              </span>
+            </Link>
+            {categories.map((category) => {
+              const isActive = category.slug === selectedCategory;
+              return (
+                <Link
+                  key={category.slug}
+                  href={`/article?category=${encodeURIComponent(category.slug)}`}
+                  className={[
+                    "group flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition-all duration-200",
+                    isActive
+                      ? "bg-primary/10 text-primary shadow-sm shadow-primary/5"
+                      : "text-muted hover:bg-surface-2 hover:text-foreground",
+                  ].join(" ")}
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-bold">
+                    {isAdmin && category.visibility === "private" ? (
+                      <span className="text-xs text-amber-500/80" aria-hidden>
+                        🔒
+                      </span>
+                    ) : null}
+                    <span className="truncate">{category.slug}</span>
+                  </span>
+                  <span
+                    className={[
+                      "inline-flex items-center justify-center min-w-[1.75rem] h-5 px-1.5 rounded-lg text-[10px] font-black transition-colors",
+                      isActive
+                        ? "bg-primary/20 text-primary"
+                        : "bg-surface-2 text-muted group-hover:bg-surface-3",
+                    ].join(" ")}
+                  >
+                    {categoryCounts[category.slug] ?? 0}
+                  </span>
+                </Link>
+              );
+            })}
           </nav>
         </div>
       </aside>
 
       {/* Main content - Post list */}
-      <main className="lg:col-span-9 lg:col-start-4 xl:col-span-9 xl:col-start-4">
-        <header className="mb-6 flex items-end justify-between gap-4 border-b border-border pb-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-black tracking-tight text-foreground">
-              {selectedCategory ? `아티클 · ${selectedCategory}` : "아티클"}
-            </h1>
-            <p className="text-sm text-muted">조금 긴 글과 정리된 기록.</p>
-          </div>
+      <main className="lg:col-span-10 lg:col-start-3 xl:col-span-10 xl:col-start-3">
+        <header className={isAdmin ? "mb-6 flex items-center justify-end" : ""}>
           {isAdmin ? (
             <Link
               href="/article/write"
@@ -250,6 +266,15 @@ export default async function BlogIndexPage({ searchParams }: Props) {
             </Link>
           ) : null}
         </header>
+
+        {/* [NEW] Mobile Category Select */}
+        <CategorySelect
+          categories={categories}
+          selectedCategory={selectedCategory}
+          categoryCounts={categoryCounts}
+          totalCount={sidebarTotalCount}
+        />
+
         {posts.length ? (
           <>
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">

@@ -157,7 +157,6 @@ export default function DiaryIndexClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [sortMode, setSortMode] = useState<SortMode>("latest");
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [viewMode, setViewMode] = useState<"day" | "month">("day");
   const [selectedYmd, setSelectedYmd] = useState<string | null>(null);
@@ -274,12 +273,10 @@ export default function DiaryIndexClient({
     }
 
     const sorted = [...filtered].sort((a, b) =>
-      sortMode === "latest"
-        ? b.createdAt.localeCompare(a.createdAt)
-        : a.createdAt.localeCompare(b.createdAt)
+      b.createdAt.localeCompare(a.createdAt)
     );
     return sorted;
-  }, [posts, selectedYmd, sortMode, month]);
+  }, [posts, selectedYmd, month]);
 
   const totalPages = Math.ceil(visiblePosts.length / ITEMS_PER_PAGE);
   const paginatedPosts = visiblePosts.slice(
@@ -296,175 +293,11 @@ export default function DiaryIndexClient({
   const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
 
   return (
-    <div className="grid gap-10 lg:grid-cols-12">
-      <aside className="lg:col-span-4 xl:col-span-3">
-        <div className="space-y-6 lg:sticky lg:top-24">
-          <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() =>
-                  setViewMode((prev) => (prev === "day" ? "month" : "day"))
-                }
-                className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-surface-2 transition"
-              >
-                <p className="text-lg font-black tracking-tight text-foreground">
-                  {viewMode === "day" ? monthTitle : `${month.getFullYear()}년`}
-                </p>
-                <ChevronRight
-                  className={`size-4 text-muted transition-transform duration-200 ${viewMode === "month" ? "rotate-90" : ""
-                    }`}
-                />
-              </button>
-
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMonth((m) =>
-                      viewMode === "day"
-                        ? addMonths(m, -1)
-                        : new Date(m.getFullYear() - 1, m.getMonth(), 1)
-                    );
-                    setPage(1);
-                    setSelectedYmd(null);
-                  }}
-                  className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
-                  aria-label={viewMode === "day" ? "이전 달" : "이전 연도"}
-                >
-                  <ChevronLeft className="size-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMonth((m) =>
-                      viewMode === "day"
-                        ? addMonths(m, 1)
-                        : new Date(m.getFullYear() + 1, m.getMonth(), 1)
-                    );
-                    setPage(1);
-                    setSelectedYmd(null);
-                  }}
-                  className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
-                  aria-label={viewMode === "day" ? "다음 달" : "다음 연도"}
-                >
-                  <ChevronRight className="size-5" />
-                </button>
-              </div>
-            </div>
-
-            {viewMode === "day" ? (
-              <>
-                <div className="mt-4 grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted">
-                  {dayNames.map((d) => (
-                    <div key={d} className="py-1">
-                      {d}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-2 grid grid-cols-7 gap-2 text-center">
-                  {monthGrid.map(({ date, inMonth }) => {
-                    const ymd = formatYmdKst(date);
-                    const hasEntry = entryDays.has(ymd);
-                    const isSelected = selectedYmd === ymd;
-
-                    return (
-                      <button
-                        key={ymd}
-                        type="button"
-                        onClick={() => {
-                          setSelectedYmd((prev) => (prev === ymd ? null : ymd));
-                          setPage(1);
-                        }}
-                        className={[
-                          "relative flex h-9 w-full items-center justify-center rounded-xl text-sm font-semibold transition",
-                          inMonth ? "text-foreground" : "text-muted/50",
-                          hasEntry
-                            ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20"
-                            : "hover:bg-surface-2",
-                          isSelected ? "ring-2 ring-primary/60" : "ring-0",
-                        ].join(" ")}
-                        aria-label={`${ymd}${hasEntry ? " 다이어리 있음" : ""}`}
-                      >
-                        {date.getDate()}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            ) : (
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                {Array.from({ length: 12 }).map((_, i) => {
-                  const currentMonth = new Date(month.getFullYear(), i, 1);
-                  const isCurrentMonth = i === month.getMonth();
-                  const monthLabel = `${i + 1}월`;
-
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => {
-                        setMonth(currentMonth);
-                        setViewMode("day");
-                        setPage(1);
-                        setSelectedYmd(null);
-                      }}
-                      className={[
-                        "flex h-12 items-center justify-center rounded-xl text-sm font-bold transition",
-                        isCurrentMonth
-                          ? "bg-primary text-white shadow-lg shadow-primary/25"
-                          : "bg-surface text-foreground hover:bg-surface-2",
-                      ].join(" ")}
-                    >
-                      {monthLabel}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {isAdmin ? (
-            <Link
-              href={buildWriteHref(selectedYmd)}
-              className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-background p-5 transition hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                  <WeatherIcon className="size-6" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-base font-bold text-foreground">
-                    오늘은 어떤 하루였나요?
-                  </p>
-                  <p className="text-sm text-muted">
-                    {selectedYmd
-                      ? `${selectedYmd.replaceAll("-", ".")} 작성하기`
-                      : "오늘 다이어리 작성하기"}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="size-5 text-muted transition group-hover:text-foreground" />
-            </Link>
-          ) : null}
-        </div>
-      </aside>
-
-      <section className="lg:col-span-8 xl:col-span-9">
-        <div className="flex items-center justify-between gap-4 border-b border-border pb-4">
+    <div className="space-y-6">
+      {/* Header Row - Moved outside to align grid items at the top */}
+      {selectedYmd || isAdmin ? (
+        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <label className="inline-flex items-center gap-2 text-sm text-muted">
-              <span className="sr-only">정렬</span>
-              <select
-                value={sortMode}
-                onChange={(e) => setSortMode(e.target.value as SortMode)}
-                className="h-9 rounded-xl border border-border bg-background px-3 text-sm font-semibold text-foreground outline-none transition focus:border-primary/60"
-              >
-                <option value="latest">최신순</option>
-                <option value="oldest">오래된순</option>
-              </select>
-            </label>
             {selectedYmd ? (
               <button
                 type="button"
@@ -479,9 +312,6 @@ export default function DiaryIndexClient({
             ) : null}
           </div>
           <div className="flex items-center gap-3">
-            <p className="text-sm font-semibold text-muted">
-              이번달 {visiblePosts.length}개의 기록
-            </p>
             {isAdmin ? (
               <Link
                 href={buildWriteHref(selectedYmd)}
@@ -492,125 +322,283 @@ export default function DiaryIndexClient({
             ) : null}
           </div>
         </div>
+      ) : null}
 
-        <div className="mt-6 rounded-3xl border border-border bg-background shadow-sm">
-          <div className="divide-y divide-border">
-            {paginatedPosts.length ? (
-              paginatedPosts.map((post) => {
-                const date = new Date(post.createdAt);
+      <div className="grid gap-10 lg:grid-cols-12 lg:items-start">
+        <aside className="lg:col-span-4 xl:col-span-3">
+          <div className="space-y-6 lg:sticky lg:top-24">
+            <div className="rounded-3xl border border-border bg-background p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setViewMode((prev) => (prev === "day" ? "month" : "day"))
+                  }
+                  className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-surface-2 transition"
+                >
+                  <p className="text-lg font-black tracking-tight text-foreground">
+                    {viewMode === "day" ? monthTitle : `${month.getFullYear()}년`}
+                  </p>
+                  <ChevronRight
+                    className={`size-4 text-muted transition-transform duration-200 ${viewMode === "month" ? "rotate-90" : ""
+                      }`}
+                  />
+                </button>
 
-                return (
-                  <div
-                    key={post.id}
-                    className="px-5 py-6 transition hover:bg-surface-2/60 first:rounded-t-3xl last:rounded-b-3xl"
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMonth((m) =>
+                        viewMode === "day"
+                          ? addMonths(m, -1)
+                          : new Date(m.getFullYear() - 1, m.getMonth(), 1)
+                      );
+                      setPage(1);
+                      setSelectedYmd(null);
+                    }}
+                    className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
+                    aria-label={viewMode === "day" ? "이전 달" : "이전 연도"}
                   >
-                    <div className="flex items-start gap-5">
-                      {/* Prominent Date Display */}
-                      <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-2 px-3 py-2 min-w-[3.5rem] border border-border/50">
-                        <span className="text-xs font-semibold text-muted/80">
-                          {date.getMonth() + 1}월
-                        </span>
-                        <span className="text-2xl font-black text-foreground">
-                          {date.getDate()}
-                        </span>
-                      </div>
+                    <ChevronLeft className="size-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMonth((m) =>
+                        viewMode === "day"
+                          ? addMonths(m, 1)
+                          : new Date(m.getFullYear() + 1, m.getMonth(), 1)
+                      );
+                      setPage(1);
+                      setSelectedYmd(null);
+                    }}
+                    className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
+                    aria-label={viewMode === "day" ? "다음 달" : "다음 연도"}
+                  >
+                    <ChevronRight className="size-5" />
+                  </button>
+                </div>
+              </div>
 
-                      <div className="min-w-0 flex-1 space-y-2 py-0.5">
-                        <div className="flex items-start justify-between gap-3">
-                          {post.visibility === "public" || isAdmin ? (
-                            <Link
-                              href={`/diary/${post.slug}`}
-                              className="block min-w-0 flex-1"
-                              prefetch={false}
-                            >
-                              <h2 className="truncate text-lg font-bold text-foreground transition hover:text-primary">
+              {viewMode === "day" ? (
+                <>
+                  <div className="mt-4 grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted">
+                    {dayNames.map((d) => (
+                      <div key={d} className="py-1">
+                        {d}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-7 gap-2 text-center">
+                    {monthGrid.map(({ date, inMonth }) => {
+                      const ymd = formatYmdKst(date);
+                      const hasEntry = entryDays.has(ymd);
+                      const isSelected = selectedYmd === ymd;
+
+                      return (
+                        <button
+                          key={ymd}
+                          type="button"
+                          onClick={() => {
+                            setSelectedYmd((prev) => (prev === ymd ? null : ymd));
+                            setPage(1);
+                          }}
+                          className={[
+                            "relative flex h-9 w-full items-center justify-center rounded-xl text-sm font-semibold transition",
+                            inMonth ? "text-foreground" : "text-muted/50",
+                            hasEntry
+                              ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20"
+                              : "hover:bg-surface-2",
+                            isSelected ? "ring-2 ring-primary/60" : "ring-0",
+                          ].join(" ")}
+                          aria-label={`${ymd}${hasEntry ? " 다이어리 있음" : ""}`}
+                        >
+                          {date.getDate()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  {Array.from({ length: 12 }).map((_, i) => {
+                    const currentMonth = new Date(month.getFullYear(), i, 1);
+                    const isCurrentMonth = i === month.getMonth();
+                    const monthLabel = `${i + 1}월`;
+
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          setMonth(currentMonth);
+                          setViewMode("day");
+                          setPage(1);
+                          setSelectedYmd(null);
+                        }}
+                        className={[
+                          "flex h-12 items-center justify-center rounded-xl text-sm font-bold transition",
+                          isCurrentMonth
+                            ? "bg-primary text-white shadow-lg shadow-primary/25"
+                            : "bg-surface text-foreground hover:bg-surface-2",
+                        ].join(" ")}
+                      >
+                        {monthLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {isAdmin ? (
+              <Link
+                href={buildWriteHref(selectedYmd)}
+                className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-background p-5 transition hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                    <WeatherIcon className="size-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-base font-bold text-foreground">
+                      오늘은 어떤 하루였나요?
+                    </p>
+                    <p className="text-sm text-muted">
+                      {selectedYmd
+                        ? `${selectedYmd.replaceAll("-", ".")} 작성하기`
+                        : "오늘 다이어리 작성하기"}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="size-5 text-muted transition group-hover:text-foreground" />
+              </Link>
+            ) : null}
+          </div>
+        </aside>
+
+        <section className="lg:col-span-8 xl:col-span-9">
+          <div className="rounded-3xl border border-border bg-background shadow-sm">
+            <div className="divide-y divide-border">
+              {paginatedPosts.length ? (
+                paginatedPosts.map((post) => {
+                  const date = new Date(post.createdAt);
+
+                  return (
+                    <div
+                      key={post.id}
+                      className="px-5 py-6 transition hover:bg-surface-2/60 first:rounded-t-3xl last:rounded-b-3xl"
+                    >
+                      <div className="flex items-start gap-5">
+                        {/* Prominent Date Display */}
+                        <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-2 px-3 py-2 min-w-[3.5rem] border border-border/50">
+                          <span className="text-xs font-semibold text-muted/80">
+                            {date.getMonth() + 1}월
+                          </span>
+                          <span className="text-2xl font-black text-foreground">
+                            {date.getDate()}
+                          </span>
+                        </div>
+
+                        <div className="min-w-0 flex-1 space-y-2 py-0.5">
+                          <div className="flex items-start justify-between gap-3">
+                            {post.visibility === "public" || isAdmin ? (
+                              <Link
+                                href={`/diary/${post.slug}`}
+                                className="block min-w-0 flex-1"
+                                prefetch={false}
+                              >
+                                <h2 className="truncate text-lg font-bold text-foreground transition hover:text-primary">
+                                  {post.title}
+                                </h2>
+                              </Link>
+                            ) : (
+                              <h2 className="truncate text-lg font-bold text-foreground/80">
                                 {post.title}
                               </h2>
-                            </Link>
-                          ) : (
-                            <h2 className="truncate text-lg font-bold text-foreground/80">
-                              {post.title}
-                            </h2>
-                          )}
-                          <div className="flex items-center gap-2">
-                            {post.visibility === "private" && (
-                              <LockIcon className="size-4 text-muted/50" />
                             )}
-                            {isAdmin ? (
-                              <PostActionMenu
-                                editHref={`/diary/edit/${post.slug}`}
-                                deleteSlug={post.slug}
-                                deleteRedirectTo="/diary"
-                                ariaLabel="다이어리 더보기"
-                              />
-                            ) : null}
+                            <div className="flex items-center gap-2">
+                              {post.visibility === "private" && (
+                                <LockIcon className="size-4 text-muted/50" />
+                              )}
+                              {isAdmin ? (
+                                <PostActionMenu
+                                  editHref={`/diary/edit/${post.slug}`}
+                                  deleteSlug={post.slug}
+                                  deleteRedirectTo="/diary"
+                                  ariaLabel="다이어리 더보기"
+                                />
+                              ) : null}
+                            </div>
                           </div>
+                          <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
+                            <p className="text-sm text-muted">
+                              {date.getFullYear()}년 {date.getMonth() + 1}월{" "}
+                              {date.getDate()}일 ({dayNames[date.getDay()]})
+                            </p>
+                          </div>
+                          {post.visibility === "private" && !isAdmin ? (
+                            <p className="text-sm text-muted">
+                              해당 글은 비공개입니다.
+                            </p>
+                          ) : null}
                         </div>
-                        <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
-                          <p className="text-sm text-muted">
-                            {date.getFullYear()}년 {date.getMonth() + 1}월{" "}
-                            {date.getDate()}일 ({dayNames[date.getDay()]})
-                          </p>
-                        </div>
-                        {post.visibility === "private" && !isAdmin ? (
-                          <p className="text-sm text-muted">
-                            해당 글은 비공개입니다.
-                          </p>
-                        ) : null}
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="py-16 text-center">
-                <p className="text-sm text-muted">
-                  {selectedYmd
-                    ? "선택한 날짜에 작성한 다이어리가 없습니다."
-                    : "아직 다이어리가 없습니다."}
-                </p>
-                {isAdmin ? (
-                  <div className="mt-4">
-                    <Link
-                      href={buildWriteHref(selectedYmd)}
-                      className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
-                    >
-                      {selectedYmd
-                        ? "선택한 날짜에 다이어리 작성하기"
-                        : "오늘 다이어리 작성하기"}
-                    </Link>
-                  </div>
-                ) : null}
-              </div>
-            )}
+                  );
+                })
+              ) : (
+                <div className="py-16 text-center">
+                  <p className="text-sm text-muted">
+                    {selectedYmd
+                      ? "선택한 날짜에 작성한 다이어리가 없습니다."
+                      : "아직 다이어리가 없습니다."}
+                  </p>
+                  {isAdmin ? (
+                    <div className="mt-4">
+                      <Link
+                        href={buildWriteHref(selectedYmd)}
+                        className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+                      >
+                        {selectedYmd
+                          ? "선택한 날짜에 다이어리 작성하기"
+                          : "오늘 다이어리 작성하기"}
+                      </Link>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="mt-8 flex justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 disabled:opacity-50 disabled:pointer-events-none"
-            >
-              이전
-            </button>
-            <span className="flex items-center px-4 text-sm font-medium text-muted">
-              {page} / {totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 disabled:opacity-50 disabled:pointer-events-none"
-            >
-              다음
-            </button>
-          </div>
-        )}
-      </section>
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="mt-8 flex justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                이전
+              </button>
+              <span className="flex items-center px-4 text-sm font-medium text-muted">
+                {page} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                다음
+              </button>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

@@ -57,7 +57,7 @@ export default async function DiaryEntryPage({
           {post?.title ?? "비공개 다이어리"}
         </h1>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
           <div className="flex items-center gap-4">
             <Image
               src="/logo.png"

@@ -2,16 +2,7 @@ import { Skeleton, Card } from "@/app/_components/ui";
 
 export default function FeedLoading() {
     return (
-        <div className="mx-auto max-w-xl space-y-8">
-            <header className="space-y-4">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="space-y-2">
-                        <Skeleton className="h-8 w-24" />
-                        <Skeleton className="h-4 w-48" />
-                    </div>
-                </div>
-            </header>
-
+        <div className="mx-auto max-w-xl space-y-8 pt-4">
             <div className="space-y-7">
                 {[...Array(3)].map((_, i) => (
                     <Card key={i} className="overflow-hidden">

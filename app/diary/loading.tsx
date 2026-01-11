@@ -2,7 +2,7 @@ import { Skeleton } from "@/app/_components/ui";
 
 export default function DiaryLoading() {
     return (
-        <div className="grid gap-8 lg:grid-cols-12">
+        <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
             {/* Sidebar/Calendar Skeleton */}
             <aside className="lg:col-span-4 xl:col-span-3">
                 <div className="space-y-6">
@@ -21,15 +21,7 @@ export default function DiaryLoading() {
 
             {/* Main List Skeleton */}
             <section className="lg:col-span-8 xl:col-span-9">
-                <header className="flex items-center justify-between gap-4 border-b border-border pb-4">
-                    <Skeleton className="h-9 w-24 rounded-xl" />
-                    <div className="flex items-center gap-3">
-                        <Skeleton className="h-5 w-24" />
-                        <Skeleton className="h-9 w-32 rounded-xl" />
-                    </div>
-                </header>
-
-                <div className="mt-6 rounded-3xl border border-border bg-background shadow-sm">
+                <div className="rounded-3xl border border-border bg-background shadow-sm">
                     <div className="divide-y divide-border">
                         {[...Array(5)].map((_, i) => (
                             <div key={i} className="flex items-start gap-5 px-5 py-6">
