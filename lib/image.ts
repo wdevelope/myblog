@@ -5,13 +5,13 @@ export function coverSrcFromImageKey(key: string) {
   if (!looksLikeSupabaseKey) return key;
 
   // Force API proxy for consistency and reliability
-  // if (bucket === "post-images-public") {
-  //   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  //   if (base) {
-  //     const path = encodeURIComponent(objectPath).replaceAll("%2F", "/");
-  //     return `${base}/storage/v1/object/public/${bucket}/${path}`;
-  //   }
-  // }
+  if (bucket === "post-images-public") {
+    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (base) {
+      const path = encodeURIComponent(objectPath).replaceAll("%2F", "/");
+      return `${base}/storage/v1/object/public/${bucket}/${path}`;
+    }
+  }
 
   return `/api/images?bucket=${encodeURIComponent(
     bucket

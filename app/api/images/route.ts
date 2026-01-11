@@ -36,29 +36,26 @@ export async function GET(request: Request) {
     await requireAdmin(url.pathname);
   }
 
-  // For public bucket, redirect directly to public URL
-  if (bucket === "post-images-public") {
-    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (base) {
-      const encodedPath = encodeURIComponent(path).replaceAll("%2F", "/");
-      const publicUrl = `${base}/storage/v1/object/public/${bucket}/${encodedPath}`;
-      return NextResponse.redirect(publicUrl);
-    }
-  }
-
-  // For private buckets, generate signed URL
+  // For all buckets, fetch and return the actual data to avoid redirect issues with next/image
   const service = createSupabaseServiceClient();
-  const { data, error } = await service.storage
+  const { data: blob, error: downloadError } = await service.storage
     .from(bucket)
-    .createSignedUrl(path, 60 * 10);
-  if (error || !data?.signedUrl) {
+    .download(path);
+
+  if (downloadError || !blob) {
     return NextResponse.json(
-      { error: "signed_url_failed", details: error?.message },
-      { status: 500 }
+      { error: "image_fetch_failed", details: downloadError?.message },
+      { status: 404 }
     );
   }
 
-  return NextResponse.redirect(data.signedUrl);
+  // Return the image data with proper headers
+  return new Response(blob, {
+    headers: {
+      "Content-Type": blob.type || "image/png",
+      "Cache-Control": "public, max-age=31536000, immutable",
+    },
+  });
 }
 
 export async function POST(request: Request) {
@@ -71,8 +68,8 @@ export async function POST(request: Request) {
     visibility === "public"
       ? "post-images-public"
       : visibility === "private"
-      ? "post-images-private"
-      : null;
+        ? "post-images-private"
+        : null;
 
   if (!bucket) {
     return NextResponse.json(
