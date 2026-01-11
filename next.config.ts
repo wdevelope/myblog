@@ -5,7 +5,6 @@ const supabaseHostname = supabaseUrl ? new URL(supabaseUrl).hostname : null;
 
 const nextConfig: NextConfig = {
   images: {
-    unoptimized: true,
     localPatterns: [
       {
         pathname: "/**",
