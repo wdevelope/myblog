@@ -94,6 +94,7 @@ async function HomePage() {
                       <Link
                         href={`/article/${post.slug}`}
                         className="text-xl font-bold leading-tight text-foreground hover:text-primary"
+                        prefetch={false}
                       >
                         {post.title}
                       </Link>
@@ -105,6 +106,7 @@ async function HomePage() {
                       <Link
                         href={`/article/${post.slug}`}
                         className="text-sm font-bold text-primary hover:opacity-90"
+                        prefetch={false}
                       >
                         읽기 →
                       </Link>
