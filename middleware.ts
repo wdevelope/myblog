@@ -24,8 +24,15 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Ensure auth cookies are refreshed before Server Components run.
-  await supabase.auth.getUser();
+  // [PERF] 쿠키가 아예 없는 방문자(Guest)는 Supabase 서버와의 통신을 건너뛰어 TTFB를 단축합니다.
+  const allCookies = request.cookies.getAll();
+  const hasAuthCookie = allCookies.some((c) => c.name.startsWith("sb-"));
+
+  if (hasAuthCookie) {
+    // Ensure auth cookies are refreshed before Server Components run.
+    // [SECURITY] This is essential for maintaining session and security.
+    await supabase.auth.getUser();
+  }
 
   return response;
 }
