@@ -166,7 +166,10 @@ export async function POST(request: Request) {
     createdAtIso = createdAt.toISOString();
   }
 
-  const baseSlug = body.slug?.trim() || slugify(finalTitle) || "post";
+  // 신규 작성이면 무조건 "post"를 베이스로 사용하고, 
+  // 수정 시에는 기존에 제공된 슬러그를 유지하거나 없으면 "post"를 사용합니다.
+  const isNew = !body.id;
+  const baseSlug = (body.id ? body.slug?.trim() : null) || "post";
   const service = createSupabaseServiceClient();
   const categorySlug =
     body.type === "blog" ? (body.categorySlug?.trim() ?? null) : null;
@@ -220,6 +223,12 @@ export async function POST(request: Request) {
 
   // ensure slug unique (best-effort)
   let slug = baseSlug;
+
+  // 신규 작성인 경우 항상 랜덤 문자열을 붙여서 post-xxxxxx 형식을 만듭니다.
+  if (isNew) {
+    slug = `${baseSlug}-${Math.random().toString(16).slice(2, 8)}`;
+  }
+
   for (let i = 0; i < 5; i++) {
     const { data: existing } = await service
       .from("posts")
