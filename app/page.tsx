@@ -69,7 +69,11 @@ async function UserActionButtons() {
 
 async function LatestArticlesSection() {
   const user = await getCurrentUser();
-  const latestArticles = await getPostsDirectly({ type: "blog", limit: 6, user });
+  const latestArticles = await getPostsDirectly({
+    type: "blog",
+    limit: 6,
+    user,
+  });
 
   return (
     <section className="space-y-4">
@@ -99,9 +103,7 @@ async function LatestArticlesSection() {
                   <div className="flex items-center gap-2 text-xs text-muted">
                     <Badge variant="primary">아티클</Badge>
                     <span>•</span>
-                    <span>
-                      {new Date(post.createdAt).toLocaleDateString()}
-                    </span>
+                    <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                     <span className="flex-1" />
                     {post.categorySlug ? (
                       <span className="text-muted">{post.categorySlug}</span>
@@ -130,7 +132,7 @@ async function LatestArticlesSection() {
                   </div>
                 </div>
 
-                {post.thumbnailImageKey ? (
+                {post.thumbnailImageKey && post.visibility === "public" ? (
                   <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-2xl ring-1 ring-border md:h-48 md:w-64">
                     <Image
                       src={coverSrcFromImageKey(post.thumbnailImageKey) ?? ""}
