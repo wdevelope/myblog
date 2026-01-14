@@ -20,7 +20,7 @@ function Brand() {
           className="size-full object-cover"
         />
       </span>
-      <span className="text-base font-bold tracking-tight">Wonse</span>
+      <span className="text-base font-bold tracking-tight">Wonce</span>
     </Link>
   );
 }

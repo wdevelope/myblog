@@ -6,7 +6,7 @@ export const metadata = {
   title: "다이어리",
 };
 
-export const revalidate = 3600;
+export const revalidate = 86400; // REVALIDATE_PERIOD
 
 export default async function DiaryPage() {
   const user = await getCurrentUser();

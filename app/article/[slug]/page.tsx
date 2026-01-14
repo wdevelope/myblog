@@ -10,7 +10,7 @@ import { CardBody } from "@/app/_components/ui";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 import HtmlContent from "@/app/_components/HtmlContent";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // REVALIDATE_PERIOD
 
 export default async function BlogPostPage({
   params,

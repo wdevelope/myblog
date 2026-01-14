@@ -1,7 +1,7 @@
 import { MetadataRoute } from "next";
 import { getPublicPosts } from "@/lib/server/publicPosts";
 
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 86400; // REVALIDATE_PERIOD
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.w-life.store";

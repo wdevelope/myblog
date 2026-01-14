@@ -14,7 +14,7 @@ export const metadata = {
   title: "아티클",
 };
 
-export const revalidate = 3600;
+export const revalidate = 86400; // REVALIDATE_PERIOD
 
 function coverSrcFromImageKey(key: string) {
   const [bucket, ...rest] = key.split(":");
