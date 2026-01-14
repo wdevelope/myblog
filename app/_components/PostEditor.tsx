@@ -19,6 +19,8 @@ import { coverSrcFromImageKey } from "@/lib/image";
 // import HtmlContent from "@/app/_components/HtmlContent";
 import DeletePostButton from "@/app/_components/DeletePostButton";
 import { cn } from "@/lib/utils";
+import { getCategories } from "@/lib/actions/categories";
+import { createPost } from "@/lib/actions/posts";
 import dynamic from "next/dynamic";
 
 const CkEditor = dynamic(() => import("@/app/_components/CkEditor"), {
@@ -192,17 +194,9 @@ export default function PostEditor({
   const refreshCategories = useCallback(async () => {
     if (type !== "blog") return;
     try {
-      const response = await fetch("/api/categories", { method: "GET" });
-      if (!response.ok) return;
-      const payload = (await response.json()) as {
-        categories: Array<{
-          slug: string;
-          visibility: "public" | "private";
-          sortOrder: number;
-          inUse?: number;
-        }>;
-      };
-      const slugs = (payload.categories ?? [])
+      const result = await getCategories();
+      if (!result.success) return;
+      const slugs = (result.categories ?? [])
         .map((c) => c.slug)
         .filter(
           (v): v is string => typeof v === "string" && v.trim().length > 0
@@ -355,40 +349,34 @@ export default function PostEditor({
     if (type !== "feed" && !trimmedTitle)
       return setError("제목을 입력해주세요.");
 
-    const response = await fetch("/api/posts", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        id: initial?.id,
-        slug: initial?.slug,
-        type,
-        visibility: type === "feed" ? "public" : visibility,
-        title: trimmedTitle,
-        content: trimmedContent,
-        categorySlug: type === "blog" ? categorySlug.trim() : null,
-        imageKeys,
-        thumbnailImageKey:
-          type === "blog" ? thumbnailImageKey.trim() || null : null,
-        ...(type === "diary" && !initial?.id && createdAtYmd
-          ? { createdAtYmd }
-          : null),
-      }),
+    const result = await createPost({
+      id: initial?.id,
+      slug: initial?.slug,
+      type,
+      visibility: type === "feed" ? "public" : visibility,
+      title: trimmedTitle,
+      content: trimmedContent,
+      categorySlug: type === "blog" ? categorySlug.trim() : null,
+      imageKeys,
+      thumbnailImageKey:
+        type === "blog" ? thumbnailImageKey.trim() || null : null,
+      createdAtYmd:
+        type === "diary" && !initial?.id && createdAtYmd
+          ? createdAtYmd
+          : undefined,
     });
 
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-      setError(payload?.error ?? "글 저장에 실패했어요.");
+    if (!result.success) {
+      setError(result.error ?? "글 저장에 실패했어요.");
       return;
     }
 
-    const created = (await response.json()) as { slug: string; type: PostType };
     clearDraft();
     startTransition(() => {
-      if (created.type === "blog") router.push(`/article/${created.slug}`);
-      else if (created.type === "feed") router.push(`/feed`);
-      else router.push(`/diary/${created.slug}`);
+      if (result.data.type === "blog")
+        router.push(`/article/${result.data.slug}`);
+      else if (result.data.type === "feed") router.push(`/feed`);
+      else router.push(`/diary/${result.data.slug}`);
       router.refresh();
     });
   }

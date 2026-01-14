@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { Comment } from "@/lib/types";
+import { createComment as createCommentAction } from "@/lib/actions/comments";
 
 function formatRelativeTime(dateIso: string) {
   const now = Date.now();
@@ -122,23 +123,14 @@ export default function CommentsThread({
   }, [comments]);
 
   async function createComment(content: string, parentId?: string | null) {
-    const response = await fetch("/api/comments", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        postSlug,
-        content,
-        ...(parentId ? { parentId } : null),
-      }),
+    const result = await createCommentAction({
+      postSlug,
+      content,
+      parentId: parentId ?? undefined,
     });
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-        details?: string;
-      } | null;
-      throw new Error(
-        payload?.error ?? payload?.details ?? "댓글 등록에 실패했어요."
-      );
+
+    if (!result.success) {
+      throw new Error(result.error ?? "댓글 등록에 실패했어요.");
     }
 
     setReplyTo(null);

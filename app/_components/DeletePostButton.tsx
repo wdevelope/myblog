@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { deletePost } from "@/lib/actions/posts";
 
 export default function DeletePostButton({
   slug,
@@ -21,11 +22,9 @@ export default function DeletePostButton({
     if (!ok) return;
 
     const promise = (async () => {
-      const response = await fetch(`/api/posts/${encodeURIComponent(slug)}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        throw new Error("삭제에 실패했어요.");
+      const result = await deletePost(slug);
+      if (!result.success) {
+        throw new Error(result.error ?? "삭제에 실패했어요.");
       }
 
       if (redirectTo) router.replace(redirectTo);
@@ -46,4 +45,3 @@ export default function DeletePostButton({
     </button>
   );
 }
-

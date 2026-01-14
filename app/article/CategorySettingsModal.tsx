@@ -4,13 +4,14 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FiSettings, FiX } from "react-icons/fi";
-
-type Category = {
-  slug: string;
-  visibility: "public" | "private";
-  sortOrder: number;
-  inUse?: number;
-};
+import {
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  reorderCategory,
+  type Category,
+} from "@/lib/actions/categories";
 
 export default function CategorySettingsModal() {
   const router = useRouter();
@@ -34,19 +35,20 @@ export default function CategorySettingsModal() {
 
   const moveTargets = useMemo(() => {
     if (!pendingDelete) return [];
-    return categories.filter((c) => c.slug !== pendingDelete).map((c) => c.slug);
+    return categories
+      .filter((c) => c.slug !== pendingDelete)
+      .map((c) => c.slug);
   }, [categories, pendingDelete]);
 
   async function refreshList() {
     setLoading(true);
     try {
-      const response = await fetch("/api/categories", { method: "GET" });
-      if (!response.ok) {
+      const result = await getCategories();
+      if (!result.success) {
         toast.error("카테고리 목록을 불러오지 못했어요.");
         return;
       }
-      const data = (await response.json()) as { categories: Category[] };
-      const list = Array.isArray(data.categories) ? data.categories : [];
+      const list = Array.isArray(result.categories) ? result.categories : [];
       setCategories(list);
     } finally {
       setLoading(false);
@@ -74,17 +76,13 @@ export default function CategorySettingsModal() {
     }
 
     const promise = (async () => {
-      const response = await fetch("/api/categories", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slug }),
-      });
+      const result = await createCategory(slug);
 
-      if (response.status === 409) {
-        throw new Error("이미 존재하는 카테고리예요.");
-      }
-      if (!response.ok) {
-        throw new Error("카테고리 생성에 실패했어요.");
+      if (!result.success) {
+        if (result.error === "conflict") {
+          throw new Error("이미 존재하는 카테고리예요.");
+        }
+        throw new Error(result.error ?? "카테고리 생성에 실패했어요.");
       }
 
       setNewSlug("");
@@ -101,13 +99,9 @@ export default function CategorySettingsModal() {
   }
 
   async function onMove(slug: string, direction: "up" | "down") {
-    const response = await fetch("/api/categories/reorder", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ slug, direction }),
-    });
+    const result = await reorderCategory(slug, direction);
 
-    if (!response.ok) {
+    if (!result.success) {
       toast.error("카테고리 순서 변경에 실패했어요.");
       return;
     }
@@ -116,14 +110,13 @@ export default function CategorySettingsModal() {
     router.refresh();
   }
 
-  async function onChangeVisibility(slug: string, visibility: "public" | "private") {
-    const response = await fetch(`/api/categories/${encodeURIComponent(slug)}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ visibility }),
-    });
+  async function onChangeVisibility(
+    slug: string,
+    visibility: "public" | "private"
+  ) {
+    const result = await updateCategory(slug, { visibility });
 
-    if (!response.ok) {
+    if (!result.success) {
       toast.error("카테고리 공개 범위 변경에 실패했어요.");
       return;
     }
@@ -147,20 +140,13 @@ export default function CategorySettingsModal() {
     }
 
     const promise = (async () => {
-      const response = await fetch(
-        `/api/categories/${encodeURIComponent(editingSlug)}`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ slug: next }),
-        }
-      );
+      const result = await updateCategory(editingSlug, { slug: next });
 
-      if (response.status === 409) {
-        throw new Error("이미 존재하는 카테고리예요.");
-      }
-      if (!response.ok) {
-        throw new Error("카테고리 이름 변경에 실패했어요.");
+      if (!result.success) {
+        if (result.error === "conflict") {
+          throw new Error("이미 존재하는 카테고리예요.");
+        }
+        throw new Error(result.error ?? "카테고리 이름 변경에 실패했어요.");
       }
 
       setEditingSlug(null);
@@ -188,7 +174,7 @@ export default function CategorySettingsModal() {
     if (!pendingDelete) return;
 
     const inUse = categoriesMap.get(pendingDelete)?.inUse ?? 0;
-    const payload = inUse > 0 ? { moveTo: deleteMoveTo } : {};
+    const moveTo = inUse > 0 ? deleteMoveTo : undefined;
     if (inUse > 0 && !deleteMoveTo) {
       toast.error("이동할 카테고리를 선택해주세요.");
       return;
@@ -202,20 +188,13 @@ export default function CategorySettingsModal() {
     if (!ok) return;
 
     const promise = (async () => {
-      const response = await fetch(
-        `/api/categories/${encodeURIComponent(pendingDelete)}`,
-        {
-          method: "DELETE",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
+      const result = await deleteCategory(pendingDelete, moveTo);
 
-      if (response.status === 409) {
-        throw new Error("사용 중인 카테고리라서 이동 카테고리가 필요해요.");
-      }
-      if (!response.ok) {
-        throw new Error("카테고리 삭제에 실패했어요.");
+      if (!result.success) {
+        if (result.error === "in_use") {
+          throw new Error("사용 중인 카테고리라서 이동 카테고리가 필요해요.");
+        }
+        throw new Error(result.error ?? "카테고리 삭제에 실패했어요.");
       }
 
       setPendingDelete(null);
@@ -315,7 +294,9 @@ export default function CategorySettingsModal() {
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="truncate text-sm font-bold">{c.slug}</span>
+                            <span className="truncate text-sm font-bold">
+                              {c.slug}
+                            </span>
                             <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-muted">
                               사용 {inUse}
                             </span>
@@ -363,7 +344,7 @@ export default function CategorySettingsModal() {
                                 onChange={(e) =>
                                   void onChangeVisibility(
                                     c.slug,
-                                    e.target.value as "public" | "private",
+                                    e.target.value as "public" | "private"
                                   )
                                 }
                                 className="h-8 rounded-lg border border-border bg-surface px-2 text-xs font-bold outline-none focus:border-primary/40"
@@ -401,7 +382,9 @@ export default function CategorySettingsModal() {
                           }}
                         >
                           <label className="flex-1 space-y-2">
-                            <span className="text-xs font-bold text-muted">새 이름</span>
+                            <span className="text-xs font-bold text-muted">
+                              새 이름
+                            </span>
                             <input
                               value={editingValue}
                               onChange={(e) => setEditingValue(e.target.value)}
@@ -436,7 +419,9 @@ export default function CategorySettingsModal() {
                               </span>
                               <select
                                 value={deleteMoveTo}
-                                onChange={(e) => setDeleteMoveTo(e.target.value)}
+                                onChange={(e) =>
+                                  setDeleteMoveTo(e.target.value)
+                                }
                                 className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary/40"
                               >
                                 <option value="">선택해주세요</option>

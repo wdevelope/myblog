@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { createComment } from "@/lib/actions/comments";
 
 export default function CommentForm({ postSlug }: { postSlug: string }) {
   const router = useRouter();
@@ -14,17 +15,13 @@ export default function CommentForm({ postSlug }: { postSlug: string }) {
     const text = content.trim();
     if (!text) return;
 
-    const response = await fetch("/api/comments", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ postSlug, content: text }),
+    const result = await createComment({
+      postSlug,
+      content: text,
     });
 
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string }
-        | null;
-      setError(payload?.error ?? "댓글 등록에 실패했어요.");
+    if (!result.success) {
+      setError(result.error ?? "댓글 등록에 실패했어요.");
       return;
     }
 
