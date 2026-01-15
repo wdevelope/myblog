@@ -1,10 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getCurrentUser } from "@/lib/server/admin";
-import { getPostsDirectly } from "@/lib/server/posts";
+import { getPublicPosts } from "@/lib/server/publicPosts";
 import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
 import { toExcerpt } from "@/lib/markdown";
 import { coverSrcFromImageKey } from "@/lib/image";
+import AuthButton from "@/app/_components/AuthButton";
 
 import { Suspense } from "react";
 import { Skeleton } from "@/app/_components/ui";
@@ -22,9 +22,11 @@ export default function Home() {
 
           <div className="flex flex-wrap gap-3">
             <ButtonLink href="/feed">최신 피드 보기 →</ButtonLink>
-            <Suspense fallback={<Skeleton className="h-12 w-24 rounded-2xl" />}>
-              <UserActionButtons />
-            </Suspense>
+            {/* 클라이언트에서 인증 상태 확인 후 로그인/로그아웃 표시 */}
+            <AuthButton
+              loginClassName="inline-flex h-12 items-center justify-center rounded-2xl border border-border bg-transparent px-5 text-sm font-bold text-foreground transition hover:border-primary/40 hover:bg-surface"
+              logoutClassName="inline-flex h-12 items-center justify-center rounded-2xl border border-border bg-transparent px-5 text-sm font-bold text-foreground transition hover:border-primary/40 hover:bg-surface"
+            />
           </div>
         </div>
 
@@ -54,25 +56,12 @@ export default function Home() {
 // 1일마다 페이지만 재생성하여 성능을 높입니다 (ISR)
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
-async function UserActionButtons() {
-  const user = await getCurrentUser();
-  const loggedIn = Boolean(user);
-
-  if (loggedIn) return null;
-
-  return (
-    <ButtonLink href="/login" variant="secondary">
-      로그인
-    </ButtonLink>
-  );
-}
-
 async function LatestArticlesSection() {
-  const user = await getCurrentUser();
-  const latestArticles = await getPostsDirectly({
+  // ISR을 위해 공개 포스트만 가져옴 (동적 API 호출 없음)
+  const { data: latestArticles } = await getPublicPosts({
     type: "blog",
     limit: 6,
-    user,
+    revalidateSeconds: 86400,
   });
 
   return (
@@ -132,7 +121,7 @@ async function LatestArticlesSection() {
                   </div>
                 </div>
 
-                {post.thumbnailImageKey && post.visibility === "public" ? (
+                {post.thumbnailImageKey ? (
                   <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-2xl ring-1 ring-border md:h-48 md:w-64">
                     <Image
                       src={coverSrcFromImageKey(post.thumbnailImageKey) ?? ""}

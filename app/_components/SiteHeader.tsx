@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/server/admin";
-import LogoutButton from "@/app/_components/LogoutButton";
 import MobileNav from "@/app/_components/MobileNav";
 import NavLink from "@/app/_components/NavLink";
+import AuthButton from "@/app/_components/AuthButton";
 import Image from "next/image";
 
 function Brand() {
@@ -25,10 +24,8 @@ function Brand() {
   );
 }
 
-export default async function SiteHeader() {
-  const user = await getCurrentUser();
-  const loggedIn = Boolean(user);
-
+// ISR을 위해 정적으로 렌더링 - 로그인 상태는 클라이언트에서 처리
+export default function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/75 backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4">
@@ -56,19 +53,14 @@ export default async function SiteHeader() {
             </div>
           </label>
 
-          {loggedIn ? (
-            <LogoutButton className="hidden h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-surface-2 sm:flex">
-              로그아웃
-            </LogoutButton>
-          ) : (
-            <Link
-              href="/login"
-              className="hidden h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 sm:flex"
-            >
-              로그인
-            </Link>
-          )}
-          <MobileNav loggedIn={loggedIn} />
+          {/* 클라이언트에서 인증 상태 확인 후 로그인/로그아웃 표시 */}
+          <div className="hidden sm:flex">
+            <AuthButton
+              loginClassName="h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 flex"
+              logoutClassName="h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-surface-2 flex"
+            />
+          </div>
+          <MobileNav />
         </div>
       </div>
     </header>
