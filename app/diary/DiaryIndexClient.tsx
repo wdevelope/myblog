@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { FiLock } from "react-icons/fi";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 
 type DiaryPost = {
@@ -66,23 +67,7 @@ function buildCalendarGrid(month: Date) {
   return days;
 }
 
-function LockIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className ?? "size-5"}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-      />
-    </svg>
-  );
-}
+
 
 function ChevronLeft({ className }: { className?: string }) {
   return (
@@ -359,7 +344,6 @@ export default function DiaryIndexClient({
                       setSelectedYmd(null);
                     }}
                     className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
-                    aria-label={viewMode === "day" ? "이전 달" : "이전 연도"}
                   >
                     <ChevronLeft className="size-5" />
                   </button>
@@ -375,7 +359,6 @@ export default function DiaryIndexClient({
                       setSelectedYmd(null);
                     }}
                     className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
-                    aria-label={viewMode === "day" ? "다음 달" : "다음 연도"}
                   >
                     <ChevronRight className="size-5" />
                   </button>
@@ -414,7 +397,6 @@ export default function DiaryIndexClient({
                               : "hover:bg-surface-2",
                             isSelected ? "ring-2 ring-primary/60" : "ring-0",
                           ].join(" ")}
-                          aria-label={`${ymd}${hasEntry ? " 다이어리 있음" : ""}`}
                         >
                           {date.getDate()}
                         </button>
@@ -494,11 +476,11 @@ export default function DiaryIndexClient({
                     >
                       <div className="flex items-start gap-5">
                         {/* Prominent Date Display */}
-                        <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-2 px-3 py-2 min-w-14 border border-border/50">
-                          <span className="text-xs font-semibold text-muted/80">
+                        <div className="flex flex-col items-center justify-center min-w-14 transition-colors group-hover:text-primary">
+                          <span className="text-xs font-semibold text-muted/60">
                             {date.getMonth() + 1}월
                           </span>
-                          <span className="text-2xl font-black text-foreground">
+                          <span className="text-2xl font-black text-foreground/80">
                             {date.getDate()}
                           </span>
                         </div>
@@ -522,7 +504,9 @@ export default function DiaryIndexClient({
                             )}
                             <div className="flex items-center gap-2">
                               {post.visibility === "private" && (
-                                <LockIcon className="size-4 text-muted/50" />
+                                <div className="text-amber-500">
+                                  <FiLock className="size-3.5" />
+                                </div>
                               )}
                               {isAdmin ? (
                                 <PostActionMenu
@@ -540,11 +524,6 @@ export default function DiaryIndexClient({
                               {date.getDate()}일 ({dayNames[date.getDay()]})
                             </p>
                           </div>
-                          {post.visibility === "private" && !isAdmin ? (
-                            <p className="text-sm text-muted">
-                              해당 글은 비공개입니다.
-                            </p>
-                          ) : null}
                         </div>
                       </div>
                     </div>

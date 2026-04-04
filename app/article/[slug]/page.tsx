@@ -6,6 +6,7 @@ import CommentsThread from "@/app/_components/CommentsThread";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { FiLock, FiGlobe } from "react-icons/fi";
 import { CardBody } from "@/app/_components/ui";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 import HtmlContent from "@/app/_components/HtmlContent";
@@ -100,11 +101,12 @@ export default async function BlogPostPage({
                 <span>·</span>
                 <span>조회수 {(post.viewCount ?? 0).toLocaleString()}회</span>
                 <span>·</span>
-                <span className="inline-flex items-center gap-1">
-                  {post.visibility === "public" ? "공개" : "비공개"}
+                <span className="flex items-center gap-1.5 font-medium group">
                   {post.visibility === "private" ? (
-                    <span aria-hidden>🔒</span>
-                  ) : null}
+                    <FiLock className="size-3.5 text-amber-500" aria-hidden />
+                  ) : (
+                    <FiGlobe className="size-3.5 text-emerald-500" aria-hidden />
+                  )}
                 </span>
               </div>
             </div>
@@ -124,7 +126,13 @@ export default async function BlogPostPage({
       <div className="border-t border-border pt-8">
         <CardBody className="space-y-6 px-0">
           {user ? (
-            <CommentsThread postSlug={post.slug} comments={comments} canWrite />
+            <CommentsThread
+              postSlug={post.slug}
+              comments={comments}
+              canWrite
+              currentUserId={user.id}
+              isAdmin={isAdmin}
+            />
           ) : (
             <div className="space-y-3">
               <h2 className="text-2xl font-black tracking-tight text-foreground">

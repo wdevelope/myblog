@@ -4,7 +4,10 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { Comment } from "@/lib/types";
-import { createComment as createCommentAction } from "@/lib/actions/comments";
+import {
+  createComment as createCommentAction,
+  deleteComment as deleteCommentAction,
+} from "@/lib/actions/comments";
 
 function formatRelativeTime(dateIso: string) {
   const now = Date.now();
@@ -103,10 +106,14 @@ export default function CommentsThread({
   postSlug,
   comments,
   canWrite,
+  currentUserId,
+  isAdmin,
 }: {
   postSlug: string;
   comments: Comment[];
   canWrite: boolean;
+  currentUserId?: string | null;
+  isAdmin?: boolean;
 }) {
   const router = useRouter();
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -134,6 +141,20 @@ export default function CommentsThread({
     }
 
     setReplyTo(null);
+    router.refresh();
+  }
+
+  async function handleDelete(commentId: string) {
+    if (!confirm("정말 이 댓글을 삭제하시겠습니까?\n대댓글이 있는 경우 함께 삭제됩니다.")) {
+      return;
+    }
+
+    const result = await deleteCommentAction(commentId);
+    if (!result.success) {
+      alert(result.error ?? "댓글 삭제에 실패했어요.");
+      return;
+    }
+
     router.refresh();
   }
 
@@ -185,6 +206,16 @@ export default function CommentsThread({
                         <span aria-hidden>💬</span>
                         대댓글
                       </button>
+
+                      {(isAdmin || (currentUserId && currentUserId === c.authorId)) && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(c.id)}
+                          className="inline-flex items-center gap-2 font-semibold text-red-500/80 hover:text-red-600 transition"
+                        >
+                          삭제
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -218,6 +249,17 @@ export default function CommentsThread({
                           <p className="whitespace-pre-wrap text-xs leading-5 text-foreground/90">
                             {r.content}
                           </p>
+                          {(isAdmin || (currentUserId && currentUserId === r.authorId)) && (
+                            <div className="flex items-center gap-4 text-xs text-muted">
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(r.id)}
+                                className="inline-flex items-center gap-2 font-semibold text-red-500/80 hover:text-red-600 transition"
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}

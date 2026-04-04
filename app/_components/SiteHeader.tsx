@@ -3,6 +3,7 @@ import MobileNav from "@/app/_components/MobileNav";
 import NavLink from "@/app/_components/NavLink";
 import AuthButton from "@/app/_components/AuthButton";
 import Image from "next/image";
+import { ThemeToggle } from "@/app/_components/ThemeToggle";
 
 function Brand() {
   return (
@@ -39,7 +40,7 @@ export default function SiteHeader() {
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-3">
-          <label className="hidden w-full max-w-sm md:block">
+          <label className="hidden w-full max-w-sm md:block lg:max-w-xs">
             <span className="sr-only">검색</span>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted">
@@ -52,6 +53,8 @@ export default function SiteHeader() {
               />
             </div>
           </label>
+
+          <ThemeToggle />
 
           {/* 클라이언트에서 인증 상태 확인 후 로그인/로그아웃 표시 */}
           <div className="hidden sm:flex">

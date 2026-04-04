@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { FiSettings, FiX } from "react-icons/fi";
+import { FiSettings, FiX, FiGlobe, FiLock } from "react-icons/fi";
 import {
   getCategories,
   createCategory,
@@ -302,13 +302,18 @@ export default function CategorySettingsModal() {
                             </span>
                             <span
                               className={[
-                                "rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1",
+                                "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] ring-1",
                                 c.visibility === "public"
                                   ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20"
                                   : "bg-amber-500/10 text-amber-600 ring-amber-500/20",
                               ].join(" ")}
+                              title={c.visibility === "public" ? "공개" : "비공개"}
                             >
-                              {c.visibility === "public" ? "공개" : "비공개"}
+                              {c.visibility === "public" ? (
+                                <FiGlobe className="size-3.5" />
+                              ) : (
+                                <FiLock className="size-3.5" />
+                              )}
                             </span>
                           </div>
                         </div>

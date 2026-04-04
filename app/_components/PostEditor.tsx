@@ -10,7 +10,7 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
-import { FiArrowLeft, FiImage, FiX, FiTrash2 } from "react-icons/fi";
+import { FiArrowLeft, FiImage, FiX, FiTrash2, FiGlobe, FiLock } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
@@ -386,19 +386,19 @@ export default function PostEditor({
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col h-dvh">
       {/* Top Bar */}
-      <header className="flex h-16 items-center justify-between border-b border-gray-100 bg-white px-6 shrink-0 z-50 sticky top-0">
-        <div className="flex items-center gap-3">
+      <header className="flex h-16 items-center justify-between border-b border-border bg-surface px-4 md:px-6 shrink-0 z-50 sticky top-0">
+        <div className="flex items-center gap-2 md:gap-3">
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex items-center justify-center size-10 rounded-full hover:bg-gray-100 transition text-gray-600"
+            className="flex items-center justify-center size-10 rounded-full hover:bg-surface-2 transition text-muted"
             title="뒤로 가기"
           >
             <FiArrowLeft className="size-6" />
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <span className="text-sm text-gray-400 font-medium mr-2">
             {content.replace(/<[^>]*>/g, "").length}자
           </span>
@@ -410,7 +410,7 @@ export default function PostEditor({
               localStorage.setItem(draftKey, JSON.stringify(draft));
               setDraftSavedAt(draft.updatedAt);
             }}
-            className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-lg transition"
+            className="px-4 py-2 text-sm font-bold text-muted hover:bg-surface-2 rounded-lg transition"
           >
             저장
           </button>
@@ -426,13 +426,13 @@ export default function PostEditor({
       </header>
 
       {/* ... (Editor Content remains same) */}
-      <div className="flex-1 flex overflow-hidden bg-white">
+      <div className="flex-1 flex overflow-hidden bg-background">
         <div className="flex-1 flex flex-col min-w-0 overflow-visible relative">
           {pendingDraft ? (
-            <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm p-4 rounded-xl bg-white border border-gray-100 shadow-2xl flex flex-col gap-3 animate-in slide-in-from-bottom-2 fade-in duration-300">
+            <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm p-4 rounded-xl bg-surface border border-border shadow-2xl flex flex-col gap-3 animate-in slide-in-from-bottom-2 fade-in duration-300">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-gray-900">
+                  <p className="text-sm font-bold text-foreground">
                     임시저장된 글이 있습니다
                   </p>
                   <p className="text-xs text-gray-500">
@@ -445,7 +445,7 @@ export default function PostEditor({
                 <button
                   type="button"
                   onClick={dismissDraft}
-                  className="px-3 py-1.5 text-xs font-bold hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-900 transition"
+                  className="px-3 py-1.5 text-xs font-bold hover:bg-surface-2 rounded-lg text-muted hover:text-foreground transition"
                 >
                   닫기
                 </button>
@@ -518,25 +518,27 @@ export default function PostEditor({
                         type="button"
                         onClick={() => setVisibility("public")}
                         className={cn(
-                          "py-2 text-sm font-bold rounded-lg transition",
+                          "py-2 flex items-center justify-center rounded-lg transition",
                           visibility === "public"
-                            ? "bg-background shadow-sm text-foreground"
+                            ? "bg-background shadow-sm text-emerald-500"
                             : "text-muted hover:text-foreground"
                         )}
+                        title="공개"
                       >
-                        공개
+                        <FiGlobe className="size-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => setVisibility("private")}
                         className={cn(
-                          "py-2 text-sm font-bold rounded-lg transition",
+                          "py-2 flex items-center justify-center rounded-lg transition",
                           visibility === "private"
-                            ? "bg-background shadow-sm text-foreground"
+                            ? "bg-background shadow-sm text-amber-500"
                             : "text-muted hover:text-foreground"
                         )}
+                        title="비공개"
                       >
-                        비공개
+                        <FiLock className="size-4" />
                       </button>
                     </div>
                   </div>

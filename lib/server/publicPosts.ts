@@ -84,16 +84,19 @@ export async function getPublicPosts(params: {
 }
 
 export async function getPublicPostCounts(
-  type: Exclude<PostType, "diary">
+  type: Exclude<PostType, "blog"> | "blog"
 ): Promise<{ counts: Record<string, number>; total: number }> {
   const { url, anonKey } = getSupabaseEnv();
+
+  // 효율적인 카운팅: categories를 조회하면서 그에 속한 public posts 개수를 세어옵니다.
+  // PostgREST: categories?select=slug,posts(count)&posts.type=eq.blog&posts.visibility=eq.public
   const search = new URLSearchParams();
-  search.set("select", "category_slug");
-  search.set("type", `eq.${type}`);
-  search.set("visibility", "eq.public");
+  search.set("select", "slug,posts(count)");
+  search.set("posts.type", `eq.${type}`);
+  search.set("posts.visibility", "eq.public");
 
   const response = await fetch(
-    `${url.replace(/\/$/, "")}/rest/v1/posts?${search.toString()}`,
+    `${url.replace(/\/$/, "")}/rest/v1/categories?${search.toString()}`,
     {
       method: "GET",
       headers: {
@@ -107,13 +110,18 @@ export async function getPublicPostCounts(
 
   if (!response.ok) return { counts: {}, total: 0 };
 
-  const rows = (await response.json()) as { category_slug: string | null }[];
-  const counts = rows.reduce<Record<string, number>>((acc, row) => {
-    const key = row.category_slug?.trim();
-    if (!key) return acc;
-    acc[key] = (acc[key] ?? 0) + 1;
+  const categories = (await response.json()) as {
+    slug: string;
+    posts: [{ count: number }];
+  }[];
+
+  let total = 0;
+  const counts = categories.reduce<Record<string, number>>((acc, cat) => {
+    const postCount = cat.posts?.[0]?.count ?? 0;
+    acc[cat.slug] = postCount;
+    total += postCount;
     return acc;
   }, {});
 
-  return { counts, total: rows.length };
+  return { counts, total };
 }

@@ -31,7 +31,7 @@ export default function Home() {
         </div>
 
         <Card className="overflow-hidden">
-          <div className="relative aspect-[16/10] overflow-hidden">
+          <div className="relative aspect-16/10 overflow-hidden">
             <Image
               src="/logo.png"
               alt=""
@@ -40,7 +40,7 @@ export default function Home() {
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-tr from-background/70 via-black/10 to-surface/40" />
+            <div className="absolute inset-0 bg-linear-to-tr from-background/70 via-black/10 to-surface/40" />
           </div>
         </Card>
       </section>
@@ -92,11 +92,9 @@ async function LatestArticlesSection() {
                   <div className="flex items-center gap-2 text-xs text-muted">
                     <Badge variant="primary">아티클</Badge>
                     <span>•</span>
-                    <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                    <span className="font-medium text-muted/80">{post.categorySlug || "전체"}</span>
                     <span className="flex-1" />
-                    {post.categorySlug ? (
-                      <span className="text-muted">{post.categorySlug}</span>
-                    ) : null}
+                    <span>{new Date(post.createdAt).toISOString().slice(0, 10)}</span>
                   </div>
                   <div className="space-y-2">
                     <Link
@@ -109,15 +107,6 @@ async function LatestArticlesSection() {
                     <p className="line-clamp-2 text-sm leading-relaxed text-muted">
                       {toExcerpt(post.content)}
                     </p>
-                  </div>
-                  <div className="pt-1">
-                    <Link
-                      href={`/article/${post.slug}`}
-                      className="text-sm font-bold text-primary hover:opacity-90"
-                      prefetch={false}
-                    >
-                      읽기 →
-                    </Link>
                   </div>
                 </div>
 
@@ -171,7 +160,6 @@ function LatestArticlesSkeleton() {
                   <Skeleton className="h-7 w-3/4" />
                   <Skeleton className="h-4 w-full" />
                 </div>
-                <Skeleton className="h-5 w-16" />
               </div>
               <div className="h-28 w-full shrink-0 rounded-2xl bg-surface-2 ring-1 ring-border md:h-48 md:w-64">
                 <Skeleton className="h-full w-full rounded-2xl" />

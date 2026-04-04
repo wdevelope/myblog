@@ -48,11 +48,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
         <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">원스</p>
           <p className="text-xs text-muted" suppressHydrationWarning>
-            {new Date(post.createdAt).toLocaleDateString("ko-KR", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+            {new Date(post.createdAt).toISOString().slice(0, 10)}
           </p>
         </div>
         {isAdmin ? (
@@ -100,7 +96,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
       {/* Interaction Icons and Content area */}
       <CardBody className="pt-3 pb-5 px-4 space-y-3">
         {/* Row 1: Action Icons */}
-        <div className="flex items-center justify-between -mx-1 text-[#262626]">
+        <div className="flex items-center justify-between -mx-1 text-foreground">
           <div className="flex items-center gap-4">
             <motion.button
               whileTap={{ scale: 0.8 }}
@@ -122,7 +118,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
               <FiMessageCircle
                 className={cn(
                   "size-6 transition-colors",
-                  isCommented ? "fill-[#0095f6] text-[#0095f6]" : ""
+                  isCommented ? "fill-primary text-primary" : ""
                 )}
               />
             </motion.button>
@@ -135,7 +131,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
                   animate={{ opacity: 1, y: -45, scale: 1 }}
                   exit={{ opacity: 0, y: -60, scale: 1.1 }}
                   transition={{ duration: 0.8, ease: "easeOut" }}
-                  className="absolute right-0 top-0 whitespace-nowrap text-[11px] font-black text-primary pointer-events-none drop-shadow-sm bg-white/80 px-2 py-1 rounded-full border border-primary/20"
+                  className="absolute right-0 top-0 whitespace-nowrap text-[11px] font-black text-primary pointer-events-none drop-shadow-sm bg-surface/80 px-2 py-1 rounded-full border border-primary/20"
                 >
                   내 마음속에 저장 ✨
                 </motion.div>
@@ -158,13 +154,13 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
 
         {/* Row 2: Likes (Dummy count adjustment) */}
         <div className="mt-1 flex gap-3">
-          <p className="text-[14px] font-bold text-[#262626]">
+          <p className="text-[14px] font-bold text-foreground">
             좋아요 {isLiked ? 8 : 7}개
           </p>
           {(post.commentCount ?? 0) > 0 && (
             <>
               <span className="text-muted">·</span>
-              <p className="text-[14px] font-bold text-[#262626]">
+              <p className="text-[14px] font-bold text-foreground">
                 댓글 {post.commentCount}개
               </p>
             </>
@@ -175,8 +171,8 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
         <div className="flex flex-col gap-1">
           {expanded ? (
             <div className="space-y-3">
-              <div className="text-[14px] leading-normal text-[#262626] font-normal">
-                <span className="font-bold mr-2 text-black">원스</span>
+              <div className="text-[14px] leading-normal text-foreground font-normal">
+                <span className="font-bold mr-2 text-foreground">원스</span>
                 <HtmlContent content={post.content} isFeed />
               </div>
               <button
@@ -189,8 +185,8 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
             </div>
           ) : (
             <div className="relative group/content">
-              <p className="line-clamp-2 text-[14px] leading-normal text-[#262626] font-normal">
-                <span className="font-bold mr-2 text-black border-none bg-transparent p-0">
+              <p className="line-clamp-2 text-[14px] leading-normal text-foreground font-normal">
+                <span className="font-bold mr-2 text-foreground border-none bg-transparent p-0">
                   원스
                 </span>
                 {textContent}
@@ -199,7 +195,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
                 <button
                   type="button"
                   onClick={() => setExpanded(true)}
-                  className="mt-1 text-[14px] font-medium text-muted hover:text-gray-500 transition"
+                  className="mt-1 text-[14px] font-medium text-muted hover:text-foreground transition"
                 >
                   더 보기
                 </button>
@@ -218,8 +214,8 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
               transition={{ duration: 0.3, ease: "easeOut" }}
               className="overflow-hidden pt-1"
             >
-              <div className="text-[14px] leading-normal text-[#262626]">
-                <span className="font-bold mr-2 text-black">방문객</span>
+              <div className="text-[14px] leading-normal text-foreground">
+                <span className="font-bold mr-2 text-foreground">방문객</span>
                 피드가 좋네요 😊
               </div>
             </motion.div>

@@ -304,9 +304,9 @@ export default function CkEditor({
   }, [isLayoutReady, placeholder]);
 
   return (
-    <div className="document-editor">
+    <div className="document-editor min-h-[500px]">
       <div
-        className="toolbar-container sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-100 py-2 flex justify-center"
+        className="toolbar-container sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-border py-2 flex justify-center transition-colors duration-300"
         ref={toolbarRef}
       >
         {/* Toolbar will be injected here */}
@@ -319,7 +319,7 @@ export default function CkEditor({
               value={title}
               onChange={(e) => onTitleChange(e.target.value)}
               placeholder="제목을 입력하세요."
-              className="w-full text-4xl font-bold text-gray-900 border-none outline-none placeholder:text-gray-300 mt-12 mb-6 bg-transparent"
+              className="w-full text-2xl md:text-4xl font-bold text-foreground border-none outline-none placeholder:text-muted mt-6 md:mt-12 mb-6 bg-transparent"
             />
           )}
 
@@ -352,7 +352,7 @@ export default function CkEditor({
                     const root = editor.editing.view.document.getRoot();
                     if (root) {
                       const classes =
-                        "ck-content prose prose-lg max-w-none placeholder:text-gray-300 focus:outline-none min-h-[400px] text-gray-900 marker:text-gray-900 prose-headings:text-gray-900 prose-strong:text-gray-900".split(
+                        "ck-content prose dark:prose-invert prose-lg max-w-none placeholder:text-muted focus:outline-none min-h-[400px]".split(
                           " "
                         );
                       classes.forEach((cls) => writer.addClass(cls, root));
@@ -396,13 +396,18 @@ export default function CkEditor({
           border: none !important;
           box-shadow: none !important;
           padding: 0 !important;
+          background: transparent !important;
         }
         .document-editor .ck-toolbar__items {
           justify-content: center;
+          flex-wrap: wrap !important;
         }
-        /* Hide some toolbar borders/separators if needed or customize */
+        /* Sticky toolbar dark mode adjustment */
+        .dark .document-editor .ck-toolbar {
+          background: transparent !important;
+        }
         .document-editor .ck-content ul > li::marker {
-          color: #d1d5db;
+          color: var(--muted);
         }
         .document-editor .ck-content ol > li::marker {
           color: inherit;

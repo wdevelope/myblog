@@ -9,49 +9,24 @@ import { cn } from "@/lib/utils";
 export default function HtmlContent({
   content,
   isFeed = false,
+  className,
 }: {
   content: string;
   isFeed?: boolean;
+  className?: string;
 }) {
   return (
     <>
       <div
         className={cn(
-          "html-content ck-content prose dark:prose-invert max-w-none text-gray-900 marker:text-gray-900 prose-headings:text-gray-900 prose-strong:text-gray-900",
-          !isFeed && "prose-lg"
+          "prose max-w-none wrap-break-word",
+          "dark:prose-invert",
+          "ck-content",
+          isFeed ? "prose-sm" : "prose-base md:prose-lg",
+          className
         )}
         dangerouslySetInnerHTML={{ __html: content }}
       />
-      <style jsx global>{`
-        .html-content p {
-          margin-top: 0;
-          margin-bottom: 0;
-          line-height: 1.6;
-        }
-        .html-content h1,
-        .html-content h2,
-        .html-content h3 {
-          margin-top: 1.5em;
-          margin-bottom: 0.6em;
-          line-height: 1.3;
-        }
-        .html-content ul > li::marker {
-          color: #d1d5db;
-        }
-        .html-content ol > li::marker {
-          color: inherit;
-        }
-        .html-content ul,
-        .html-content ol {
-          margin-top: 0.6rem;
-          margin-bottom: 0.6rem;
-        }
-        .html-content li {
-          margin-top: 0;
-          margin-bottom: 0;
-          line-height: 1.6;
-        }
-      `}</style>
     </>
   );
 }

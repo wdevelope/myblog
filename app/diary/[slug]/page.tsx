@@ -6,6 +6,7 @@ import PostActionMenu from "@/app/_components/PostActionMenu";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { FiLock, FiGlobe } from "react-icons/fi";
 import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
 
 export const revalidate = 86400; // REVALIDATE_PERIOD
@@ -77,15 +78,12 @@ export default async function DiaryEntryPage({
                 <span>·</span>
                 <span>조회수 {(post?.viewCount ?? 0).toLocaleString()}회</span>
                 <span>·</span>
-                <span className="inline-flex items-center gap-1">
-                  {post
-                    ? post.visibility === "public"
-                      ? "공개"
-                      : "비공개"
-                    : "비공개"}
+                <span className="flex items-center gap-1.5 font-medium group">
                   {post?.visibility === "private" ? (
-                    <span aria-hidden>🔒</span>
-                  ) : null}
+                    <FiLock className="size-3.5 text-amber-500" aria-hidden />
+                  ) : (
+                    <FiGlobe className="size-3.5 text-emerald-500" aria-hidden />
+                  )}
                 </span>
               </div>
             </div>
@@ -103,15 +101,13 @@ export default async function DiaryEntryPage({
       </header>
 
       <div className="space-y-6">
-        {post ? (
+        {post && (
           <>
             <div className="text-sm">
               <HtmlContent content={post.content} />
             </div>
             <PostImages imageKeys={post.imageKeys} />
           </>
-        ) : (
-          <p className="text-sm text-muted">해당 글은 비공개입니다.</p>
         )}
       </div>
     </article>

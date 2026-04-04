@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { FiLock, FiGlobe } from "react-icons/fi";
 import CategorySettingsModal from "@/app/article/CategorySettingsModal";
 import type { Post } from "@/lib/types";
 import { getPublicPosts, getPublicPostCounts } from "@/lib/server/publicPosts";
@@ -35,45 +36,11 @@ function coverSrcFromImageKey(key: string) {
 }
 
 function LockIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className ?? "size-5"}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-      />
-    </svg>
-  );
+  return <FiLock className={className ?? "size-5"} />;
 }
 
 function PublishedIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className ?? "size-5"}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M19.5 12c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7c.85 0 1.664.15 2.417.425"
-      />
-    </svg>
-  );
+  return <FiGlobe className={className ?? "size-5"} />;
 }
 
 function CommentIcon({ className }: { className?: string }) {
@@ -249,8 +216,8 @@ export default async function BlogIndexPage({ searchParams }: Props) {
                 >
                   <span className="flex min-w-0 items-center gap-2 text-sm font-bold">
                     {isAdmin && category.visibility === "private" ? (
-                      <span className="text-xs text-amber-500/80" aria-hidden>
-                        🔒
+                      <span className="text-amber-500/90" aria-hidden>
+                        <FiLock className="size-3" />
                       </span>
                     ) : null}
                     <span className="truncate">{category.slug}</span>
@@ -315,14 +282,18 @@ export default async function BlogIndexPage({ searchParams }: Props) {
                       <article className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 h-full flex flex-col">
                         <div className="p-5 flex flex-col h-full">
                           <div className="flex items-center justify-between">
-                            <span className="inline-flex rounded-xl bg-primary/15 px-3 py-1 text-xs font-bold text-primary ring-1 ring-primary/20">
-                              {dateLabel}
+                            <span className="truncate text-xs font-bold text-muted transition-colors group-hover:text-primary">
+                              {post.categorySlug || "전체"}
                             </span>
-                            <div className="text-muted/80">
+                            <div className="shrink-0">
                               {post.visibility === "private" ? (
-                                <LockIcon className="size-5" />
+                                <div className="text-amber-500">
+                                  <LockIcon className="size-4" />
+                                </div>
                               ) : (
-                                <PublishedIcon className="size-5 text-emerald-400/80" />
+                                <div className="text-emerald-500">
+                                  <PublishedIcon className="size-4" />
+                                </div>
                               )}
                             </div>
                           </div>
@@ -352,21 +323,6 @@ export default async function BlogIndexPage({ searchParams }: Props) {
                           </div>
 
                           <div className="mt-5 flex items-center justify-between gap-3 text-xs text-muted">
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={[
-                                  "size-2 rounded-full",
-                                  post.visibility === "private"
-                                    ? "bg-amber-400/80"
-                                    : "bg-emerald-400/80",
-                                ].join(" ")}
-                              />
-                              <span>
-                                {post.visibility === "private"
-                                  ? "비공개"
-                                  : "게시됨"}
-                              </span>
-                            </div>
                             <div className="flex items-center gap-3">
                               {(post.commentCount ?? 0) > 0 && (
                                 <span className="flex items-center gap-1 text-primary/80">
@@ -374,11 +330,11 @@ export default async function BlogIndexPage({ searchParams }: Props) {
                                   <span className="font-bold">{post.commentCount}</span>
                                 </span>
                               )}
-                              {post.categorySlug ? (
-                                <span className="truncate font-semibold text-muted/90">
-                                  {post.categorySlug}
-                                </span>
-                              ) : null}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium text-muted/60">
+                                {dateLabel}
+                              </span>
                             </div>
                           </div>
                         </div>

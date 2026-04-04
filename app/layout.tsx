@@ -4,6 +4,7 @@ import SiteHeader from "@/app/_components/SiteHeader";
 import SiteFooter from "@/app/_components/SiteFooter";
 import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { ThemeProvider } from "@/app/_components/ThemeProvider";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.w-life.store"),
@@ -32,25 +33,32 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
-      <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
-        <div className="min-h-dvh">
-          <SiteHeader />
-          <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-5 lg:px-8 lg:py-5">
-            {children}
-          </main>
-          <SiteFooter />
-          <Toaster
-            position="top-center"
-            richColors
-            closeButton
-            toastOptions={{
-              className:
-                "bg-surface text-foreground border border-border shadow-lg shadow-black/20",
-            }}
-          />
-        </div>
-        <SpeedInsights />
+    <html lang="ko" suppressHydrationWarning>
+      <body className="min-h-dvh bg-background font-sans text-foreground antialiased transition-colors duration-300">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <div className="min-h-dvh flex flex-col">
+            <SiteHeader />
+            <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-5 lg:px-8 lg:py-5">
+              {children}
+            </main>
+            <SiteFooter />
+            <Toaster
+              position="top-center"
+              richColors
+              closeButton
+              toastOptions={{
+                className:
+                  "bg-surface text-foreground border border-border shadow-lg shadow-black/20",
+              }}
+            />
+          </div>
+          <SpeedInsights />
+        </ThemeProvider>
       </body>
     </html>
   );

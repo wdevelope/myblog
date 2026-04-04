@@ -159,3 +159,53 @@ export async function createComment(
     },
   };
 }
+export type DeleteCommentResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function deleteComment(
+  commentId: string
+): Promise<DeleteCommentResult> {
+  if (!commentId) {
+    return { success: false, error: "commentId is required" };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) {
+    return { success: false, error: "unauthorized" };
+  }
+
+  const isAdmin = await isAdminDb(auth.user);
+
+  // 1. 댓글 정보 조회 (권한 확인용)
+  const { data: comment, error: fetchError } = await supabase
+    .from("comments")
+    .select("author_id, post_id")
+    .eq("id", commentId)
+    .maybeSingle();
+
+  if (fetchError) {
+    return { success: false, error: `DB Error: ${fetchError.message}` };
+  }
+  if (!comment) {
+    return { success: false, error: "not_found" };
+  }
+
+  // 2. 권한 검사: 작성자 본인이거나 관리자여야 함
+  if (comment.author_id !== auth.user.id && !isAdmin) {
+    return { success: false, error: "forbidden" };
+  }
+
+  // 3. 삭제 수행 (대댓글은 DB 레벨에서 cascade delete됨)
+  const { error: deleteError } = await supabase
+    .from("comments")
+    .delete()
+    .eq("id", commentId);
+
+  if (deleteError) {
+    return { success: false, error: `DB Error: ${deleteError.message}` };
+  }
+
+  return { success: true };
+}
