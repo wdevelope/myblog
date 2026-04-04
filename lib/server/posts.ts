@@ -1,6 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { isAdminDb, getCurrentUser } from "@/lib/server/admin";
+import { isAdminDb } from "@/lib/server/admin";
 import type { Post, PostType, Comment, Visibility } from "@/lib/types";
 
 export type PostRow = {
@@ -16,6 +16,7 @@ export type PostRow = {
     image_keys: string[] | null;
     thumbnail_image_key: string | null;
     view_count?: number;
+    comments?: { count: number }[];
 };
 
 export function mapPost(row: PostRow): Post {
@@ -32,6 +33,7 @@ export function mapPost(row: PostRow): Post {
         imageKeys: row.image_keys ?? [],
         thumbnailImageKey: row.thumbnail_image_key,
         viewCount: row.view_count,
+        commentCount: row.comments?.[0]?.count ?? 0,
     };
 }
 
@@ -52,30 +54,34 @@ export async function getPostsDirectly(params: {
         const service = createSupabaseServiceClient();
         const { data: posts, error } = await service
             .from("posts")
-            .select("id,slug,type,visibility,title,created_at,updated_at,thumbnail_image_key")
+            .select("id,slug,type,visibility,title,created_at,updated_at,thumbnail_image_key,comments(count)")
             .eq("type", "diary")
             .order("created_at", { ascending: false });
 
         if (error) throw new Error(`DB Error: ${error.message}`);
 
-        return (posts ?? []).map((p) => ({
-            id: p.id,
-            slug: p.slug,
-            type: p.type as PostType,
-            visibility: p.visibility as Visibility,
-            title: p.visibility === "private" ? "비공개된 일기입니다" : p.title,
-            content: "", // 🔒 보안: 본문은 절대 클라이언트로 전송하지 않음
-            categorySlug: null,
-            createdAt: p.created_at,
-            updatedAt: p.updated_at ?? p.created_at,
-            imageKeys: [],
-            thumbnailImageKey: p.thumbnail_image_key,
-        }));
+        return (posts ?? []).map((p) => {
+            const row = p as unknown as PostRow;
+            return {
+                id: row.id,
+                slug: row.slug,
+                type: row.type,
+                visibility: row.visibility,
+                title: row.visibility === "private" ? "비공개된 일기입니다" : row.title,
+                content: "", // 🔒 보안: 본문은 절대 클라이언트로 전송하지 않음
+                categorySlug: null,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at ?? row.created_at,
+                imageKeys: [],
+                thumbnailImageKey: row.thumbnail_image_key,
+                commentCount: row.comments?.[0]?.count ?? 0,
+            };
+        });
     }
 
     let query = supabase
         .from("posts")
-        .select("*")
+        .select("*, comments(count)")
         .eq("type", params.type)
         .order("created_at", { ascending: false });
 
@@ -100,7 +106,7 @@ export async function getPostBySlugDirectly(params: {
 
     let query = supabase
         .from("posts")
-        .select("*")
+        .select("*, comments(count)")
         .eq("slug", params.slug);
 
     if (!isAdmin) {

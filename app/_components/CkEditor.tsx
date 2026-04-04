@@ -109,7 +109,6 @@ class MyBlogImageUploadAdapter {
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   abort() {}
 }
 
@@ -124,8 +123,13 @@ export default function CkEditor({
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setIsLayoutReady(true);
-    return () => setIsLayoutReady(false);
+    const handle = requestAnimationFrame(() => {
+      setIsLayoutReady(true);
+    });
+    return () => {
+      cancelAnimationFrame(handle);
+      setIsLayoutReady(false);
+    };
   }, []);
 
   const { editorConfig } = useMemo(() => {

@@ -14,6 +14,7 @@ export type Post = {
   imageKeys?: string[];
   thumbnailImageKey?: string | null;
   viewCount?: number;
+  commentCount?: number;
 };
 
 export type Comment = {

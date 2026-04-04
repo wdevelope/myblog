@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 
@@ -12,8 +12,6 @@ type DiaryPost = {
   createdAt: string;
   visibility: "public" | "private";
 };
-
-type SortMode = "latest" | "oldest";
 
 function formatYmdKst(date: Date) {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -157,12 +155,12 @@ export default function DiaryIndexClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const [isPending, startTransition] = useTransition();
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [viewMode, setViewMode] = useState<"day" | "month">("day");
   const [selectedYmd, setSelectedYmd] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize state from URL or localStorage
   // Initialize state from URL or localStorage
   useEffect(() => {
     // 1. Check URL Params
@@ -200,7 +198,7 @@ export default function DiaryIndexClient({
     }
     setIsInitialized(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once on mount
+  }, []); // Run once on mount
 
   // Sync state to URL and LocalStorage
   useEffect(() => {
@@ -236,9 +234,11 @@ export default function DiaryIndexClient({
       } else {
         params.delete("date");
       }
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      startTransition(() => {
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      });
     }
-  }, [month, selectedYmd, isInitialized, pathname, router]); // Remove searchParams from dep to avoid loop
+  }, [month, selectedYmd, isInitialized, pathname, router, searchParams, startTransition]);
 
   const entryDays = useMemo(() => {
     const set = new Set<string>();
@@ -248,8 +248,6 @@ export default function DiaryIndexClient({
 
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
-
-  // Reset page when month or selection changes
 
   const visiblePosts = useMemo(() => {
     let filtered = posts;
@@ -315,7 +313,10 @@ export default function DiaryIndexClient({
             {isAdmin ? (
               <Link
                 href={buildWriteHref(selectedYmd)}
-                className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+                className={[
+                  "inline-flex h-9 items-center justify-center rounded-xl bg-primary px-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110",
+                  isPending ? "opacity-50" : ""
+                ].join(" ")}
               >
                 다이어리 쓰기
               </Link>
@@ -493,7 +494,7 @@ export default function DiaryIndexClient({
                     >
                       <div className="flex items-start gap-5">
                         {/* Prominent Date Display */}
-                        <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-2 px-3 py-2 min-w-[3.5rem] border border-border/50">
+                        <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-2 px-3 py-2 min-w-14 border border-border/50">
                           <span className="text-xs font-semibold text-muted/80">
                             {date.getMonth() + 1}월
                           </span>

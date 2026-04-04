@@ -32,7 +32,7 @@ export async function getPublicPosts(params: {
   const search = new URLSearchParams();
   search.set(
     "select",
-    "id,slug,type,visibility,title,content,category_slug,created_at,updated_at,image_keys,thumbnail_image_key"
+    "id,slug,type,visibility,title,content,category_slug,created_at,updated_at,image_keys,thumbnail_image_key,comments(count)"
   );
   search.set("type", `eq.${params.type}`);
   search.set("visibility", "eq.public");

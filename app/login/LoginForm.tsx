@@ -41,7 +41,7 @@ export default function LoginForm() {
   );
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending] = useTransition();
 
   const canSubmit = useMemo(
     () =>

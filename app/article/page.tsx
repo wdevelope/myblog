@@ -76,6 +76,24 @@ function PublishedIcon({ className }: { className?: string }) {
   );
 }
 
+function CommentIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className ?? "size-4"}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+      />
+    </svg>
+  );
+}
+
 type Props = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
@@ -207,7 +225,7 @@ export default async function BlogIndexPage({ searchParams }: Props) {
               <span className="text-sm font-bold">전체 글</span>
               <span
                 className={[
-                  "inline-flex items-center justify-center min-w-[1.75rem] h-5 px-1.5 rounded-lg text-[10px] font-black transition-colors",
+                  "inline-flex items-center justify-center min-w-7 h-5 px-1.5 rounded-lg text-[10px] font-black transition-colors",
                   selectedCategory
                     ? "text-muted/40 group-hover:text-muted/60"
                     : "text-primary/60",
@@ -239,7 +257,7 @@ export default async function BlogIndexPage({ searchParams }: Props) {
                   </span>
                   <span
                     className={[
-                      "inline-flex items-center justify-center min-w-[1.75rem] h-5 px-1.5 rounded-lg text-[10px] font-black transition-colors",
+                      "inline-flex items-center justify-center min-w-7 h-5 px-1.5 rounded-lg text-[10px] font-black transition-colors",
                       isActive
                         ? "text-primary/60"
                         : "text-muted/40 group-hover:text-muted/60",
@@ -349,11 +367,19 @@ export default async function BlogIndexPage({ searchParams }: Props) {
                                   : "게시됨"}
                               </span>
                             </div>
-                            {post.categorySlug ? (
-                              <span className="truncate font-semibold text-muted/90">
-                                {post.categorySlug}
-                              </span>
-                            ) : null}
+                            <div className="flex items-center gap-3">
+                              {(post.commentCount ?? 0) > 0 && (
+                                <span className="flex items-center gap-1 text-primary/80">
+                                  <CommentIcon className="size-3.5" />
+                                  <span className="font-bold">{post.commentCount}</span>
+                                </span>
+                              )}
+                              {post.categorySlug ? (
+                                <span className="truncate font-semibold text-muted/90">
+                                  {post.categorySlug}
+                                </span>
+                              ) : null}
+                            </div>
                           </div>
                         </div>
                       </article>

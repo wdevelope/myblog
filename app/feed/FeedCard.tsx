@@ -76,7 +76,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
           />
         </div>
       ) : (
-        <div className="aspect-square w-full bg-gradient-to-br from-surface-2 via-surface to-surface-2 flex items-center justify-center">
+        <div className="aspect-square w-full bg-linear-to-br from-surface-2 via-surface to-surface-2 flex items-center justify-center">
           <div className="text-center space-y-2 p-8">
             <div className="mx-auto size-16 rounded-2xl bg-primary/10 flex items-center justify-center">
               <svg
@@ -157,31 +157,39 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
         </div>
 
         {/* Row 2: Likes (Dummy count adjustment) */}
-        <div className="mt-1">
+        <div className="mt-1 flex gap-3">
           <p className="text-[14px] font-bold text-[#262626]">
             좋아요 {isLiked ? 8 : 7}개
           </p>
+          {(post.commentCount ?? 0) > 0 && (
+            <>
+              <span className="text-muted">·</span>
+              <p className="text-[14px] font-bold text-[#262626]">
+                댓글 {post.commentCount}개
+              </p>
+            </>
+          )}
         </div>
 
         {/* Row 3: Caption */}
         <div className="flex flex-col gap-1">
           {expanded ? (
             <div className="space-y-3">
-              <div className="text-[14px] leading-[1.5] text-[#262626] font-normal">
+              <div className="text-[14px] leading-normal text-[#262626] font-normal">
                 <span className="font-bold mr-2 text-black">원스</span>
                 <HtmlContent content={post.content} isFeed />
               </div>
               <button
                 type="button"
                 onClick={() => setExpanded(false)}
-                className="text-[14px] font-medium text-muted hover:text-foreground transition"
+                className="text-[14px] font-medium text-muted hover:text-foreground transition leading-normal"
               >
                 접기
               </button>
             </div>
           ) : (
             <div className="relative group/content">
-              <p className="line-clamp-2 text-[14px] leading-[1.5] text-[#262626] font-normal">
+              <p className="line-clamp-2 text-[14px] leading-normal text-[#262626] font-normal">
                 <span className="font-bold mr-2 text-black border-none bg-transparent p-0">
                   원스
                 </span>
@@ -210,7 +218,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
               transition={{ duration: 0.3, ease: "easeOut" }}
               className="overflow-hidden pt-1"
             >
-              <div className="text-[14px] leading-[1.5] text-[#262626]">
+              <div className="text-[14px] leading-normal text-[#262626]">
                 <span className="font-bold mr-2 text-black">방문객</span>
                 피드가 좋네요 😊
               </div>
