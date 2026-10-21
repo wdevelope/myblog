@@ -29,7 +29,7 @@
 - `pg_dump`로 스키마·데이터를, Storage 버킷(`post-images-public`·`post-images-private`) 파일을 백업한다. 기본 스키마가 저장소에 없어서 덤프가 유일한 원본이다.
 - 2단계 수정은 로컬 main에만 있고 아직 배포 전이다. 배포 전까지 운영 중인 Vercel 배포는 보안 1~4가 열린 상태다.
 - 도메인: `w-life.store`는 만료됐고(2026-10-21 whois 등록 가능) 나중에 새로 산다. 그때까지 Vercel 기본 주소(`*.vercel.app`)로 운영한다. Vercel 환경변수 `NEXT_PUBLIC_SITE_URL`과 Supabase Auth의 Site URL·Redirect URLs를 그 주소로 맞춘다(sitemap·robots·메타데이터·로그인 리다이렉트 기준). 도메인을 사면 같은 곳과 CLAUDE.md·README 주소를 바꾼다.
-- 기한 2026-10-30: 외부 자료에 따르면 기존 무료 프로젝트도 이날부터 Data API(PostgREST) 접근에 명시적 Postgres GRANT가 필요하다. `publicPosts.ts`가 anon 키로 PostgREST를 직접 부르므로, Supabase 공지로 적용 여부를 확인하고 해당하면 GRANT를 새 마이그레이션으로 추가한다.
+- 10/30 PostgREST GRANT 변경(2026-10-22 확인, Supabase 문서 "Securing your API"): `public`에 새로 만드는 테이블·함수에 `anon`·`authenticated`·`service_role` 권한을 자동으로 주던 기본 권한(default privileges)을 끄는 변경이다. 이미 있는 객체의 권한은 그대로라 지금 앱이 쓰는 `posts`·`categories`·`comments`·`users`와 함수 `is_admin`·`increment_post_view`·`set_updated_at`는 영향이 없다(모든 테이블 RLS 켜짐). 앞으로 새 테이블·함수를 만드는 마이그레이션에는 `grant`를 직접 쓴다(빠지면 PostgREST가 `42501`). 날짜(10/30)는 외부 자료 기준이다.
 
 ## 2. 관리자 판정 보안 수정과 인증 관문 정리
 
@@ -42,8 +42,8 @@
 
 ## 3. 리전 정렬
 
-- `vercel.json`이 없어 Vercel 함수가 기본 리전 `iad1`(워싱턴)에서 돈다. Supabase 리전은 `ap-northeast-2`(서울)이다(2026-10-22 확인). `vercel.json`의 `regions`로 함수 리전을 `icn1`(서울)에 맞춘다.
-- 바꾸기 전과 후에 `/`·`/article`·상세 하나의 TTFB를 재서 5단계와 비교할 기준으로 남긴다.
+- 2026-10-22: `vercel.json`에 `regions: ["icn1"]`을 넣었다. Supabase 리전이 `ap-northeast-2`(서울)이고 Vercel 함수 기본 리전은 `iad1`(워싱턴)이다. Hobby도 리전 하나는 고를 수 있다.
+- 남은 일: 배포한 뒤 vercel.app 주소로 `/`·`/article`·상세 하나의 TTFB를 재고 응답 헤더 `x-vercel-id`에 `icn1`이 찍히는지 본다. 5단계와 비교할 기준으로 남긴다. 바꾸기 전 기준값은 운영 주소를 몰라 재지 못했다(Vercel MCP에서 이 프로젝트가 보이지 않는다).
 
 ## 4. 기반 정리와 테스트 안전망
 
@@ -83,7 +83,7 @@
 - 1단계 덤프 뒤 `supabase gen types`로 `Database` 타입을 만들어 Supabase 클라이언트 3개에 붙이고, 손으로 쓴 `PostRow`와 캐스트를 지운다. `Post`에서 `mapPost`가 늘 채우는 필드는 필수로 바꾸고, `Category` 타입은 `lib/types.ts`로 옮긴다.
 - 서버 액션 입력 검증을 zod로 한다(지금 zod를 쓰는 곳이 없고 `createPost`에 손으로 쓴 검증이 약 55줄 있다). `DB Error: <원문>` 응답 약 20곳을 "로그를 남기고 일반 메시지를 돌려주는" 함수 하나로 바꾼다.
 - 글: `createPost`를 실제 동작대로 `savePost`(upsert)로 바꾼다. 카테고리 자동 생성과 `createCategory`를 `ensureCategory`로 합쳐 이름 검증을 같이 쓴다. slug 중복 확인은 순차 조회(최대 5회) 대신 unique 제약 위반(23505) 때 재시도한다. 수정할 때 `author_id`를 덮어쓰지 않는다.
-- 카테고리: FK가 `on update cascade`라서 `updateCategory`의 posts 수동 갱신과 보상 롤백은 필요 없다(운영 DB에 FK가 있는지 덤프로 먼저 확인). 사용 중 개수는 `posts(count)`로 센다. 이름 변경·삭제·순서 변경의 트랜잭션 문제는 새 마이그레이션의 RPC로 푼다.
+- 카테고리: FK가 `on update cascade`라서 `updateCategory`의 posts 수동 갱신과 보상 롤백은 필요 없다(운영 DB에 FK가 있는지 덤프로 먼저 확인). 사용 중 개수는 `posts(count)`로 센다. 이름 변경·삭제·순서 변경의 트랜잭션 문제는 새 마이그레이션의 RPC로 푼다. 새 함수는 권한이 자동으로 붙지 않으므로(1단계 GRANT 항목) 같은 마이그레이션에 `grant execute on function … to authenticated, service_role`을 쓴다.
 - 댓글: 행 매핑·select·작성 가능 판정이 세 곳에 중복돼 있어 합치고, 인증은 `getViewer()`를 쓴다.
 
 ## 7. UI 통일과 큰 컴포넌트 분할
