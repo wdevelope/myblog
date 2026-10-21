@@ -11,7 +11,7 @@
 - [ ] 1. Supabase 백업과 운영 주소 정리 (사용자 작업)
 - [x] 2. 관리자 판정 보안 수정과 인증 관문 정리 — `getViewer`·`assertAdmin`, `proxy.ts`, 같은 출처 리다이렉트, GET `/logout` 제거, 회귀 테스트 38개(2026-10-21). 배포 전 확인이 남았다(2절)
 - [ ] 3. 리전 정렬
-- [ ] 4. 기반 정리와 테스트 안전망
+- [x] 4. 기반 정리와 테스트 안전망 — `getPostForRoute`·`loadPostForEdit`, `revalidatePublicPosts`, `formatPostDate`(KST)·`coverKeyOf`, `postHref`·`SITE_URL`, 로딩 route group, 행 매핑 분리(2026-10-22, 테스트 파일 15개·82개)
 - [ ] 5. ISR 복구와 일시정지 방지
 - [ ] 6. DB 타입과 쓰기 액션 정리
 - [ ] 7. UI 통일과 큰 컴포넌트 분할
@@ -48,16 +48,14 @@
 ## 4. 기반 정리와 테스트 안전망
 
 - 완료(2026-10-21, 2단계와 병렬 진행): `server-only` 적용(`lib/supabase/service.ts`·`server.ts`, `lib/server/admin.ts`·`posts.ts`)과 service role 키를 `service.ts`로 분리, `CommentForm` 삭제, `HtmlContent` 서버 컴포넌트화와 본문 전용 CSS(`ckeditor5-content.css`), `publicPosts.ts` 현행 동작 테스트.
-- 동작이 바뀌지 않는 정리
-  - `mapPost`·`PostRow`를 쿠키를 읽지 않는 모듈로 옮겨 `publicPosts.ts`가 `posts.ts`(cookies·headers)를 import하지 않게 한다.
-  - 쓰지 않는 코드 제거: `getPostsDirectly`의 안 쓰는 인자(`category`·`limit`·`offset`)와 2단계 뒤 판정에 안 쓰이는 `user` 인자(`getPostBySlugDirectly`·`getCommentsDirectly` 포함, 수정 화면 3곳이 넘긴다), `REVALIDATE_PERIOD` export, 이미지 라우트 `uuid()` 폴백, 주석 처리된 코드, 빈 `app/feed/[slug]/`, 아티클 목록의 `coverSrcFromImageKey` 중복. `getComments`는 5단계 댓글 로딩에 쓸 수 있어 남긴다.
-  - 버킷 이름, 사이트 URL 폴백(`sitemap.ts`·`robots.ts`), 글 타입 → 경로 문자열(약 50곳, `postHref(type, slug?)`)을 한 곳으로 모은다.
-  - 홈 스켈레톤 중복을 `loading.tsx`와 합치고, 목록·홈 `loading.tsx`를 route group으로 옮겨 상세·쓰기·로그인 화면에 엉뚱한 스켈레톤이 뜨지 않게 한다.
-- 테스트 안전망: 2단계의 Supabase mock을 쿼리 체인까지 넓혀 `lib/server/posts.ts`·`lib/actions/*`의 현행 동작 테스트를 더 쓴다(2026-10-21 기준 테스트 파일 13개·64개).
-- 공용 규칙 (동작 변경, 테스트 먼저)
-  - `getPostForRoute(type, slug): Post | null`(쿼리에 `.eq("type")`)로 상세·수정 6곳의 제각각인 throw 처리를 `notFound()` 한 줄로 바꾼다. 수정 화면 3곳은 `loadPostForEdit`로 묶고 로그인 `from`을 수정 경로로 한다. 다이어리 상세 200, 수정 화면 500·목록 복귀 문제가 함께 풀린다.
-  - 캐시 무효화 블록(글 액션 2곳, 카테고리 액션 4곳)을 `revalidatePostCaches({ type, slug, category, prev })` 하나로 모은다. 없는 `/blog` 경로와 옛 카테고리 미무효화가 풀린다.
-  - `formatPostDate`(Asia/Seoul), `coverKeyOf(post)`(썸네일 → 첫 이미지)로 날짜·표지 규칙을 통일한다.
+- 완료(2026-10-22)
+  - 동작 불변: `mapPost`·`PostRow`를 `lib/server/postRow.ts`로 분리, 조회 함수의 안 쓰는 인자(`user`·`category`·`limit`·`offset`)와 `uuid()` 폴백·`coverSrcFromImageKey` 중복·빈 `app/feed/[slug]/` 제거, `SITE_URL`·`postHref`(`lib/constants.ts`)와 이미지 버킷 상수(`lib/image.ts`).
+  - 로딩 범위: 홈·목록의 page·loading을 `(home)`·`(list)` route group으로 옮기고 홈 스켈레톤 중복을 `LatestArticlesSkeleton`으로 합침.
+  - 버그 수정(테스트 먼저): `getPostForRoute`·`loadPostForEdit`로 상세·수정 404 통일과 로그인 후 수정 화면 복귀, `revalidatePublicPosts`로 무효화 통합(`/article`·상세 경로, 옛 카테고리), `formatPostDate`(KST)·`coverKeyOf`(썸네일 → 첫 이미지).
+- 계획과 달라진 점
+  - `postHref`는 글 타입에 따라 경로가 달라지는 곳(캐시 무효화, 저장 후 이동)에만 쓴다. `href="/article"` 같은 고정 링크 약 50곳은 그대로 둔다.
+  - 다이어리 상세의 404는 관리자에게만 적용했다. 비관리자는 RLS로 다이어리를 읽지 못해 없는 글과 비공개 글을 구분할 수 없으므로 5단계(`/diary/[slug]` 행)에서 정리한다.
+  - `getComments`는 5단계 댓글 로딩에 쓸 수 있어 남겼다. `PostEditor`의 주석 처리된 코드는 7·8단계에서 함께 지운다.
 
 ## 5. ISR 복구와 일시정지 방지
 
@@ -73,7 +71,7 @@
   | `/diary/[slug]` | 같음 | 공개만 anon 조회, 비공개는 404 |
   | `/article` | 같음 + `searchParams`·카테고리 쿠키 조회 | 아래 결정 1 |
 
-- 공개 fetch의 revalidate 기본값 60초를 세그먼트와 같은 86400초로 맞춘다(태그 무효화가 있다). 상세 경로와 댓글 액션도 `revalidatePostCaches`로 무효화한다.
+- 공개 fetch의 revalidate 기본값 60초를 세그먼트와 같은 86400초로 맞춘다(태그 무효화가 있다). 댓글 액션도 `revalidatePublicPosts`로 무효화한다(글 액션은 4단계에서 상세 경로까지 무효화한다).
 - 착수 전에 정할 것
   1. `/article`: (a) 카테고리를 지금 리다이렉트만 하는 `/article/category/[slug]` 경로로, 페이지 번호도 경로로 옮겨 정적화한다. (b) 쿼리 문자열을 유지하고 데이터 캐시만 한다(동적 렌더링).
   2. 관리자에게 비공개 글을 공개 목록에 섞어 보일지, 관리자 전용 경로로 분리할지.
@@ -101,7 +99,7 @@
   - 완료(2026-10-21): `CategorySettingsModal`의 반복 흐름을 `run()` 하나로, 행을 `CategoryRow`로 나누고 ESC로 닫을 때 편집 상태를 초기화했다(컴포넌트 테스트 5개).
   - `CommentsThread`: 댓글·대댓글 마크업을 `CommentItem`으로, `confirm`·`alert`를 sonner로.
 - framer-motion: 5단계에서 FeedCard 더미를 지우면 PostEditor 사이드바만 남는다. `<dialog>`로 바꾸고 의존성을 지운다.
-- 다크 모드: `@custom-variant dark`를 넣어 `dark:`가 next-themes `.dark`를 따르게 하고 `ThemeToggle`은 `resolvedTheme`을 본다. `app/globals.css`의 미커밋 변경이 커밋된 뒤에 한다.
+- 다크 모드: `@custom-variant dark`를 넣어 `dark:`가 next-themes `.dark`를 따르게 하고 `ThemeToggle`은 `resolvedTheme`을 본다.
 - 접근성: 아이콘 버튼 `aria-label`, 토글 `aria-pressed`, label·입력 연결.
 
 ## 8. 본문 보안과 에디터 정리
@@ -126,24 +124,24 @@
 
 ### 동작·데이터
 
-- 다이어리 상세는 없는 글·다른 타입 비공개 글에도 404 대신 "비공개 다이어리"를 200으로 보인다. 공개 다이어리도 RLS(`type <> 'diary'`) 때문에 비관리자에게 안 보일 수 있다(기본 스키마 확인 필요).
-- 수정 화면(`/article|feed|diary/edit/[slug]`)에서 없는 slug는 404 대신 500이다. 로그인 후에는 수정 화면이 아니라 목록으로 돌아간다.
+- (관리자는 해결: 4단계, 비관리자는 5단계) 다이어리 상세는 없는 글·다른 타입 비공개 글에도 404 대신 "비공개 다이어리"를 200으로 보인다. 공개 다이어리도 RLS(`type <> 'diary'`) 때문에 비관리자에게 안 보일 수 있다(기본 스키마 확인 필요).
+- (해결: 4단계) 수정 화면(`/article|feed|diary/edit/[slug]`)에서 없는 slug는 404 대신 500이다. 로그인 후에는 수정 화면이 아니라 목록으로 돌아간다.
 - 카테고리 이름 변경·삭제가 트랜잭션이 아니다. 순서 변경(upsert)이 그 사이 삭제된 카테고리를 되살릴 수 있다. 비공개 카테고리 글을 공개 카테고리로 옮기면 바로 공개된다.
 - `createPost`의 카테고리 자동 생성은 이름 검증(50자, `/` 금지)을 건너뛴다.
-- 글 수정으로 카테고리·slug가 바뀌면 옛 카테고리 목록 캐시를 무효화하지 않는다. `revalidatePath(`/${type}`)`는 아티클에서 없는 경로 `/blog`를 무효화한다.
+- (해결: 4단계) 글 수정으로 카테고리·slug가 바뀌면 옛 카테고리 목록 캐시를 무효화하지 않는다. `revalidatePath(`/${type}`)`는 아티클에서 없는 경로 `/blog`를 무효화한다.
 - 발행 중에도 발행 버튼이 살아 있어 두 번 발행될 수 있다(`PostEditor`가 `createPost`를 transition 밖에서 기다린다).
 - 댓글 DELETE 정책이 마이그레이션에 없고, `deleteComment`는 지운 행 수를 확인하지 않아 RLS가 막아도 성공을 돌려준다. 비공개 카테고리 글에는 관리자도 댓글을 못 쓸 수 있다.
 - 공개 목록의 댓글 수는 anon 키로 세는데 댓글 조회 정책이 로그인 사용자 전용이라 항상 0일 수 있다. 댓글 액션은 캐시를 무효화하지 않는다.
 - 아티클 "전체 글" 수가 카테고리별 합계라 카테고리 없는 공개 글이 빠진다(`getPublicPostCounts`).
 - 피드 댓글 화면이 없다. 피드 카드의 좋아요 수·댓글은 하드코딩이다.
 - 조회수(`view_count`)를 올리는 코드가 없다.
-- 날짜를 UTC로 표시해(`toISOString().slice(0, 10)`, 서버 `toLocaleDateString`) KST 오전에 쓴 글이 전날로 보인다. 표지 이미지 규칙도 화면마다 다르다(홈은 썸네일만, 아티클은 썸네일 → 첫 이미지, 피드는 첫 이미지).
+- (해결: 4단계) 날짜를 UTC로 표시해(`toISOString().slice(0, 10)`, 서버 `toLocaleDateString`) KST 오전에 쓴 글이 전날로 보인다. 표지 이미지 규칙도 화면마다 다르다(홈은 썸네일만, 아티클은 썸네일 → 첫 이미지, 피드는 첫 이미지).
 - 다이어리 달력: 날짜 필터는 KST, 월 필터·라벨은 브라우저 시간대라 월 경계에서 어긋날 수 있다.
 - 기본 스키마(테이블·`is_admin()`·기본 RLS·Storage 버킷)가 `supabase/migrations/`에 없다.
 
 ### 성능·SEO
 
-- ISR이 사실상 꺼져 있다. 목록·상세가 `getViewer`(쿠키)를 읽어 매 요청 동적 렌더링된다. 상세 경로는 `revalidatePath`도 하지 않는다.
+- ISR이 사실상 꺼져 있다. 목록·상세가 `getViewer`(쿠키)를 읽어 매 요청 동적 렌더링된다.
 - 공개 fetch의 revalidate 기본값이 60초라 세그먼트의 86400초와 어긋난다.
 - 관리자 아티클 목록·피드·다이어리 목록은 본문까지 전부 읽는다(페이지네이션 없음).
 - 상세 페이지에 `generateMetadata`가 없어 글 제목이 `<title>`·OG에 안 들어간다.
@@ -152,7 +150,7 @@
 ### 기타
 
 - 헤더·모바일 메뉴의 검색 입력이 동작하지 않는다. `BackButton`은 뒤로 가지 않고 항상 `fallbackHref`로 이동한다.
-- 아티클 목록 페이지에 `coverSrcFromImageKey` 중복 구현이 있다. `getComments`는 쓰는 곳이 없다.
+- `getComments`는 쓰는 곳이 없다(5단계 댓글 로딩 후보).
 - 오류 응답에 `DB Error: <원문>`을 그대로 돌려준다.
 - `globals.css`에 `@custom-variant dark`가 없어 `dark:` 유틸리티는 OS 설정을, 색 토큰은 next-themes의 `.dark`를 따른다. `ThemeToggle`은 `theme`을 봐서 시스템 테마일 때 첫 클릭에 바뀌지 않을 수 있다.
-- 목록·홈 `loading.tsx`가 하위 경로에도 적용돼 상세·쓰기·로그인 화면에 엉뚱한 스켈레톤(목록·홈)이 뜬다.
+- (해결: 4단계) 목록·홈 `loading.tsx`가 하위 경로에도 적용돼 상세·쓰기·로그인 화면에 엉뚱한 스켈레톤(목록·홈)이 뜬다.
