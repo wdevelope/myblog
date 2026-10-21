@@ -1,14 +1,42 @@
 import "server-only";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import type { Post, PostType } from "@/lib/types";
 import { postHref } from "@/lib/constants";
 import { getSupabaseEnv } from "@/lib/supabase/env";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { mapPost, type PostRow } from "@/lib/server/postRow";
 
 type NextRequestInit = RequestInit & {
   next?: { revalidate?: number; tags?: string[] };
 };
+
+// 세그먼트 revalidate(86400)와 같다. 글·카테고리·댓글 쓰기는 태그로 바로 무효화한다.
+const PUBLIC_REVALIDATE_SECONDS = 86400;
+
+const POST_COLUMNS =
+  "id,slug,type,visibility,title,content,category_slug,created_at,updated_at,image_keys,thumbnail_image_key,comments(count)";
+
+// anon 키로 읽으므로 비공개 글·비공개 카테고리·다이어리는 RLS가 걸러 준다.
+function fetchPublicRest(
+  table: string,
+  search: URLSearchParams,
+  tags: string[],
+  options: { count?: boolean } = {}
+) {
+  const { url, anonKey } = getSupabaseEnv();
+  return fetch(`${url.replace(/\/$/, "")}/rest/v1/${table}?${search.toString()}`, {
+    method: "GET",
+    headers: {
+      apikey: anonKey,
+      authorization: `Bearer ${anonKey}`,
+      accept: "application/json",
+      ...(options.count ? { prefer: "count=exact" } : null),
+    },
+    cache: "force-cache",
+    next: { revalidate: PUBLIC_REVALIDATE_SECONDS, tags },
+  } as NextRequestInit);
+}
 
 export function publicPostsTag(type: PostType) {
   return `posts:public:${type}`;
@@ -43,21 +71,16 @@ export function revalidatePublicPosts(params: {
 export async function getPublicPosts(params: {
   type: Exclude<PostType, "diary">;
   category?: string;
-  revalidateSeconds?: number;
   page?: number;
   limit?: number;
 }): Promise<{ data: Post[]; count: number }> {
-  const { url, anonKey } = getSupabaseEnv();
   const tags = [publicPostsTag(params.type)];
   if (params.type === "blog" && params.category) {
     tags.push(publicBlogCategoryTag(params.category));
   }
 
   const search = new URLSearchParams();
-  search.set(
-    "select",
-    "id,slug,type,visibility,title,content,category_slug,created_at,updated_at,image_keys,thumbnail_image_key,comments(count)"
-  );
+  search.set("select", POST_COLUMNS);
   search.set("type", `eq.${params.type}`);
   search.set("visibility", "eq.public");
   if (params.category) search.set("category_slug", `eq.${params.category}`);
@@ -72,20 +95,7 @@ export async function getPublicPosts(params: {
     }
   }
 
-  const response = await fetch(
-    `${url.replace(/\/$/, "")}/rest/v1/posts?${search.toString()}`,
-    {
-      method: "GET",
-      headers: {
-        apikey: anonKey,
-        authorization: `Bearer ${anonKey}`,
-        accept: "application/json",
-        prefer: "count=exact",
-      },
-      cache: "force-cache",
-      next: { revalidate: params.revalidateSeconds ?? 60, tags },
-    } as NextRequestInit
-  );
+  const response = await fetchPublicRest("posts", search, tags, { count: true });
 
   if (!response.ok) {
     const text = await response.text();
@@ -110,8 +120,6 @@ export async function getPublicPosts(params: {
 export async function getPublicPostCounts(
   type: Exclude<PostType, "blog"> | "blog"
 ): Promise<{ counts: Record<string, number>; total: number }> {
-  const { url, anonKey } = getSupabaseEnv();
-
   // 효율적인 카운팅: categories를 조회하면서 그에 속한 public posts 개수를 세어옵니다.
   // PostgREST: categories?select=slug,posts(count)&posts.type=eq.blog&posts.visibility=eq.public
   const search = new URLSearchParams();
@@ -119,18 +127,7 @@ export async function getPublicPostCounts(
   search.set("posts.type", `eq.${type}`);
   search.set("posts.visibility", "eq.public");
 
-  const response = await fetch(
-    `${url.replace(/\/$/, "")}/rest/v1/categories?${search.toString()}`,
-    {
-      method: "GET",
-      headers: {
-        apikey: anonKey,
-        authorization: `Bearer ${anonKey}`,
-        accept: "application/json",
-      },
-      next: { revalidate: 60, tags: [publicPostsTag(type)] },
-    }
-  );
+  const response = await fetchPublicRest("categories", search, [publicPostsTag(type)]);
 
   if (!response.ok) return { counts: {}, total: 0 };
 
@@ -149,3 +146,70 @@ export async function getPublicPostCounts(
 
   return { counts, total };
 }
+
+export async function getPublicPost(
+  type: Exclude<PostType, "diary">,
+  slug: string
+): Promise<Post | null> {
+  const search = new URLSearchParams();
+  search.set("select", POST_COLUMNS);
+  search.set("slug", `eq.${slug}`);
+  search.set("type", `eq.${type}`);
+  search.set("visibility", "eq.public");
+  search.set("limit", "1");
+
+  const response = await fetchPublicRest("posts", search, [publicPostsTag(type)]);
+  if (!response.ok) {
+    throw new Error(`Supabase REST ${response.status}: ${await response.text()}`);
+  }
+
+  const [row] = (await response.json()) as PostRow[];
+  return row ? mapPost(row) : null;
+}
+
+// 카테고리를 바꾸는 액션은 아티클 태그를 무효화하므로 같은 태그를 단다.
+export async function getPublicCategories(): Promise<{ slug: string; sortOrder: number }[]> {
+  const search = new URLSearchParams();
+  search.set("select", "slug,sort_order");
+  search.set("order", "sort_order.asc,slug.asc");
+
+  const response = await fetchPublicRest("categories", search, [publicPostsTag("blog")]);
+  if (!response.ok) {
+    throw new Error(`Supabase REST ${response.status}: ${await response.text()}`);
+  }
+
+  const rows = (await response.json()) as { slug: string; sort_order: number }[];
+  return rows.map((row) => ({ slug: row.slug, sortOrder: Number(row.sort_order ?? 0) }));
+}
+
+// 다이어리는 RLS가 anon에게 모두 숨기고 본문은 관리자 전용이다(CLAUDE.md 제품 규칙).
+// 방문자 목록은 제목만 보이고 모두에게 같으므로, service role로 본문 없이 읽어 쿠키 없이 캐시한다.
+export const getPublicDiaryIndex = unstable_cache(
+  async (): Promise<Post[]> => {
+    const service = createSupabaseServiceClient();
+    const { data, error } = await service
+      .from("posts")
+      .select("id,slug,type,visibility,title,created_at,updated_at,thumbnail_image_key")
+      .eq("type", "diary")
+      .order("created_at", { ascending: false });
+
+    if (error) throw new Error(`DB Error: ${error.message}`);
+
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      type: "diary",
+      visibility: row.visibility,
+      title: row.visibility === "private" ? "일기" : row.title,
+      content: "",
+      categorySlug: null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at ?? row.created_at,
+      imageKeys: [],
+      thumbnailImageKey: row.thumbnail_image_key,
+      commentCount: 0,
+    }));
+  },
+  ["public-diary-index"],
+  { revalidate: PUBLIC_REVALIDATE_SECONDS, tags: [publicPostsTag("diary")] }
+);

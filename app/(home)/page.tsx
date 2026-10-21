@@ -62,7 +62,6 @@ async function LatestArticlesSection() {
   const { data: latestArticles } = await getPublicPosts({
     type: "blog",
     limit: 6,
-    revalidateSeconds: 86400,
   });
 
   return (

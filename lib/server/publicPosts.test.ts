@@ -1,10 +1,35 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { revalidatePath, revalidateTag } from "next/cache";
-import { getPublicPostCounts, getPublicPosts, revalidatePublicPosts } from "@/lib/server/publicPosts";
+import {
+  getPublicCategories,
+  getPublicDiaryIndex,
+  getPublicPost,
+  getPublicPostCounts,
+  getPublicPosts,
+  revalidatePublicPosts,
+} from "@/lib/server/publicPosts";
 
+const mocks = vi.hoisted(() => ({
+  serviceSelect: "",
+  serviceRows: [] as unknown[],
+}));
+
+// unstable_cache는 캐시 없이 함수를 그대로 부르게 한다.
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
+  unstable_cache: (fn: () => unknown) => fn,
+}));
+
+vi.mock("@/lib/supabase/service", () => ({
+  createSupabaseServiceClient: () => {
+    const query = {
+      select: (columns: string) => ((mocks.serviceSelect = columns), query),
+      eq: () => query,
+      order: async () => ({ data: mocks.serviceRows, error: null }),
+    };
+    return { from: () => query };
+  },
 }));
 
 const ANON_KEY = "test-anon-key";
@@ -77,11 +102,10 @@ describe("공개 글 목록 조회", () => {
     });
   });
 
-  // 기본 재검증 주기(60초)는 세그먼트(86400초)와 어긋나는 알려진 결함이라 고정하지 않는다(로드맵 5단계).
-  it("글 타입 공개 캐시 태그를 달고 넘겨받은 재검증 주기를 쓴다", async () => {
+  it("글 타입 공개 캐시 태그를 달고 세그먼트와 같은 86400초로 캐시한다", async () => {
     fetchMock.mockResolvedValue(jsonResponse([]));
 
-    await getPublicPosts({ type: "feed", revalidateSeconds: 86400 });
+    await getPublicPosts({ type: "feed" });
 
     expect(requestAt().init).toMatchObject({
       next: { revalidate: 86400, tags: ["posts:public:feed"] },
@@ -261,5 +285,68 @@ describe("revalidatePublicPosts", () => {
       ["posts:public:blog:category:dev", "default"],
     ]);
     expect(vi.mocked(revalidatePath).mock.calls.map(([path]) => path)).toEqual(["/", "/article", "/article/a"]);
+  });
+});
+
+describe("공개 글 단건 조회", () => {
+  it("경로의 글 타입과 slug로 공개 글 하나를 하루 캐시·타입 태그로 요청한다", async () => {
+    fetchMock.mockResolvedValue(jsonResponse([row]));
+
+    const post = await getPublicPost("blog", "hello");
+
+    const { url, init } = requestAt();
+    expect(`${url.origin}${url.pathname}`).toBe("https://project.supabase.co/rest/v1/posts");
+    expect(url.searchParams.get("slug")).toBe("eq.hello");
+    expect(url.searchParams.get("type")).toBe("eq.blog");
+    expect(url.searchParams.get("visibility")).toBe("eq.public");
+    expect(url.searchParams.get("limit")).toBe("1");
+    expect(init).toMatchObject({ next: { revalidate: 86400, tags: ["posts:public:blog"] } });
+    expect(post).toMatchObject({ slug: "hello", commentCount: 3 });
+  });
+
+  it("없거나 RLS가 가린 글이면 null을 돌려준다", async () => {
+    fetchMock.mockResolvedValue(jsonResponse([]));
+
+    await expect(getPublicPost("blog", "secret")).resolves.toBeNull();
+  });
+});
+
+describe("공개 카테고리 조회", () => {
+  it("공개 카테고리를 정렬 순서대로 아티클 태그를 달아 요청한다", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse([
+        { slug: "dev", sort_order: 1 },
+        { slug: "life", sort_order: 2 },
+      ]),
+    );
+
+    const categories = await getPublicCategories();
+
+    const { url, init } = requestAt();
+    expect(`${url.origin}${url.pathname}`).toBe("https://project.supabase.co/rest/v1/categories");
+    expect(url.searchParams.get("select")).toBe("slug,sort_order");
+    expect(url.searchParams.get("order")).toBe("sort_order.asc,slug.asc");
+    expect(init).toMatchObject({ next: { revalidate: 86400, tags: ["posts:public:blog"] } });
+    expect(categories).toEqual([
+      { slug: "dev", sortOrder: 1 },
+      { slug: "life", sortOrder: 2 },
+    ]);
+  });
+});
+
+describe("방문자용 다이어리 목록", () => {
+  it("본문 열을 고르지 않고 비공개 다이어리 제목은 가린다", async () => {
+    mocks.serviceRows = [
+      { id: "d1", slug: "open", type: "diary", visibility: "public", title: "공개 일기", created_at: "2026-01-02T00:00:00Z", updated_at: null, thumbnail_image_key: null },
+      { id: "d2", slug: "secret", type: "diary", visibility: "private", title: "비밀 제목", created_at: "2026-01-01T00:00:00Z", updated_at: null, thumbnail_image_key: null },
+    ];
+
+    const posts = await getPublicDiaryIndex();
+
+    expect(mocks.serviceSelect).not.toContain("content");
+    expect(posts.map((p) => [p.slug, p.title, p.content])).toEqual([
+      ["open", "공개 일기", ""],
+      ["secret", "일기", ""],
+    ]);
   });
 });
