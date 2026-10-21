@@ -1,4 +1,4 @@
-import { getPostBySlugDirectly } from "@/lib/server/posts";
+import { getPostForRoute } from "@/lib/server/posts";
 import PostImages from "@/app/_components/PostImages";
 import HtmlContent from "@/app/_components/HtmlContent";
 import BackButton from "@/app/_components/BackButton";
@@ -19,19 +19,9 @@ export default async function DiaryEntryPage({
   const { slug } = await params;
   const { isAdmin } = await getViewer();
 
-  let post = null;
-  try {
-    post = await getPostBySlugDirectly({ slug });
-  } catch (e) {
-    const err = e as { status?: number };
-    if (err.status === 403 || err.status === 404) {
-      post = null;
-    } else {
-      throw e;
-    }
-  }
-
-  if (post && post.type !== "diary") notFound();
+  const post = await getPostForRoute("diary", slug);
+  // 비관리자는 RLS로 다이어리를 읽지 못해 없는 글과 비공개 글을 구분할 수 없으므로 안내 화면을 둔다.
+  if (!post && isAdmin) notFound();
 
   return (
     <article className="mx-auto max-w-4xl space-y-5">

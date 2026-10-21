@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getPostBySlugDirectly, getPostsDirectly } from "@/lib/server/posts";
+import { getPostForRoute, getPostsDirectly, loadPostForEdit } from "@/lib/server/posts";
 
 type QueryResult = { data: unknown; error: null };
 
@@ -25,6 +25,16 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("next/headers", () => ({
   headers: async () => mocks.requestHeaders,
+}));
+
+// redirect·notFound는 실제로 렌더링을 끊으므로 예외로 흉내 낸다.
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn((url: string) => {
+    throw new Error(`REDIRECT ${url}`);
+  }),
+  notFound: vi.fn(() => {
+    throw new Error("NOT_FOUND");
+  }),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -73,7 +83,7 @@ describe("관리자 판정에 따른 글 조회", () => {
     expect(posts.calls).toContainEqual(["eq", "visibility", "public"]);
   });
 
-  it("user_metadata.is_admin만 있는 사용자에게는 비공개 글을 403으로 막는다", async () => {
+  it("user_metadata.is_admin만 있는 사용자는 상세에서도 공개 글만 조회한다", async () => {
     const user = {
       id: "user-1",
       aud: "authenticated",
@@ -82,10 +92,74 @@ describe("관리자 판정에 따른 글 조회", () => {
       user_metadata: { is_admin: true },
     };
     mocks.getUser.mockResolvedValue({ data: { user }, error: null });
+    const posts = createQuery({ data: null, error: null });
+    mocks.tables.posts = posts;
+
+    await getPostForRoute("blog", "secret");
+
+    expect(posts.calls).toContainEqual(["eq", "visibility", "public"]);
+  });
+});
+
+const adminUser = {
+  id: "admin-1",
+  aud: "authenticated",
+  created_at: "2026-01-01T00:00:00Z",
+  app_metadata: { is_admin: true },
+  user_metadata: {},
+};
+
+describe("getPostForRoute", () => {
+  it("경로의 글 타입과 slug로 조회해 다른 타입 글은 찾지 않는다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+    const posts = createQuery({ data: null, error: null });
+    mocks.tables.posts = posts;
+
+    await getPostForRoute("diary", "hello");
+
+    expect(posts.calls).toContainEqual(["eq", "slug", "hello"]);
+    expect(posts.calls).toContainEqual(["eq", "type", "diary"]);
+  });
+
+  it("없는 글이면 예외 대신 null을 돌려준다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+    mocks.tables.posts = createQuery({ data: null, error: null });
+
+    await expect(getPostForRoute("blog", "missing")).resolves.toBeNull();
+  });
+
+  it("관리자는 공개 범위 필터 없이 비공개 글도 조회한다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
+    const posts = createQuery({ data: privatePostRow, error: null });
+    mocks.tables.posts = posts;
+
+    const post = await getPostForRoute("blog", "secret");
+
+    expect(posts.calls).not.toContainEqual(["eq", "visibility", "public"]);
+    expect(post).toMatchObject({ slug: "secret", visibility: "private" });
+  });
+});
+
+describe("loadPostForEdit", () => {
+  it("비로그인 사용자는 수정 화면 경로를 from으로 달아 로그인으로 보낸다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+
+    await expect(loadPostForEdit("blog", "hello")).rejects.toThrow(
+      `REDIRECT /login?from=${encodeURIComponent("/article/edit/hello")}`
+    );
+  });
+
+  it("관리자가 없는 글이나 다른 타입 글을 열면 404로 보낸다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
+    mocks.tables.posts = createQuery({ data: null, error: null });
+
+    await expect(loadPostForEdit("feed", "missing")).rejects.toThrow("NOT_FOUND");
+  });
+
+  it("관리자에게 해당 타입 글을 돌려준다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
     mocks.tables.posts = createQuery({ data: privatePostRow, error: null });
 
-    await expect(getPostBySlugDirectly({ slug: "secret" })).rejects.toMatchObject({
-      status: 403,
-    });
+    await expect(loadPostForEdit("blog", "secret")).resolves.toMatchObject({ slug: "secret" });
   });
 });

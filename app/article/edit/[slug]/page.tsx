@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import PostEditor from "@/app/_components/PostEditor";
-import { getPostBySlugDirectly } from "@/lib/server/posts";
-import { requireAdmin } from "@/lib/server/admin";
-import { notFound } from "next/navigation";
+import { loadPostForEdit } from "@/lib/server/posts";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -16,10 +14,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ArticleEditPage({ params }: Props) {
-  await requireAdmin("/article");
   const { slug } = await params;
-  const post = await getPostBySlugDirectly({ slug });
-  if (post.type !== "blog") notFound();
+  const post = await loadPostForEdit("blog", slug);
 
   return (
     <PostEditor

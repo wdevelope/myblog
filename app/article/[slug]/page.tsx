@@ -1,9 +1,9 @@
-import { getPostBySlugDirectly, getCommentsDirectly } from "@/lib/server/posts";
+import { getPostForRoute, getCommentsDirectly } from "@/lib/server/posts";
 import PostImages from "@/app/_components/PostImages";
 import BackButton from "@/app/_components/BackButton";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 import CommentsThread from "@/app/_components/CommentsThread";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { FiLock, FiGlobe } from "react-icons/fi";
@@ -21,17 +21,8 @@ export default async function BlogPostPage({
   const { slug } = await params;
   const { user, isAdmin } = await getViewer();
 
-  let post;
-  try {
-    post = await getPostBySlugDirectly({ slug });
-  } catch (e) {
-    const err = e as { status?: number };
-    if (err.status === 403) redirect("/");
-    if (err.status === 404) notFound();
-    throw e;
-  }
-
-  if (post.type !== "blog") notFound();
+  const post = await getPostForRoute("blog", slug);
+  if (!post) notFound();
 
   const comments = user ? await getCommentsDirectly({ postId: post.id }) : [];
 

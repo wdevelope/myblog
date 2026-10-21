@@ -1,8 +1,10 @@
 import "server-only";
+import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { getViewer } from "@/lib/server/admin";
+import { getViewer, requireAdmin } from "@/lib/server/admin";
 import { mapPost, type PostRow } from "@/lib/server/postRow";
+import { postHref } from "@/lib/constants";
 import type { Post, PostType, Comment } from "@/lib/types";
 
 export async function getPostsDirectly(params: { type: PostType }): Promise<Post[]> {
@@ -55,35 +57,31 @@ export async function getPostsDirectly(params: { type: PostType }): Promise<Post
     return (posts ?? []).map((p) => mapPost(p as PostRow));
 }
 
-export async function getPostBySlugDirectly(params: { slug: string }): Promise<Post> {
+// 없는 글, 경로와 타입이 다른 글, 볼 권한이 없는 글은 모두 null이다. 호출부는 notFound()로 끝낸다.
+export async function getPostForRoute(type: PostType, slug: string): Promise<Post | null> {
     const { isAdmin } = await getViewer();
     const supabase = await createSupabaseServerClient();
 
     let query = supabase
         .from("posts")
         .select("*, comments(count)")
-        .eq("slug", params.slug);
+        .eq("slug", slug)
+        .eq("type", type);
 
-    if (!isAdmin) {
-        query = query.eq("visibility", "public");
-    }
+    if (!isAdmin) query = query.eq("visibility", "public");
 
     const { data: post, error } = await query.maybeSingle();
-
     if (error) throw new Error(`DB Error: ${error.message}`);
-    if (!post) {
-        const error = new Error("Not Found") as Error & { status?: number };
-        error.status = 404;
-        throw error;
-    }
 
-    if (post.visibility === "private" && !isAdmin) {
-        const error = new Error("Forbidden") as Error & { status?: number };
-        error.status = 403;
-        throw error;
-    }
+    return post ? mapPost(post as PostRow) : null;
+}
 
-    return mapPost(post as PostRow);
+export async function loadPostForEdit(type: PostType, slug: string): Promise<Post> {
+    // 로그인 뒤 목록이 아니라 이 수정 화면으로 돌아오게 한다.
+    await requireAdmin(`${postHref(type)}/edit/${slug}`);
+    const post = await getPostForRoute(type, slug);
+    if (!post) notFound();
+    return post;
 }
 
 export async function getCommentsDirectly(params: { postId: string }): Promise<Comment[]> {
