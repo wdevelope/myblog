@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
-import { getPublicPostCounts, getPublicPosts } from "@/lib/server/publicPosts";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { getPublicPostCounts, getPublicPosts, revalidatePublicPosts } from "@/lib/server/publicPosts";
+
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+}));
 
 const ANON_KEY = "test-anon-key";
 
@@ -230,5 +236,30 @@ describe("카테고리별 공개 글 수", () => {
     fetchMock.mockResolvedValue(new Response("boom", { status: 500 }));
 
     await expect(getPublicPostCounts("blog")).resolves.toEqual({ counts: {}, total: 0 });
+  });
+});
+
+describe("revalidatePublicPosts", () => {
+  it("피드는 상세 화면이 없어 목록 경로와 피드 태그만 무효화한다", () => {
+    vi.mocked(revalidatePath).mockClear();
+    vi.mocked(revalidateTag).mockClear();
+
+    revalidatePublicPosts({ type: "feed", slugs: ["photo"], categories: ["dev"] });
+
+    expect(vi.mocked(revalidatePath).mock.calls.map(([path]) => path)).toEqual(["/", "/feed"]);
+    expect(vi.mocked(revalidateTag).mock.calls).toEqual([["posts:public:feed", "default"]]);
+  });
+
+  it("같은 카테고리·slug는 한 번만, 비어 있는 값은 건너뛴다", () => {
+    vi.mocked(revalidatePath).mockClear();
+    vi.mocked(revalidateTag).mockClear();
+
+    revalidatePublicPosts({ type: "blog", slugs: ["a", "a", null], categories: ["dev", "dev", undefined] });
+
+    expect(vi.mocked(revalidateTag).mock.calls).toEqual([
+      ["posts:public:blog", "default"],
+      ["posts:public:blog:category:dev", "default"],
+    ]);
+    expect(vi.mocked(revalidatePath).mock.calls.map(([path]) => path)).toEqual(["/", "/article", "/article/a"]);
   });
 });

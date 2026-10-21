@@ -1,6 +1,8 @@
 import "server-only";
 
+import { revalidatePath, revalidateTag } from "next/cache";
 import type { Post, PostType } from "@/lib/types";
+import { postHref } from "@/lib/constants";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { mapPost, type PostRow } from "@/lib/server/postRow";
 
@@ -14,6 +16,28 @@ export function publicPostsTag(type: PostType) {
 
 export function publicBlogCategoryTag(categorySlug: string) {
   return `posts:public:blog:category:${categorySlug}`;
+}
+
+// 쓰기 액션이 공개 캐시를 무효화하는 유일한 길. 글을 고치면 slug·카테고리가 바뀔 수 있어
+// 바뀌기 전·후 값을 모두 받는다.
+export function revalidatePublicPosts(params: {
+  type: PostType;
+  slugs?: (string | null | undefined)[];
+  categories?: (string | null | undefined)[];
+}) {
+  revalidateTag(publicPostsTag(params.type), "default");
+  if (params.type === "blog") {
+    for (const category of new Set(params.categories)) {
+      if (category) revalidateTag(publicBlogCategoryTag(category), "default");
+    }
+  }
+
+  revalidatePath("/", "page");
+  revalidatePath(postHref(params.type), "page");
+  if (params.type === "feed") return;
+  for (const slug of new Set(params.slugs)) {
+    if (slug) revalidatePath(postHref(params.type, slug));
+  }
 }
 
 export async function getPublicPosts(params: {

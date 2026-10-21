@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createPost, deletePost } from "@/lib/actions/posts";
 
 type QueryResult = { data: unknown; error: null };
@@ -130,5 +131,53 @@ describe("deletePost 권한", () => {
 
     expect(await deletePost("post-abc")).toEqual({ success: true });
     expect(mocks.writes).toEqual(["delete"]);
+  });
+});
+
+// 테이블과 고른 열에 따라 결과를 돌려줘 수정 전 행과 저장된 행을 구분한다.
+class RoutedQuery {
+  private selected = "";
+  constructor(private table: string) {}
+  select(columns?: string) {
+    if (columns) this.selected = columns;
+    return this;
+  }
+  eq() { return this; }
+  order() { return this; }
+  limit() { return this; }
+  insert() { return this; }
+  upsert() { return this; }
+  async maybeSingle() {
+    if (this.table === "categories") return { data: { slug: "dev" }, error: null };
+    if (this.selected === "slug,category_slug") {
+      return { data: { slug: "post-abc", category_slug: "old" }, error: null };
+    }
+    return { data: { id: "post-1" }, error: null };
+  }
+  async single() { return { data: savedRow, error: null }; }
+}
+
+describe("createPost 캐시 무효화", () => {
+  it("글 수정으로 카테고리가 바뀌면 옛 카테고리와 새 카테고리 목록 캐시를 모두 무효화한다", async () => {
+    signedIn(user({ app: { is_admin: true } }));
+    mocks.createServiceClient.mockReturnValue({ from: (table: string) => new RoutedQuery(table) });
+
+    const result = await createPost({ ...blogInput, id: "post-1", slug: "post-abc" });
+
+    expect(result.success).toBe(true);
+    expect(revalidateTag).toHaveBeenCalledWith("posts:public:blog:category:old", "default");
+    expect(revalidateTag).toHaveBeenCalledWith("posts:public:blog:category:dev", "default");
+  });
+
+  it("아티클은 없는 /blog 경로가 아니라 /article 목록과 상세를 무효화한다", async () => {
+    signedIn(user({ app: { is_admin: true } }));
+    mocks.createServiceClient.mockReturnValue({ from: (table: string) => new RoutedQuery(table) });
+
+    await createPost({ ...blogInput, id: "post-1", slug: "post-abc" });
+
+    const paths = vi.mocked(revalidatePath).mock.calls.map(([path]) => path);
+    expect(paths).not.toContain("/blog");
+    expect(paths).toContain("/article");
+    expect(paths).toContain("/article/post-abc");
   });
 });

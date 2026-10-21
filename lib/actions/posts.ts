@@ -1,13 +1,9 @@
 "use server";
 
-import { revalidateTag, revalidatePath } from "next/cache";
 import type { PostType, Visibility } from "@/lib/types";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assertAdmin } from "@/lib/server/admin";
-import {
-  publicBlogCategoryTag,
-  publicPostsTag,
-} from "@/lib/server/publicPosts";
+import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 import { toAutoTitle } from "@/lib/markdown";
 
 export type CreatePostInput = {
@@ -108,6 +104,11 @@ export async function createPost(
   const isNew = !input.id;
   const baseSlug = (input.id ? input.slug?.trim() : null) || "post";
   const service = createSupabaseServiceClient();
+
+  // 수정으로 slug·카테고리가 바뀌면 이전 값의 공개 캐시도 무효화해야 한다.
+  const { data: previous } = input.id
+    ? await service.from("posts").select("slug,category_slug").eq("id", input.id).maybeSingle()
+    : { data: null };
   const categorySlug =
     input.type === "blog" ? input.categorySlug?.trim() ?? null : null;
 
@@ -199,16 +200,11 @@ export async function createPost(
     return { success: false, error: `DB Error: ${error.message}` };
   }
 
-  revalidateTag(publicPostsTag(saved.type), "default");
-  if (saved.type === "blog" && saved.category_slug) {
-    revalidateTag(publicBlogCategoryTag(saved.category_slug), "default");
-  }
-
-  revalidatePath("/", "page");
-  revalidatePath(`/${saved.type}`, "page");
-  if (saved.type === "blog") {
-    revalidatePath("/article", "page");
-  }
+  revalidatePublicPosts({
+    type: saved.type,
+    slugs: [previous?.slug, saved.slug],
+    categories: [previous?.category_slug, saved.category_slug],
+  });
 
   return {
     success: true,
@@ -250,16 +246,11 @@ export async function deletePost(slug: string): Promise<DeletePostResult> {
     return { success: false, error: "not_found" };
   }
 
-  revalidateTag(publicPostsTag(deleted.type), "default");
-  if (deleted.type === "blog" && deleted.category_slug) {
-    revalidateTag(publicBlogCategoryTag(deleted.category_slug), "default");
-  }
-
-  revalidatePath("/", "page");
-  revalidatePath(`/${deleted.type}`, "page");
-  if (deleted.type === "blog") {
-    revalidatePath("/article", "page");
-  }
+  revalidatePublicPosts({
+    type: deleted.type,
+    slugs: [slug],
+    categories: [deleted.category_slug],
+  });
 
   return { success: true };
 }

@@ -1,13 +1,9 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assertAdmin, getViewer } from "@/lib/server/admin";
-import {
-  publicBlogCategoryTag,
-  publicPostsTag,
-} from "@/lib/server/publicPosts";
+import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 
 function normalizeSlug(input: string) {
   const slug = input.trim();
@@ -144,8 +140,7 @@ export async function createCategory(
     return { success: false, error: `DB Error: ${error.message}` };
   }
 
-  revalidateTag(publicPostsTag("blog"), "default");
-  revalidatePath("/article");
+  revalidatePublicPosts({ type: "blog" });
 
   return { success: true, slug: saved.slug };
 }
@@ -236,10 +231,7 @@ export async function updateCategory(
     }
   }
 
-  revalidateTag(publicPostsTag("blog"), "default");
-  revalidateTag(publicBlogCategoryTag(normalizedOldSlug), "default");
-  revalidateTag(publicBlogCategoryTag(finalSlug), "default");
-  revalidatePath("/article");
+  revalidatePublicPosts({ type: "blog", categories: [normalizedOldSlug, finalSlug] });
 
   return { success: true, slug: finalSlug };
 }
@@ -317,12 +309,7 @@ export async function deleteCategory(
     return { success: false, error: "not_found" };
   }
 
-  revalidateTag(publicPostsTag("blog"), "default");
-  revalidateTag(publicBlogCategoryTag(normalizedSlug), "default");
-  if (normalizedMoveTo) {
-    revalidateTag(publicBlogCategoryTag(normalizedMoveTo), "default");
-  }
-  revalidatePath("/article");
+  revalidatePublicPosts({ type: "blog", categories: [normalizedSlug, normalizedMoveTo] });
 
   return { success: true };
 }
@@ -378,7 +365,7 @@ export async function reorderCategory(
     return { success: false, error: `DB Error: ${saveError.message}` };
   }
 
-  revalidatePath("/article");
+  revalidatePublicPosts({ type: "blog" });
 
   return { success: true };
 }
