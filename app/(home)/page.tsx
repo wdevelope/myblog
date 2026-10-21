@@ -3,7 +3,8 @@ import Image from "next/image";
 import { getPublicPosts } from "@/lib/server/publicPosts";
 import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
 import { toExcerpt } from "@/lib/markdown";
-import { coverSrcFromImageKey } from "@/lib/image";
+import { coverKeyOf, coverSrcFromImageKey } from "@/lib/image";
+import { formatPostDate } from "@/lib/utils";
 import AuthButton from "@/app/_components/AuthButton";
 
 import { Suspense } from "react";
@@ -82,6 +83,7 @@ async function LatestArticlesSection() {
 
       <div className="space-y-4">
         {latestArticles.map((post, index) => {
+          const coverKey = coverKeyOf(post);
           return (
             <Card
               key={post.id}
@@ -94,7 +96,7 @@ async function LatestArticlesSection() {
                     <span>•</span>
                     <span className="font-medium text-muted/80">{post.categorySlug || "전체"}</span>
                     <span className="flex-1" />
-                    <span>{new Date(post.createdAt).toISOString().slice(0, 10)}</span>
+                    <span>{formatPostDate(post.createdAt)}</span>
                   </div>
                   <div className="space-y-2">
                     <Link
@@ -110,10 +112,10 @@ async function LatestArticlesSection() {
                   </div>
                 </div>
 
-                {post.thumbnailImageKey ? (
+                {coverKey ? (
                   <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-2xl ring-1 ring-border md:h-48 md:w-64">
                     <Image
-                      src={coverSrcFromImageKey(post.thumbnailImageKey) ?? ""}
+                      src={coverSrcFromImageKey(coverKey)}
                       alt={post.title}
                       fill
                       sizes="(min-width: 768px) 256px, 100vw"

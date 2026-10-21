@@ -4,11 +4,11 @@ import { useState } from "react";
 import Image from "next/image";
 import { FiHeart, FiMessageCircle, FiBookmark } from "react-icons/fi";
 import { AnimatePresence, motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn, formatPostDate } from "@/lib/utils";
 import type { Post } from "@/lib/types";
 import { Card, CardBody } from "@/app/_components/ui";
 import PostActionMenu from "@/app/_components/PostActionMenu";
-import { coverSrcFromImageKey } from "@/lib/image";
+import { coverKeyOf, coverSrcFromImageKey } from "@/lib/image";
 import HtmlContent from "@/app/_components/HtmlContent";
 import { toExcerpt } from "@/lib/markdown";
 
@@ -28,7 +28,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
     }
   };
 
-  const coverKey = post.imageKeys?.[0];
+  const coverKey = coverKeyOf(post);
   const coverSrc = coverKey ? coverSrcFromImageKey(coverKey) : null;
   const textContent = toExcerpt(post.content, 1000);
   const shouldShowMore = textContent.length > 140;
@@ -48,7 +48,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
         <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">원스</p>
           <p className="text-xs text-muted" suppressHydrationWarning>
-            {new Date(post.createdAt).toISOString().slice(0, 10)}
+            {formatPostDate(post.createdAt)}
           </p>
         </div>
         {isAdmin ? (

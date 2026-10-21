@@ -8,7 +8,8 @@ import { getViewer } from "@/lib/server/admin";
 import { getPostsDirectly } from "@/lib/server/posts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toExcerpt } from "@/lib/markdown";
-import { coverSrcFromImageKey } from "@/lib/image";
+import { coverKeyOf, coverSrcFromImageKey } from "@/lib/image";
+import { formatPostDate } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import CategorySelect from "@/app/article/CategorySelect";
 
@@ -246,10 +247,8 @@ export default async function BlogIndexPage({ searchParams }: Props) {
           <>
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {posts.map((post, index) => {
-                const createdAt = new Date(post.createdAt);
-                const dateLabel = createdAt.toISOString().slice(0, 10);
-                const coverKey =
-                  post.thumbnailImageKey?.trim() || post.imageKeys?.[0] || null;
+                const dateLabel = formatPostDate(post.createdAt);
+                const coverKey = coverKeyOf(post);
                 const coverSrc = coverKey
                   ? coverSrcFromImageKey(coverKey)
                   : null;

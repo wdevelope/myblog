@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { coverSrcFromImageKey } from "@/lib/image";
+import { coverKeyOf, coverSrcFromImageKey } from "@/lib/image";
 
 const SUPABASE_URL = "https://project.supabase.co";
 
@@ -31,5 +31,23 @@ describe("이미지 키 → 화면 주소", () => {
 
   it("버킷:경로 형식이 아닌 값은 그대로 쓴다", () => {
     expect(coverSrcFromImageKey("/logo.png")).toBe("/logo.png");
+  });
+});
+
+describe("coverKeyOf", () => {
+  it("썸네일이 있으면 썸네일을 표지로 쓴다", () => {
+    expect(coverKeyOf({ thumbnailImageKey: "post-images-public:t.png", imageKeys: ["post-images-public:a.png"] })).toBe(
+      "post-images-public:t.png"
+    );
+  });
+
+  it("썸네일이 없거나 비어 있으면 첫 첨부 이미지를 쓴다", () => {
+    expect(coverKeyOf({ thumbnailImageKey: "  ", imageKeys: ["post-images-public:a.png"] })).toBe(
+      "post-images-public:a.png"
+    );
+  });
+
+  it("이미지가 하나도 없으면 null이다", () => {
+    expect(coverKeyOf({ thumbnailImageKey: null, imageKeys: [] })).toBeNull();
   });
 });

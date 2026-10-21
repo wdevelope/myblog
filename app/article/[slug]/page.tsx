@@ -10,6 +10,7 @@ import { FiLock, FiGlobe } from "react-icons/fi";
 import { CardBody } from "@/app/_components/ui";
 import { getViewer } from "@/lib/server/admin";
 import HtmlContent from "@/app/_components/HtmlContent";
+import { formatPostDate } from "@/lib/utils";
 
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
@@ -84,7 +85,7 @@ export default async function BlogPostPage({
               <p className="text-sm font-bold text-foreground">원스</p>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
                 <span>
-                  {new Date(post.createdAt).toLocaleDateString("ko-KR")}
+                  {formatPostDate(post.createdAt, "ko")}
                 </span>
                 <span>·</span>
                 <span>조회수 {(post.viewCount ?? 0).toLocaleString()}회</span>

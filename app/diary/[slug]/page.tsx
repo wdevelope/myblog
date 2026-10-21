@@ -1,6 +1,7 @@
 import { getPostForRoute } from "@/lib/server/posts";
 import PostImages from "@/app/_components/PostImages";
 import HtmlContent from "@/app/_components/HtmlContent";
+import { formatPostDate } from "@/lib/utils";
 import BackButton from "@/app/_components/BackButton";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 import { notFound } from "next/navigation";
@@ -61,7 +62,7 @@ export default async function DiaryEntryPage({
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
                 <span>
                   {post
-                    ? new Date(post.createdAt).toLocaleDateString("ko-KR")
+                    ? formatPostDate(post.createdAt, "ko")
                     : ""}
                 </span>
                 <span>·</span>
