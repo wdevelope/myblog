@@ -8,9 +8,15 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { FiLock, FiGlobe } from "react-icons/fi";
-import { getViewer } from "@/lib/server/admin";
+import { getPreviewViewer } from "@/lib/server/admin";
+import { getPublicDiaryIndex } from "@/lib/server/publicPosts";
 
 export const revalidate = 86400; // REVALIDATE_PERIOD
+
+export async function generateStaticParams() {
+  const entries = await getPublicDiaryIndex();
+  return entries.map((entry) => ({ slug: entry.slug }));
+}
 
 export default async function DiaryEntryPage({
   params,
@@ -18,11 +24,14 @@ export default async function DiaryEntryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { isAdmin } = await getViewer();
+  const { isAdmin } = await getPreviewViewer();
 
-  const post = await getPostForRoute("diary", slug);
-  // 비관리자는 RLS로 다이어리를 읽지 못해 없는 글과 비공개 글을 구분할 수 없으므로 안내 화면을 둔다.
-  if (!post && isAdmin) notFound();
+  // 다이어리 본문은 관리자 전용이다(draft mode). 방문자는 있는 다이어리면 안내 화면을, 없으면 404를 본다.
+  const post = isAdmin ? await getPostForRoute("diary", slug) : null;
+  const exists = isAdmin
+    ? Boolean(post)
+    : (await getPublicDiaryIndex()).some((entry) => entry.slug === slug);
+  if (!exists) notFound();
 
   return (
     <article className="mx-auto max-w-4xl space-y-5">

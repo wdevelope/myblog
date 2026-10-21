@@ -2,8 +2,8 @@ import { ButtonLink, Card, CardBody } from "@/app/_components/ui";
 import MarkdownContent from "@/app/_components/MarkdownContent";
 import { FeedCard } from "@/app/feed/FeedCard";
 import { toExcerpt } from "@/lib/markdown";
-import { getViewer } from "@/lib/server/admin";
-import { getPostsDirectly } from "@/lib/server/posts";
+import { getPreviewViewer } from "@/lib/server/admin";
+import { getPublicPosts } from "@/lib/server/publicPosts";
 
 export const metadata = {
   title: "피드",
@@ -12,8 +12,9 @@ export const metadata = {
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
 export default async function FeedPage() {
-  const { isAdmin } = await getViewer();
-  const posts = await getPostsDirectly({ type: "feed" });
+  // 피드는 항상 공개라 관리자도 같은 공개 조회를 쓴다. 관리자 버튼만 draft mode에서 보인다.
+  const { isAdmin } = await getPreviewViewer();
+  const { data: posts } = await getPublicPosts({ type: "feed" });
 
   return (
     <div className="mx-auto max-w-xl space-y-8">
@@ -30,10 +31,7 @@ export default async function FeedPage() {
           posts.map((post) => (
             <FeedCard
               key={post.id}
-              post={{
-                ...post,
-                content: post.content, // explicitly include to show we are aware
-              }}
+              post={post}
               isAdmin={isAdmin}
               excerpt={toExcerpt(post.content, 1000)}
               body={<MarkdownContent content={post.content} compact />}
