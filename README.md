@@ -4,7 +4,7 @@ Next.js(App Router) + Tailwind CSS 기반 개인 블로그(w-life). 배포는 Ve
 
 - 글 타입: `blog`(아티클) / `feed` / `diary`
 - 공개 범위: `public` / `private` (글 단위, 피드는 항상 공개)
-- 댓글: 로그인 사용자, `diary`는 미지원
+- 댓글: 누구나 읽고 로그인 사용자가 쓴다, `diary`는 미지원
 - 이미지 첨부: 모든 글 타입 지원(SVG 제외)
 - 본문: 마크다운. 에디터는 툴바 + 미리보기이고, 형광펜 `==텍스트==`·밑줄 `++텍스트++`·수식 `$…$`·`$$…$$`(KaTeX)를 지원한다
 - 데이터: Supabase(Postgres·Auth·Storage)
@@ -20,6 +20,7 @@ Next.js(App Router) + Tailwind CSS 기반 개인 블로그(w-life). 배포는 Ve
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (필수)
 - `SUPABASE_SERVICE_ROLE_KEY` (필수, 서버 전용: 관리자 쓰기·비공개 이미지)
 - `NEXT_PUBLIC_SITE_URL` (선택, 기본 `https://www.w-life.store`: 메타데이터·sitemap·robots 기준 URL)
+- `CRON_SECRET` (운영 필수: Vercel Cron `/api/cron/keep-alive` 인증. Supabase 무료 플랜 일시정지 방지)
 
 ### 2) 실행
 
@@ -30,7 +31,7 @@ npm run dev          # http://localhost:2025
 
 ## 주요 라우트
 
-- 공개: `/`, `/article`(`?category=`, `?page=`), `/article/[slug]`, `/feed`, `/diary`, `/diary/[slug]`
+- 공개(정적·ISR): `/`, `/article`, `/article/page/[n]`, `/article/category/[slug]`(`/page/[n]`), `/article/[slug]`, `/feed`, `/diary`, `/diary/[slug]`
 - 관리자: `/article/write`, `/article/edit/[slug]`, `/feed/write`, `/feed/edit/[slug]`, `/diary/write`, `/diary/edit/[slug]`
 - 인증: `/login`(로그인·회원가입), `/auth/callback`. 로그아웃은 브라우저 Supabase 클라이언트의 `signOut()`으로 한다
 - 이미지: `GET /api/images?bucket=&path=`(비공개 버킷은 관리자), `POST /api/images`(관리자 업로드)

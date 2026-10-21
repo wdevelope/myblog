@@ -6,7 +6,7 @@
 
 - 글 타입: `blog`(화면 이름 "아티클", `/article`), `feed`(`/feed`, 상세 화면 없음), `diary`(`/diary`).
 - 공개 범위: `public`·`private`(글·카테고리 단위). 피드는 항상 `public`. 비공개 글·이미지·다이어리 본문은 관리자 외에는 어떤 경로(목록·상세·이미지·sitemap·공개 캐시)로도 보여 주지 않는다.
-- 쓰기(글·카테고리·이미지)는 관리자만 한다. 댓글은 로그인 사용자가 쓰고, 다이어리는 댓글이 없다. 대댓글은 한 단계다.
+- 쓰기(글·카테고리·이미지)는 관리자만 한다. 댓글은 누구나 읽고 로그인 사용자가 쓴다. 다이어리는 댓글이 없다. 대댓글은 한 단계다.
 - 경로 타입과 글 타입이 다르면 404다.
 
 ## 금지선
@@ -39,13 +39,16 @@ npm run build                          # next build --webpack (Turbopack 제한�
 - Next.js 16 App Router, React 19, TypeScript strict, Tailwind CSS v4, next-themes, sonner. 경로 별칭 `@/*`는 저장소 루트다.
 - 본문: 마크다운으로 저장한다. 렌더링은 `lib/markdown.ts`의 `renderMarkdown`(markdown-it, `html: false` + 형광펜 `==`·밑줄 `++`·수식 KaTeX) 하나이고, 화면은 `MarkdownContent`로 그린다. raw HTML을 끄는 것이 본문 XSS 방어이므로 `html: true`나 `rehype-raw`류로 바꾸지 않는다. 클라이언트 컴포넌트에서 렌더러를 import하지 않는다(공개 번들에 markdown-it·KaTeX가 실린다). 서버에서 만든 본문을 props로 넘긴다(예: `FeedCard`).
 - 에디터: `MarkdownEditor`(textarea + 툴바 + 미리보기). 툴바 동작은 `lib/markdown-edit.ts`의 순수 함수다. 본문 이미지는 글의 공개 범위 버킷으로 올라가고 `![](<버킷>:<경로>)`로 들어간다.
-- 공개 목록(홈·아티클 목록·sitemap): `lib/server/publicPosts.ts`가 anon 키로 PostgREST를 `fetch`하고 태그 캐시(`posts:public:<type>`)를 건다.
-- 그 밖의 조회: `lib/server/posts.ts`가 쿠키 세션 서버 클라이언트(RLS 적용)로 읽는다.
-- 쓰기: `lib/actions/*.ts` 서버 액션. 반환은 `{ success: true, … } | { success: false, error }`이고, 성공하면 `revalidateTag`·`revalidatePath`로 공개 캐시를 무효화한다.
+- 공개 화면(홈·아티클·피드·다이어리 목록과 상세, 댓글, sitemap)은 쿠키를 읽지 않아 정적·ISR이다. `lib/server/publicPosts.ts`가 anon 키로 PostgREST를 `fetch`하고 태그 캐시(`posts:public:<type>`, 하루)를 건다. 방문자 다이어리 목록만 service role로 본문 없이 읽어 `unstable_cache`한다(`getPublicDiaryIndex`).
+- 관리자 화면: 관리자가 로그인하면 `/api/admin-mode`로 draft mode를 켜고(로그아웃 때 끔, `lib/adminMode`), 공개 페이지는 `getPreviewViewer()`로 draft mode일 때만 세션을 읽어 비공개 글·관리 버튼을 동적으로 그린다. 공개 페이지에서 `getViewer()`를 직접 부르지 않는다(정적이 깨진다).
+- `/article` 목록은 경로 기반이다(`/article/page/[n]`, `/article/category/[slug]`, `/article/category/[slug]/page/[n]`, 링크는 `articleListHref`). 옛 `?category=`·`?page=` 주소는 `proxy.ts`가 308로 보낸다.
+- 관리자 조회: `lib/server/posts.ts`가 쿠키 세션 서버 클라이언트(RLS 적용)로 읽는다.
+- 쓰기: `lib/actions/*.ts` 서버 액션. 반환은 `{ success: true, … } | { success: false, error }`이고, 성공하면 `revalidatePublicPosts`로 공개 캐시(태그·경로)를 무효화한다. 댓글 쓰기·삭제도 그 글의 상세를 무효화한다.
 - 이미지: `app/api/images` 라우트 핸들러가 service role로 Storage에 올리고 내려준다. 키 형식은 `<버킷>:<경로>`. 비공개 버킷 응답은 `Cache-Control: private, no-store`이고, SVG는 올리지 않는다.
-- Supabase 클라이언트: `lib/supabase/server.ts`(서버, RLS 적용), `client.ts`(브라우저), `service.ts`(서버 전용, RLS 우회 — `requireAdmin` 뒤에만).
+- Supabase 클라이언트: `lib/supabase/server.ts`(서버, RLS 적용), `client.ts`(브라우저), `service.ts`(서버 전용, RLS 우회 — `requireAdmin` 뒤에만. 예외: 방문자 다이어리 목록의 본문 없는 조회).
 - 인증: Supabase Auth(이메일·비밀번호). 관문은 `lib/server/admin.ts`다. 화면 분기는 `getViewer()`(user·isAdmin), 페이지 접근은 `requireLogin`·`requireAdmin`(redirect), 서버 액션·라우트 핸들러는 `assertAdmin()`(실패를 돌려줌). 관리자는 `app_metadata.is_admin` 또는 `public.users.is_admin`만 본다. `proxy.ts`는 `sb-` 쿠키가 있을 때 세션 갱신만 한다.
 - ISR: 라우트 세그먼트 `revalidate`는 리터럴이어야 하므로 `86400 // REVALIDATE_PERIOD`로 쓴다.
+- 일시정지 방지: `/api/cron/keep-alive`(Vercel Cron 하루 1회, `CRON_SECRET`)가 캐시하지 않는 조회로 DB 활동을 남긴다(무료 플랜 7일 무활동 일시정지).
 
 ## 규약
 

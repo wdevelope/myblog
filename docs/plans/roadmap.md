@@ -12,7 +12,7 @@
 - [x] 2. 관리자 판정 보안 수정과 인증 관문 정리 — `getViewer`·`assertAdmin`, `proxy.ts`, 같은 출처 리다이렉트, GET `/logout` 제거, 회귀 테스트 38개(2026-10-21). 배포 전 확인 완료, 그 과정에서 찾은 보안 11은 마이그레이션으로 막음(2026-10-22, 2절)
 - [ ] 3. 리전 정렬
 - [x] 4. 기반 정리와 테스트 안전망 — `getPostForRoute`·`loadPostForEdit`, `revalidatePublicPosts`, `formatPostDate`(KST)·`coverKeyOf`, `postHref`·`SITE_URL`, 로딩 route group, 행 매핑 분리(2026-10-22, 테스트 파일 15개·82개)
-- [ ] 5. ISR 복구와 일시정지 방지
+- [x] 5. ISR 복구와 일시정지 방지 — 공개 화면 전부 정적·ISR(`next start`에서 HIT, TTFB 2~5ms), 관리자는 draft mode, `/article` 경로 기반, 댓글 공개, 일시정지 방지 Cron(2026-10-22). 배포 뒤 확인과 `CRON_SECRET` 설정이 남았다(5절)
 - [ ] 6. DB 타입과 쓰기 액션 정리
 - [ ] 7. UI 통일과 큰 컴포넌트 분할
 - [x] 8. 에디터 교체와 본문 보안 (CKEditor → 마크다운) — 마크다운 렌더러·원문 편집 에디터, 기존 글 135개 변환, 비공개 이미지 `private, no-store`·SVG 차단, CKEditor 제거(2026-10-22)
@@ -78,6 +78,13 @@
 
 - 공개 fetch의 revalidate 기본값 60초를 세그먼트와 같은 86400초로 맞춘다(태그 무효화가 있다).
 - 확인: `next build` 출력에서 위 경로가 정적·ISR로 나오는지, 배포 뒤 `x-vercel-cache: HIT`인지, 3단계 TTFB와 비교한다.
+- 결과(2026-10-22)
+  - 빌드: `/`·`/article`·`/feed`·`/diary` ○, `/article/[slug]`·`/article/category/[slug]`·`/article/page/[page]`·`/diary/[slug]` ●(하루 재생성). `next start`에서 모두 `x-nextjs-cache: HIT`, TTFB 2~5ms.
+  - 공개 조회: `getPublicPost`·`getPublicCategories`·`getPublicComments`·`getPublicDiaryIndex`(service role로 본문 없이 읽어 `unstable_cache`), 재생성 주기 86400초. 관리자 화면: `/api/admin-mode`, `getPreviewViewer`, `lib/adminMode`(탭 세션마다 다시 켬).
+  - 댓글: 조회 정책을 anon까지 넓힌 마이그레이션(`20261022020000_comments_public_read.sql`, 운영 DB 적용), 댓글 쓰기·삭제가 상세·목록을 무효화. `getComments` 액션과 `getPostsDirectly`의 방문자 다이어리 분기는 지웠다.
+  - `/article`: `ArticleIndex` 하나를 네 경로가 쓰고, 옛 `?category=`·`?page=` 주소는 `proxy.ts`가 308로 보낸다(`next.config` redirects는 한글 쿼리에서 500). 범위 밖 쪽 번호의 PostgREST 416은 빈 목록으로 처리한다.
+- 남은 일: Vercel 환경변수 `CRON_SECRET` 설정(사용자). 배포 뒤 `x-vercel-cache: HIT`·TTFB 측정(3단계와 함께). 관리자 로그인 → 비공개 글·관리 버튼이 보이는지, 로그아웃 → 방문자 화면인지 브라우저 확인(관리자 비밀번호가 필요해 사용자가 한다).
+- 알려진 한계: `(list)`의 `loading.tsx` 스트리밍 때문에 목록 경로 안의 `notFound()`는 200 + `noindex` 404 화면(soft 404), `permanentRedirect()`는 meta refresh가 된다. 다이어리 목록은 `useSearchParams` 때문에 정적 HTML에 스켈레톤만 있고 브라우저에서 그린다.
 - 일시정지 방지: ISR이 살면 DB 요청이 줄어 무료 플랜의 7일 무활동 일시정지 위험이 커진다. Vercel Cron(Hobby는 하루 1회)으로 공개 조회 함수를 부르는 라우트 핸들러를 두고 `CRON_SECRET`으로 막는다.
 
 ## 6. DB 타입과 쓰기 액션 정리
@@ -200,16 +207,16 @@
 
 ### 동작·데이터
 
-- (관리자는 해결: 4단계, 비관리자는 5단계) 다이어리 상세는 없는 글·다른 타입 비공개 글에도 404 대신 "비공개 다이어리"를 200으로 보인다. 공개 다이어리도 RLS(`type <> 'diary'`) 때문에 비관리자에게 안 보일 수 있다(기본 스키마 확인 필요).
+- (해결: 4·5단계, 방문자는 있는 다이어리면 안내 화면·없으면 404, 본문은 관리자 전용 유지) 다이어리 상세는 없는 글·다른 타입 비공개 글에도 404 대신 "비공개 다이어리"를 200으로 보인다. 공개 다이어리도 RLS(`type <> 'diary'`) 때문에 비관리자에게 안 보일 수 있다(기본 스키마 확인 필요).
 - (해결: 4단계) 수정 화면(`/article|feed|diary/edit/[slug]`)에서 없는 slug는 404 대신 500이다. 로그인 후에는 수정 화면이 아니라 목록으로 돌아간다.
 - 카테고리 이름 변경·삭제가 트랜잭션이 아니다. 순서 변경(upsert)이 그 사이 삭제된 카테고리를 되살릴 수 있다. 비공개 카테고리 글을 공개 카테고리로 옮기면 바로 공개된다.
 - `createPost`의 카테고리 자동 생성은 이름 검증(50자, `/` 금지)을 건너뛴다.
 - (해결: 4단계) 글 수정으로 카테고리·slug가 바뀌면 옛 카테고리 목록 캐시를 무효화하지 않는다. `revalidatePath(`/${type}`)`는 아티클에서 없는 경로 `/blog`를 무효화한다.
 - 발행 중에도 발행 버튼이 살아 있어 두 번 발행될 수 있다(`PostEditor`가 `createPost`를 transition 밖에서 기다린다).
 - 댓글 DELETE 정책이 마이그레이션에 없고, `deleteComment`는 지운 행 수를 확인하지 않아 RLS가 막아도 성공을 돌려준다. 비공개 카테고리 글에는 관리자도 댓글을 못 쓸 수 있다.
-- 공개 목록의 댓글 수는 anon 키로 세는데 댓글 조회 정책이 로그인 사용자 전용이라 항상 0일 수 있다. 댓글 액션은 캐시를 무효화하지 않는다.
+- (해결: 5단계) 공개 목록의 댓글 수는 anon 키로 세는데 댓글 조회 정책이 로그인 사용자 전용이라 항상 0일 수 있다. 댓글 액션은 캐시를 무효화하지 않는다.
 - 아티클 "전체 글" 수가 카테고리별 합계라 카테고리 없는 공개 글이 빠진다(`getPublicPostCounts`).
-- 피드 댓글 화면이 없다. 피드 카드의 좋아요 수·댓글은 하드코딩이다.
+- 피드 댓글 화면이 없다. (해결: 5단계) 피드 카드의 좋아요 수·댓글은 하드코딩이다.
 - 조회수(`view_count`)를 올리는 코드가 없다.
 - (해결: 4단계) 날짜를 UTC로 표시해(`toISOString().slice(0, 10)`, 서버 `toLocaleDateString`) KST 오전에 쓴 글이 전날로 보인다. 표지 이미지 규칙도 화면마다 다르다(홈은 썸네일만, 아티클은 썸네일 → 첫 이미지, 피드는 첫 이미지).
 - 다이어리 달력: 날짜 필터는 KST, 월 필터·라벨은 브라우저 시간대라 월 경계에서 어긋날 수 있다.
@@ -217,17 +224,17 @@
 
 ### 성능·SEO
 
-- ISR이 사실상 꺼져 있다. 목록·상세가 `getViewer`(쿠키)를 읽어 매 요청 동적 렌더링된다.
+- (해결: 5단계) ISR이 사실상 꺼져 있다. 목록·상세가 `getViewer`(쿠키)를 읽어 매 요청 동적 렌더링된다.
 - (해결: 9단계, 아티클 목록은 5단계) 로그인 요청마다 Auth 서버 왕복이 두 번이고(`proxy.ts`·`getViewer`), 아티클 목록의 조회 3개가 차례로 실행되며, 상세의 댓글 조회가 글을 한 번 더 읽는다.
-- 공개 fetch의 revalidate 기본값이 60초라 세그먼트의 86400초와 어긋난다.
+- (해결: 5단계) 공개 fetch의 revalidate 기본값이 60초라 세그먼트의 86400초와 어긋난다.
 - 관리자 아티클 목록·피드·다이어리 목록은 본문까지 전부 읽는다(페이지네이션 없음).
-- 상세 페이지에 `generateMetadata`가 없어 글 제목이 `<title>`·OG에 안 들어간다.
-- sitemap은 공개 아티클 1000개에서 잘리고, 60초마다 다시 만들어질 수 있다. 본문(`content`)까지 읽는다.
+- (해결: 5단계, 아티클 상세) 상세 페이지에 `generateMetadata`가 없어 글 제목이 `<title>`·OG에 안 들어간다.
+- sitemap은 공개 아티클 1000개에서 잘리고 본문(`content`)까지 읽는다. (해결: 5단계) 60초마다 다시 만들어질 수 있다.
 
 ### 기타
 
 - 헤더·모바일 메뉴의 검색 입력이 동작하지 않는다. `BackButton`은 뒤로 가지 않고 항상 `fallbackHref`로 이동한다.
-- `getComments`는 쓰는 곳이 없다(5단계 댓글 로딩 후보).
+- (해결: 5단계, 액션 삭제) `getComments`는 쓰는 곳이 없다.
 - 오류 응답에 `DB Error: <원문>`을 그대로 돌려준다.
 - `globals.css`에 `@custom-variant dark`가 없어 `dark:` 유틸리티는 OS 설정을, 색 토큰은 next-themes의 `.dark`를 따른다. `ThemeToggle`은 `theme`을 봐서 시스템 테마일 때 첫 클릭에 바뀌지 않을 수 있다.
 - (해결: 4단계) 목록·홈 `loading.tsx`가 하위 경로에도 적용돼 상세·쓰기·로그인 화면에 엉뚱한 스켈레톤(목록·홈)이 뜬다.
