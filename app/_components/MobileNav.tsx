@@ -70,7 +70,7 @@ export default function MobileNav() {
 
       <dialog
         ref={dialogRef}
-        className="fixed inset-0 m-0 h-dvh w-screen max-w-none bg-transparent p-0 text-foreground backdrop:bg-black/35"
+        className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none bg-transparent p-0 text-foreground backdrop:bg-black/35"
         onClick={(e) => {
           if (e.target === e.currentTarget) close();
         }}
@@ -98,7 +98,7 @@ export default function MobileNav() {
                 <input
                   type="text"
                   placeholder="게시글 검색…"
-                  className="h-11 w-full rounded-xl border border-border bg-surface-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted outline-none transition focus:border-primary/60"
+                  className="h-11 w-full rounded-xl border border-border bg-surface-2 pl-9 pr-3 text-base text-foreground placeholder:text-muted outline-none transition focus:border-primary/60 sm:text-sm"
                 />
               </div>
             </label>

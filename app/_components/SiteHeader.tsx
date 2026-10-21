@@ -57,7 +57,7 @@ export default function SiteHeader() {
           <ThemeToggle />
 
           {/* 클라이언트에서 인증 상태 확인 후 로그인/로그아웃 표시 */}
-          <div className="hidden sm:flex">
+          <div className="hidden shrink-0 sm:flex">
             <AuthButton
               loginClassName="h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 flex"
               logoutClassName="h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-surface-2 flex"
