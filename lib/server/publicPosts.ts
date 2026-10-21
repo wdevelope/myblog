@@ -184,32 +184,36 @@ export async function getPublicCategories(): Promise<{ slug: string; sortOrder: 
 
 // 다이어리는 RLS가 anon에게 모두 숨기고 본문은 관리자 전용이다(CLAUDE.md 제품 규칙).
 // 방문자 목록은 제목만 보이고 모두에게 같으므로, service role로 본문 없이 읽어 쿠키 없이 캐시한다.
-export const getPublicDiaryIndex = unstable_cache(
-  async (): Promise<Post[]> => {
-    const service = createSupabaseServiceClient();
-    const { data, error } = await service
-      .from("posts")
-      .select("id,slug,type,visibility,title,created_at,updated_at,thumbnail_image_key")
-      .eq("type", "diary")
-      .order("created_at", { ascending: false });
+// unstable_cache는 호출할 때 감싼다. 모듈을 불러오기만 하는 곳(액션 등)이 캐시 구현에 묶이지 않게 한다.
+export function getPublicDiaryIndex() {
+  return unstable_cache(loadDiaryIndex, ["public-diary-index"], {
+    revalidate: PUBLIC_REVALIDATE_SECONDS,
+    tags: [publicPostsTag("diary")],
+  })();
+}
 
-    if (error) throw new Error(`DB Error: ${error.message}`);
+async function loadDiaryIndex(): Promise<Post[]> {
+  const service = createSupabaseServiceClient();
+  const { data, error } = await service
+    .from("posts")
+    .select("id,slug,type,visibility,title,created_at,updated_at,thumbnail_image_key")
+    .eq("type", "diary")
+    .order("created_at", { ascending: false });
 
-    return (data ?? []).map((row) => ({
-      id: row.id,
-      slug: row.slug,
-      type: "diary",
-      visibility: row.visibility,
-      title: row.visibility === "private" ? "일기" : row.title,
-      content: "",
-      categorySlug: null,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at ?? row.created_at,
-      imageKeys: [],
-      thumbnailImageKey: row.thumbnail_image_key,
-      commentCount: 0,
-    }));
-  },
-  ["public-diary-index"],
-  { revalidate: PUBLIC_REVALIDATE_SECONDS, tags: [publicPostsTag("diary")] }
-);
+  if (error) throw new Error(`DB Error: ${error.message}`);
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    type: "diary",
+    visibility: row.visibility,
+    title: row.visibility === "private" ? "일기" : row.title,
+    content: "",
+    categorySlug: null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at ?? row.created_at,
+    imageKeys: [],
+    thumbnailImageKey: row.thumbnail_image_key,
+    commentCount: 0,
+  }));
+}
