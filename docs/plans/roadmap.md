@@ -17,6 +17,7 @@
 - [ ] 7. UI 통일과 큰 컴포넌트 분할
 - [x] 8. 에디터 교체와 본문 보안 (CKEditor → 마크다운) — 마크다운 렌더러·원문 편집 에디터, 기존 글 135개 변환, 비공개 이미지 `private, no-store`·SVG 차단, CKEditor 제거(2026-10-22)
 - [x] 9. 요청 왕복 줄이기 — `proxy.ts`를 `getClaims()`로(로그인 요청의 proxy 27~49ms → 1.5~3ms), 상세 댓글 조회의 글 재조회 제거. 아티클 목록 병렬화는 5단계로 넘김(2026-10-22, 9절)
+- [ ] 10. 관리자 판정 단일화와 `public.users` 정리
 
 ## 진행 원칙 (2~8단계)
 
@@ -189,6 +190,37 @@
 > - 3번: `96b6582`. 호출부 변경은 같은 폴더의 다른 세션 커밋(`33e18dd`, 사이트 이름 변경)에 먼저 섞여 들어가 그 사이 HEAD가 typecheck에 실패했고, 이 커밋으로 맞췄다.
 > - 2번: 구현해서 익명 `/article`이 약 120ms → 70~85ms인 것까지 확인했지만 되돌렸다. 5단계 결정 2가 `/article`을 경로별 정적 페이지로 다시 짜는 같은 파일이라, 병렬화는 그때 새 경로에 적용한다.
 
+## 10. 관리자 판정 단일화와 `public.users` 정리
+
+- 근거(2026-10-22, Supabase MCP 읽기 전용 조회, Supabase 문서 "User Management"·"Row Level Security")
+  - 관리자 여부가 두 곳에 있다. 앱의 `getViewer`는 `app_metadata.is_admin`을 먼저 보고 없으면 `public.users.is_admin`을 보는데, RLS의 `is_admin()`은 `public.users`만 본다. 두 값이 어긋나면 앱과 DB의 판정이 갈린다.
+  - `public.users`는 이름과 달리 관리자 목록이다. 2025-12-28 코드(`51d7a3b`의 `ensureAdminSynced`)가 `ADMIN_EMAILS`에 든 사용자만 upsert했고 가입 트리거는 없다. 지금 `auth.users`는 2개(관리자 1·일반 1), `public.users`는 1개(관리자)라 전체 회원 목록으로 오해하기 쉽다.
+  - `is_admin()`은 노출 스키마(`public`)의 `SECURITY DEFINER` 함수다. 문서는 노출 스키마에 두지 말라고 한다. 호출자 자신의 관리자 여부만 돌려주므로 지금 위험은 작다.
+  - `is_admin()`을 쓰는 RLS 정책은 10개다: `posts` 4(select·insert·update·delete), `categories` 2, `comments` 3(select·insert·delete), `users` 1. Storage 정책과 브라우저 코드는 `public.users`·`is_admin()`을 쓰지 않는다.
+- 방향: 관리자 판정의 근거를 `app_metadata.is_admin` 하나로 한다. service role만 바꿀 수 있고 JWT에 실려 RLS가 테이블을 조회하지 않고 읽는다. `public.users`는 지운다(결정 1).
+- 알아 둘 점: RLS는 JWT의 값을 보므로 관리자 권한을 주거나 빼면 토큰이 갱신될 때(최대 1시간, 다시 로그인하면 바로) 반영된다. 앱 판정은 `getUser()`로 매번 Auth 서버 값을 봐서 바로 반영된다. 관리자가 1명이라 받아들인다.
+
+**변경(커밋 단위)**
+
+1. DB 판정: 새 마이그레이션으로 `public.is_admin()`을 `create or replace`한다. 본문은 `coalesce(auth.jwt() -> 'app_metadata' ->> 'is_admin', '') = 'true'`이고, `SECURITY DEFINER`를 떼고 `stable`·`set search_path = ''`로 둔다. 이름·위치·인자가 같아 정책 10개는 다시 만들지 않고, 기존 함수라 권한(grant)도 그대로다(1절 GRANT 변경과 무관).
+   - 적용 전 확인: `public.users.is_admin = true`인 계정이 모두 `app_metadata.is_admin = true`인지 본다(2026-10-22 기준 1개, 일치).
+   - 적용 뒤 확인: 롤백하는 트랜잭션에서 `set local role authenticated`와 `request.jwt.claims`(관리자·일반 계정)를, 그리고 `anon`을 바꿔 가며 `is_admin()`과 비공개 글·카테고리 수를 본다. 브라우저에서는 관리자 draft mode로 비공개 글이 보이는지 본다.
+   - 마이그레이션은 운영 DB에 바로 적용되므로 사용자 확인을 받고 적용한다. 관리자 계정은 두 값이 모두 `true`라 1·2번은 어느 쪽을 먼저 배포해도 판정이 같다.
+2. 앱 판정: `getViewer`에서 `public.users` 조회를 지우고 `app_metadata.is_admin`만 본다. 테스트를 먼저 바꾼다(`public.users.is_admin`만 `true`인 사용자는 관리자가 아니다). 다른 테스트의 `users` 테이블 mock(`posts`·`categories`·`comments` 액션, 이미지 라우트)을 정리하고, CLAUDE.md 인증 줄과 관리자 지정 방법(대시보드 SQL로 `raw_app_meta_data`에 `is_admin: true`)을 고친다.
+3. 테이블 정리: 1·2를 배포하고 확인한 뒤 새 마이그레이션으로 `public.users`를 지운다. 정책 2개와 `trg_users_set_updated_at`가 함께 지워진다. 1번에서 함수가 테이블을 더는 읽지 않아야 지울 수 있다.
+   - 선행: 1단계 백업. 관리자 1행(id·email·is_admin·시각)뿐이고 같은 정보가 `auth.users`·`app_metadata`에 있어 잃을 것은 적지만, 덤프에 남긴 뒤 지운다.
+
+**착수 전에 정할 것**
+
+1. `public.users`: (a) 지운다(권장). 닉네임 기능이 없고 댓글 작성자는 `사용자 <id 앞 6자>`로 보인다. 나중에 닉네임이 필요하면 `profiles` 테이블과 가입 트리거(`handle_new_user`)·기존 계정 채우기로 새로 만든다. (b) 지금 `profiles`로 바꾸고 트리거와 기존 계정 채우기를 붙인다. 어느 쪽이든 관리자 여부는 넣지 않는다.
+
+**확인**
+
+- `npm run lint && npm run typecheck && npm test`, 1번의 SQL 확인.
+- 관리자·일반 계정·비로그인으로 비공개 글 목록·상세, 쓰기 화면, 비공개 이미지(`/api/images`)를 본다(로그인은 사용자가 한다).
+
+**하지 않는 것**: `user_roles` 테이블과 Custom Access Token Hook(Supabase 공식 RBAC, 관리자 1명에 과하다). 정책을 `(select is_admin())`로 감싸 다시 만들거나 함수를 비노출 스키마로 옮기기(바꾼 함수는 `SECURITY DEFINER`가 아니고 JWT만 읽어 문서의 주의에 해당하지 않으며, 글 135개 규모라 성능 차이가 없다). 회원가입 닫기(댓글에 필요).
+
 ## 알려진 문제 (2026-10-21 코드 검토)
 
 ### 보안
@@ -204,6 +236,7 @@
 9. (해결: 2단계) 로그아웃이 GET `/logout`이라 다른 사이트가 링크·이미지로 로그아웃시킬 수 있다. 브라우저에서 `signOut`한 뒤 GET을 또 불러 두 번 처리한다.
 10. (해결: 4단계 일부) `server-only`가 `lib/server/publicPosts.ts`에만 있어 service role 클라이언트 모듈이 클라이언트 번들로 import되는 것을 빌드가 막지 못한다.
 11. (해결: 2026-10-22 마이그레이션 `20261022010000_lock_users_admin_flag.sql`, 운영 DB 적용) **`users.is_admin` 자가 승격.** `users`의 INSERT·UPDATE 정책이 자기 행인지(`id = auth.uid()`)만 보고 열을 막지 않아, 로그인 사용자가 PostgREST로 자기 행의 `is_admin`을 `true`로 넣거나 바꿀 수 있었다. `is_admin()`(RLS: 글·카테고리 쓰기, 비공개 조회)과 앱의 관리자 판정이 모두 이 값을 본다. 자기 행 쓰기 정책을 지우고 anon·authenticated의 INSERT·UPDATE·DELETE를 회수했다. Supabase 기본 TRUNCATE 권한은 PostgREST로 실행할 수 없어 남겼다.
+12. (10단계) 관리자 판정 근거가 두 곳이다. 앱은 `app_metadata.is_admin` 또는 `public.users.is_admin`, RLS `is_admin()`은 `public.users`만 본다. `is_admin()`은 노출 스키마의 `SECURITY DEFINER` 함수이고, `public.users`는 관리자만 들어 있어 회원 목록으로 오해하기 쉽다.
 
 ### 동작·데이터
 
