@@ -19,6 +19,5 @@ export function getSupabaseEnv() {
   return {
     url,
     anonKey,
-    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   };
 }
