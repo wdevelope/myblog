@@ -48,6 +48,9 @@ public/uploads/
 *.tsbuildinfo
 next-env.d.ts
 
+# 일회성 스크립트 출력(본문 변환 백업·결과에 비공개 글이 들어 있다)
+/tmp/
+
 # Claude Code 개인·임시 파일
 .claude/worktrees/
 .claude/settings.local.json
