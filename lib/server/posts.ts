@@ -1,7 +1,6 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { getViewer, requireAdmin } from "@/lib/server/admin";
 import { mapPost, type PostRow } from "@/lib/server/postRow";
 import { postHref } from "@/lib/constants";
@@ -10,38 +9,6 @@ import type { Post, PostType, Comment } from "@/lib/types";
 export async function getPostsDirectly(params: { type: PostType }): Promise<Post[]> {
     const { isAdmin } = await getViewer();
     const supabase = await createSupabaseServerClient();
-
-    if (params.type === "diary" && !isAdmin) {
-        // [SECURITY] 비공개 다이어리의 제목을 목록에 노출하기 위해 서비스 클라이언트를 사용합니다.
-        // 상세 내용(content)은 절대 노출되면 안 되므로 여기서 반드시 빈 문자열로 초기화해야 합니다.
-        // 이 로직을 수정할 때 content 필드가 포함되지 않도록 주의하십시오.
-        const service = createSupabaseServiceClient();
-        const { data: posts, error } = await service
-            .from("posts")
-            .select("id,slug,type,visibility,title,created_at,updated_at,thumbnail_image_key,comments(count)")
-            .eq("type", "diary")
-            .order("created_at", { ascending: false });
-
-        if (error) throw new Error(`DB Error: ${error.message}`);
-
-        return (posts ?? []).map((p) => {
-            const row = p as unknown as PostRow;
-            return {
-                id: row.id,
-                slug: row.slug,
-                type: row.type,
-                visibility: row.visibility,
-                title: row.visibility === "private" ? "일기" : row.title,
-                content: "", // 🔒 보안: 본문은 절대 클라이언트로 전송하지 않음
-                categorySlug: null,
-                createdAt: row.created_at,
-                updatedAt: row.updated_at ?? row.created_at,
-                imageKeys: [],
-                thumbnailImageKey: row.thumbnail_image_key,
-                commentCount: row.comments?.[0]?.count ?? 0,
-            };
-        });
-    }
 
     let query = supabase
         .from("posts")
