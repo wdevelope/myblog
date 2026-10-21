@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { safeRedirectPath } from "@/lib/redirect";
 import { toast } from "sonner";
 
 const REMEMBER_EMAIL_KEY = "myblog:remember_email";
@@ -19,7 +20,7 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
-  const from = searchParams.get("from") ?? "/";
+  const from = safeRedirectPath(searchParams.get("from"));
   const loggedOut = searchParams.get("logged_out") === "1";
 
   useEffect(() => {
@@ -74,9 +75,7 @@ export default function LoginForm() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin
-              }/auth/callback?next=${encodeURIComponent(
-                from.startsWith("/") ? from : "/"
-              )}`,
+              }/auth/callback?next=${encodeURIComponent(from)}`,
           },
         }));
 
@@ -103,7 +102,7 @@ export default function LoginForm() {
         }
       }
 
-      router.replace(from.startsWith("/") ? from : "/");
+      router.replace(from);
       router.refresh();
 
       return mode === "login" ? "로그인 완료" : "회원가입 완료";
