@@ -10,7 +10,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toExcerpt } from "@/lib/markdown";
 import { coverSrcFromImageKey } from "@/lib/image";
 import { notFound } from "next/navigation";
-import CategorySelect from "./CategorySelect";
+import CategorySelect from "@/app/article/CategorySelect";
 
 export const metadata = {
   title: "아티클",

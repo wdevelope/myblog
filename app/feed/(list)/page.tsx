@@ -1,5 +1,5 @@
 import { ButtonLink, Card, CardBody } from "@/app/_components/ui";
-import { FeedCard } from "./FeedCard";
+import { FeedCard } from "@/app/feed/FeedCard";
 import { getViewer } from "@/lib/server/admin";
 import { getPostsDirectly } from "@/lib/server/posts";
 
