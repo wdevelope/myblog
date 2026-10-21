@@ -5,7 +5,8 @@ Next.js(App Router) + Tailwind CSS 기반 개인 블로그(w-life). 배포는 Ve
 - 글 타입: `blog`(아티클) / `feed` / `diary`
 - 공개 범위: `public` / `private` (글 단위, 피드는 항상 공개)
 - 댓글: 로그인 사용자, `diary`는 미지원
-- 이미지 첨부: 모든 글 타입 지원
+- 이미지 첨부: 모든 글 타입 지원(SVG 제외)
+- 본문: 마크다운. 에디터는 툴바 + 미리보기이고, 형광펜 `==텍스트==`·밑줄 `++텍스트++`·수식 `$…$`·`$$…$$`(KaTeX)를 지원한다
 - 데이터: Supabase(Postgres·Auth·Storage)
 
 에이전트 작업 규칙은 [CLAUDE.md](CLAUDE.md)를 본다.

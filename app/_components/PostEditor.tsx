@@ -17,7 +17,6 @@ import { toAutoTitle } from "@/lib/markdown";
 import { coverSrcFromImageKey } from "@/lib/image";
 import { postHref } from "@/lib/constants";
 // import PostImages from "@/app/_components/PostImages";
-// import HtmlContent from "@/app/_components/HtmlContent";
 import DeletePostButton from "@/app/_components/DeletePostButton";
 import { cn } from "@/lib/utils";
 import { getCategories } from "@/lib/actions/categories";
