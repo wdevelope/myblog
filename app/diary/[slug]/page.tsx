@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { FiLock, FiGlobe } from "react-icons/fi";
-import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
+import { getViewer } from "@/lib/server/admin";
 
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
@@ -17,8 +17,7 @@ export default async function DiaryEntryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const user = await getCurrentUser();
-  const isAdmin = await isAdminDb(user);
+  const { user, isAdmin } = await getViewer();
 
   let post = null;
   try {

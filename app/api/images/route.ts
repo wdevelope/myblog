@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { requireAdmin } from "@/lib/server/admin";
+import { assertAdmin } from "@/lib/server/admin";
 
 export const runtime = "nodejs";
 
@@ -32,8 +32,8 @@ export async function GET(request: Request) {
     );
   }
 
-  if (bucket !== "post-images-public") {
-    await requireAdmin(url.pathname);
+  if (bucket !== "post-images-public" && !(await assertAdmin())) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   // For all buckets, fetch and return the actual data to avoid redirect issues with next/image
@@ -59,8 +59,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const url = new URL(request.url);
-  await requireAdmin(url.pathname);
+  if (!(await assertAdmin())) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
 
   const form = await request.formData();
   const visibility = (form.get("visibility") ?? "").toString();

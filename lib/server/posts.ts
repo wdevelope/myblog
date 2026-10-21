@@ -1,6 +1,7 @@
+import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { isAdminDb } from "@/lib/server/admin";
+import { getViewer } from "@/lib/server/admin";
 import type { Post, PostType, Comment, Visibility } from "@/lib/types";
 
 export type PostRow = {
@@ -44,7 +45,7 @@ export async function getPostsDirectly(params: {
     limit?: number;
     offset?: number;
 }): Promise<Post[]> {
-    const isAdmin = await isAdminDb(params.user);
+    const { isAdmin } = await getViewer();
     const supabase = await createSupabaseServerClient();
 
     if (params.type === "diary" && !isAdmin) {
@@ -101,7 +102,7 @@ export async function getPostBySlugDirectly(params: {
     slug: string;
     user?: { id: string; email?: string | null } | null;
 }): Promise<Post> {
-    const isAdmin = await isAdminDb(params.user);
+    const { isAdmin } = await getViewer();
     const supabase = await createSupabaseServerClient();
 
     let query = supabase
@@ -135,7 +136,7 @@ export async function getCommentsDirectly(params: {
     postId: string;
     user?: { id: string; email?: string | null } | null;
 }): Promise<Comment[]> {
-    const isAdmin = await isAdminDb(params.user);
+    const { isAdmin } = await getViewer();
     const supabase = await createSupabaseServerClient();
 
     const { data: post, error: postError } = await supabase

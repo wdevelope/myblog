@@ -31,7 +31,7 @@ npm run dev          # http://localhost:2025
 
 - 공개: `/`, `/article`(`?category=`, `?page=`), `/article/[slug]`, `/feed`, `/diary`, `/diary/[slug]`
 - 관리자: `/article/write`, `/article/edit/[slug]`, `/feed/write`, `/feed/edit/[slug]`, `/diary/write`, `/diary/edit/[slug]`
-- 인증: `/login`(로그인·회원가입), `/auth/callback`, `/logout`
+- 인증: `/login`(로그인·회원가입), `/auth/callback`. 로그아웃은 브라우저 Supabase 클라이언트의 `signOut()`으로 한다
 - 이미지: `GET /api/images?bucket=&path=`(비공개 버킷은 관리자), `POST /api/images`(관리자 업로드)
 - 글·댓글·카테고리 쓰기는 서버 액션(`lib/actions/*.ts`)이다.
 
