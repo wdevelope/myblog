@@ -1,6 +1,6 @@
 import { getPostForRoute } from "@/lib/server/posts";
 import PostImages from "@/app/_components/PostImages";
-import HtmlContent from "@/app/_components/HtmlContent";
+import MarkdownContent from "@/app/_components/MarkdownContent";
 import { formatPostDate } from "@/lib/utils";
 import BackButton from "@/app/_components/BackButton";
 import PostActionMenu from "@/app/_components/PostActionMenu";
@@ -94,7 +94,7 @@ export default async function DiaryEntryPage({
         {post && (
           <>
             <div className="text-sm">
-              <HtmlContent content={post.content} />
+              <MarkdownContent content={post.content} />
             </div>
             <PostImages imageKeys={post.imageKeys} />
           </>

@@ -9,7 +9,7 @@ import Image from "next/image";
 import { FiLock, FiGlobe } from "react-icons/fi";
 import { CardBody } from "@/app/_components/ui";
 import { getViewer } from "@/lib/server/admin";
-import HtmlContent from "@/app/_components/HtmlContent";
+import MarkdownContent from "@/app/_components/MarkdownContent";
 import { formatPostDate } from "@/lib/utils";
 
 export const revalidate = 86400; // REVALIDATE_PERIOD
@@ -107,7 +107,7 @@ export default async function BlogPostPage({
 
       <div className="space-y-6">
         <div className="text-sm">
-          <HtmlContent content={post.content} />
+          <MarkdownContent content={post.content} />
         </div>
         <PostImages imageKeys={post.imageKeys} />
       </div>
