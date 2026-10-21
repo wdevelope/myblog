@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import { getPostForRoute, getCommentsDirectly } from "@/lib/server/posts";
+import { getPublicComments, getPublicPost, getPublicPosts } from "@/lib/server/publicPosts";
 import PostImages from "@/app/_components/PostImages";
 import BackButton from "@/app/_components/BackButton";
 import PostActionMenu from "@/app/_components/PostActionMenu";
@@ -8,24 +10,43 @@ import Link from "next/link";
 import Image from "next/image";
 import { FiLock, FiGlobe } from "react-icons/fi";
 import { CardBody } from "@/app/_components/ui";
-import { getViewer } from "@/lib/server/admin";
+import { getPreviewViewer } from "@/lib/server/admin";
 import MarkdownContent from "@/app/_components/MarkdownContent";
 import { formatPostDate } from "@/lib/utils";
+import { toExcerpt } from "@/lib/markdown";
 
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
-export default async function BlogPostPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-  const { user, isAdmin } = await getViewer();
+type Props = { params: Promise<{ slug: string }> };
 
-  const post = await getPostForRoute("blog", slug);
+export async function generateStaticParams() {
+  const { data } = await getPublicPosts({ type: "blog" });
+  return data.map((post) => ({ slug: post.slug }));
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPublicPost("blog", slug);
+  if (!post) return {};
+  const description = toExcerpt(post.content, 160);
+  return {
+    title: post.title,
+    description,
+    openGraph: { title: post.title, description, type: "article" },
+  };
+}
+
+export default async function BlogPostPage({ params }: Props) {
+  const { slug } = await params;
+  const { isAdmin } = await getPreviewViewer();
+
+  // 관리자는 draft mode에서 비공개 글과 그 댓글까지 본다. 방문자는 공개 글·댓글 캐시를 본다.
+  const post = isAdmin ? await getPostForRoute("blog", slug) : await getPublicPost("blog", slug);
   if (!post) notFound();
 
-  const comments = user ? await getCommentsDirectly(post) : [];
+  const comments = isAdmin
+    ? await getCommentsDirectly(post)
+    : await getPublicComments("blog", post.id);
 
   return (
     <article className="mx-auto max-w-4xl space-y-5">
@@ -114,30 +135,7 @@ export default async function BlogPostPage({
 
       <div className="border-t border-border pt-8">
         <CardBody className="space-y-6 px-0">
-          {user ? (
-            <CommentsThread
-              postSlug={post.slug}
-              comments={comments}
-              canWrite
-              currentUserId={user.id}
-              isAdmin={isAdmin}
-            />
-          ) : (
-            <div className="space-y-3">
-              <h2 className="text-2xl font-black tracking-tight text-foreground">
-                댓글
-              </h2>
-              <p className="text-sm text-muted">
-                로그인 후 댓글을 확인/작성할 수 있어요.
-              </p>
-              <Link
-                href={`/login?from=${encodeURIComponent(`/article/${slug}`)}`}
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
-              >
-                로그인하기
-              </Link>
-            </div>
-          )}
+          <CommentsThread postSlug={post.slug} comments={comments} isAdmin={isAdmin} />
         </CardBody>
       </div>
     </article>

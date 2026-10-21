@@ -1,27 +1,16 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import type { Comment } from "@/lib/types";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { formatPostDate } from "@/lib/utils";
 import {
   createComment as createCommentAction,
   deleteComment as deleteCommentAction,
 } from "@/lib/actions/comments";
-
-function formatRelativeTime(dateIso: string) {
-  const now = Date.now();
-  const then = new Date(dateIso).getTime();
-  const diffSec = Math.max(0, Math.floor((now - then) / 1000));
-
-  if (diffSec < 60) return "방금 전";
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}분 전`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}시간 전`;
-  const diffDay = Math.floor(diffHr / 24);
-  return `${diffDay}일 전`;
-}
 
 function displayName(authorId?: string | null) {
   if (!authorId) return "사용자";
@@ -102,21 +91,33 @@ function CommentComposer({
   );
 }
 
+// 댓글 목록은 정적 HTML에 들어가고, 누가 보는지는 서버가 모르므로 쓰기·삭제 버튼만 브라우저 세션으로 정한다.
 export default function CommentsThread({
   postSlug,
   comments,
-  canWrite,
-  currentUserId,
   isAdmin,
 }: {
   postSlug: string;
   comments: Comment[];
-  canWrite: boolean;
-  currentUserId?: string | null;
   isAdmin?: boolean;
 }) {
   const router = useRouter();
   const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const canWrite = Boolean(currentUserId);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUserId(session?.user.id ?? null);
+    });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUserId(session?.user.id ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const { roots, repliesByParent } = useMemo(() => {
     const roots: Comment[] = [];
@@ -166,12 +167,23 @@ export default function CommentsThread({
         </h2>
       </div>
 
-      <CommentComposer
-        placeholder="댓글을 작성해주세요"
-        onSubmit={(content) => createComment(content, null)}
-        disabled={!canWrite}
-        submitLabel="등록"
-      />
+      {canWrite ? (
+        <CommentComposer
+          placeholder="댓글을 작성해주세요"
+          onSubmit={(content) => createComment(content, null)}
+          submitLabel="등록"
+        />
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border px-4 py-3">
+          <p className="text-xs text-muted">댓글은 로그인 후 작성할 수 있어요.</p>
+          <Link
+            href={`/login?from=${encodeURIComponent(`/article/${postSlug}`)}`}
+            className="inline-flex h-8 items-center justify-center rounded-xl bg-primary px-4 text-xs font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+          >
+            로그인하기
+          </Link>
+        </div>
+      )}
 
       {comments.length ? (
         <div className="space-y-6">
@@ -189,23 +201,25 @@ export default function CommentsThread({
                       </span>
                       <span className="text-muted">·</span>
                       <span className="text-muted">
-                        {formatRelativeTime(c.createdAt)}
+                        {formatPostDate(c.createdAt, "ko")}
                       </span>
                     </div>
                     <p className="whitespace-pre-wrap text-xs leading-5 text-foreground/90">
                       {c.content}
                     </p>
                     <div className="flex items-center gap-4 text-xs text-muted">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setReplyTo((prev) => (prev === c.id ? null : c.id))
-                        }
-                        className="inline-flex items-center gap-2 font-semibold hover:text-foreground transition"
-                      >
-                        <span aria-hidden>💬</span>
-                        대댓글
-                      </button>
+                      {canWrite ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setReplyTo((prev) => (prev === c.id ? null : c.id))
+                          }
+                          className="inline-flex items-center gap-2 font-semibold hover:text-foreground transition"
+                        >
+                          <span aria-hidden>💬</span>
+                          대댓글
+                        </button>
+                      ) : null}
 
                       {(isAdmin || (currentUserId && currentUserId === c.authorId)) && (
                         <button
@@ -225,7 +239,6 @@ export default function CommentsThread({
                     <CommentComposer
                       placeholder="대댓글을 작성해주세요…"
                       onSubmit={(content) => createComment(content, c.id)}
-                      disabled={!canWrite}
                       submitLabel="등록"
                     />
                   </div>
@@ -243,7 +256,7 @@ export default function CommentsThread({
                             </span>
                             <span className="text-muted">·</span>
                             <span className="text-muted">
-                              {formatRelativeTime(r.createdAt)}
+                              {formatPostDate(r.createdAt, "ko")}
                             </span>
                           </div>
                           <p className="whitespace-pre-wrap text-xs leading-5 text-foreground/90">
