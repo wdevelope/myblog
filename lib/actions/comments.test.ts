@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createComment, deleteComment } from "@/lib/actions/comments";
+
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  unstable_cache: (fn: () => unknown) => fn,
+}));
 
 type QueryResult = { data: unknown; error: null };
 
@@ -83,5 +90,42 @@ describe("댓글 액션 권한", () => {
       error: "unauthorized",
     });
     expect(mocks.writes).toEqual([]);
+  });
+});
+
+describe("댓글 공개 캐시 무효화", () => {
+  const author = { id: "user-1", app_metadata: {}, user_metadata: {} };
+
+  it("댓글을 쓰면 그 글의 상세 경로와 목록 태그를 무효화한다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: author }, error: null });
+    mocks.tables.posts = { id: "p1", type: "blog", visibility: "public", slug: "hello" };
+    mocks.tables.comments = {
+      id: "c1",
+      post_id: "p1",
+      parent_id: null,
+      author_id: "user-1",
+      content: "좋은 글",
+      created_at: "2026-01-01T00:00:00Z",
+    };
+
+    const result = await createComment({ postSlug: "hello", content: "좋은 글" });
+
+    expect(result.success).toBe(true);
+    expect(revalidatePath).toHaveBeenCalledWith("/article/hello");
+    expect(revalidateTag).toHaveBeenCalledWith("posts:public:blog", "default");
+  });
+
+  it("댓글을 지우면 그 글의 상세 경로를 무효화한다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: author }, error: null });
+    mocks.tables.comments = {
+      author_id: "user-1",
+      post_id: "p1",
+      posts: { slug: "hello", type: "blog" },
+    };
+
+    const result = await deleteComment("c1");
+
+    expect(result.success).toBe(true);
+    expect(revalidatePath).toHaveBeenCalledWith("/article/hello");
   });
 });

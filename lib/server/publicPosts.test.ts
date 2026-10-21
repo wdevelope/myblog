@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vite
 import { revalidatePath, revalidateTag } from "next/cache";
 import {
   getPublicCategories,
+  getPublicComments,
   getPublicDiaryIndex,
   getPublicPost,
   getPublicPostCounts,
@@ -347,6 +348,27 @@ describe("방문자용 다이어리 목록", () => {
     expect(posts.map((p) => [p.slug, p.title, p.content])).toEqual([
       ["open", "공개 일기", ""],
       ["secret", "일기", ""],
+    ]);
+  });
+});
+
+describe("공개 댓글 조회", () => {
+  it("글의 댓글을 작성 순으로 그 글 타입 태그를 달아 요청하고 Comment로 바꾼다", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse([
+        { id: "c1", post_id: "p1", parent_id: null, author_id: "u1", content: "첫 댓글", created_at: "2026-01-01T00:00:00Z" },
+      ]),
+    );
+
+    const comments = await getPublicComments("blog", "p1");
+
+    const { url, init } = requestAt();
+    expect(`${url.origin}${url.pathname}`).toBe("https://project.supabase.co/rest/v1/comments");
+    expect(url.searchParams.get("post_id")).toBe("eq.p1");
+    expect(url.searchParams.get("order")).toBe("created_at.asc");
+    expect(init).toMatchObject({ next: { revalidate: 86400, tags: ["posts:public:blog"] } });
+    expect(comments).toEqual([
+      { id: "c1", postId: "p1", parentId: null, authorId: "u1", content: "첫 댓글", createdAt: "2026-01-01T00:00:00Z" },
     ]);
   });
 });

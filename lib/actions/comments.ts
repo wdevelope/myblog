@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/server/admin";
+import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 import type { Comment } from "@/lib/types";
 
 export type GetCommentsResult =
@@ -89,7 +90,7 @@ export async function createComment(
 
   const { data: post, error: postError } = await supabase
     .from("posts")
-    .select("id,type,visibility")
+    .select("id,type,visibility,slug")
     .eq("slug", input.postSlug)
     .maybeSingle();
 
@@ -144,6 +145,9 @@ export async function createComment(
     return { success: false, error: `DB Error: ${error.message}` };
   }
 
+  // 댓글은 정적 HTML에 들어 있으므로 그 글의 상세와 목록(댓글 수)을 다시 만든다.
+  revalidatePublicPosts({ type: post.type, slugs: [post.slug] });
+
   return {
     success: true,
     comment: {
@@ -176,7 +180,7 @@ export async function deleteComment(
   // 1. 댓글 정보 조회 (권한 확인용)
   const { data: comment, error: fetchError } = await supabase
     .from("comments")
-    .select("author_id, post_id")
+    .select("author_id, post_id, posts(slug,type)")
     .eq("id", commentId)
     .maybeSingle();
 
@@ -200,6 +204,12 @@ export async function deleteComment(
 
   if (deleteError) {
     return { success: false, error: `DB Error: ${deleteError.message}` };
+  }
+
+  // Database 타입이 없어(6단계) 다대일 관계도 배열로 추론되므로 두 모양을 모두 받는다.
+  const post = Array.isArray(comment.posts) ? comment.posts[0] : comment.posts;
+  if (post) {
+    revalidatePublicPosts({ type: post.type, slugs: [post.slug] });
   }
 
   return { success: true };

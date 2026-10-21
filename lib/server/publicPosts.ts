@@ -1,7 +1,7 @@
 import "server-only";
 
 import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
-import type { Post, PostType } from "@/lib/types";
+import type { Comment, Post, PostType } from "@/lib/types";
 import { postHref } from "@/lib/constants";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
@@ -165,6 +165,39 @@ export async function getPublicPost(
 
   const [row] = (await response.json()) as PostRow[];
   return row ? mapPost(row) : null;
+}
+
+// 댓글은 누구나 읽는다(5단계 결정 4). 댓글 액션이 그 글 타입 태그를 무효화하므로 같은 태그를 단다.
+export async function getPublicComments(
+  type: Exclude<PostType, "diary">,
+  postId: string
+): Promise<Comment[]> {
+  const search = new URLSearchParams();
+  search.set("select", "id,post_id,parent_id,author_id,content,created_at");
+  search.set("post_id", `eq.${postId}`);
+  search.set("order", "created_at.asc");
+
+  const response = await fetchPublicRest("comments", search, [publicPostsTag(type)]);
+  if (!response.ok) {
+    throw new Error(`Supabase REST ${response.status}: ${await response.text()}`);
+  }
+
+  const rows = (await response.json()) as {
+    id: string;
+    post_id: string;
+    parent_id: string | null;
+    author_id: string | null;
+    content: string;
+    created_at: string;
+  }[];
+  return rows.map((row) => ({
+    id: row.id,
+    postId: row.post_id,
+    parentId: row.parent_id,
+    authorId: row.author_id,
+    content: row.content,
+    createdAt: row.created_at,
+  }));
 }
 
 // 카테고리를 바꾸는 액션은 아티클 태그를 무효화하므로 같은 태그를 단다.
