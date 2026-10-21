@@ -15,7 +15,7 @@
 - [ ] 5. ISR 복구와 일시정지 방지
 - [ ] 6. DB 타입과 쓰기 액션 정리
 - [ ] 7. UI 통일과 큰 컴포넌트 분할
-- [ ] 8. 본문 보안과 에디터 정리
+- [x] 8. 에디터 교체와 본문 보안 (CKEditor → 마크다운) — 마크다운 렌더러·원문 편집 에디터, 기존 글 135개 변환, 비공개 이미지 `private, no-store`·SVG 차단, CKEditor 제거(2026-10-22)
 
 ## 진행 원칙 (2~8단계)
 
@@ -94,7 +94,7 @@
   - 내비 링크 목록을 `SiteHeader`·`MobileNav` 한 곳으로 모으고 `aria-current`를 붙인다.
 - 표현 컴포넌트: `PostMeta`(작성자·날짜 줄 3곳), `PostBody`, `VisibilityIcon`(5곳), `ArticleCard`·`CategorySidebar`·`Pagination`(아티클 목록 379줄에서 분리).
 - 분할
-  - `PostEditor`(706줄): 임시저장 `usePostDraft`, 설정 패널 `PostSettingsPanel`. 업로드는 공개 범위를 받는 함수 하나로 CkEditor 어댑터와 합친다(보안 5와 함께). 카테고리는 클라이언트 조회 대신 서버에서 넘기고, 저장 중에는 버튼을 막는다.
+  - `PostEditor`(706줄): 임시저장 `usePostDraft`, 설정 패널 `PostSettingsPanel`. 업로드 함수 통합은 8단계(에디터 교체)로 옮겼다. 카테고리는 클라이언트 조회 대신 서버에서 넘기고, 저장 중에는 버튼을 막는다.
   - `DiaryIndexClient`(584줄): 날짜 함수를 lib로 옮겨 테스트하며 KST로 통일한다. URL 동기화 effect를 없애고 `searchParams`에서 값을 바로 구한다. `DiaryCalendar`·`DiaryList`로 나눈다.
   - 완료(2026-10-21): `CategorySettingsModal`의 반복 흐름을 `run()` 하나로, 행을 `CategoryRow`로 나누고 ESC로 닫을 때 편집 상태를 초기화했다(컴포넌트 테스트 5개).
   - `CommentsThread`: 댓글·대댓글 마크업을 `CommentItem`으로, `confirm`·`alert`를 sonner로.
@@ -102,10 +102,55 @@
 - 다크 모드: `@custom-variant dark`를 넣어 `dark:`가 next-themes `.dark`를 따르게 하고 `ThemeToggle`은 `resolvedTheme`을 본다.
 - 접근성: 아이콘 버튼 `aria-label`, 토글 `aria-pressed`, label·입력 연결.
 
-## 8. 본문 보안과 에디터 정리
+## 8. 에디터 교체와 본문 보안 (CKEditor → 마크다운)
 
-- 대상: 알려진 문제 보안 5~7. 본문 이미지를 글 공개 범위의 버킷에 올리고, 비공개 이미지 응답은 `Cache-Control: private`, 본문 HTML 정화와 SVG 업로드 차단.
-- CkEditor: 툴바에만 있고 플러그인이 없는 항목(`code`·`codeBlock`·`htmlEmbed` 등)과 로드만 하고 툴바에 없는 플러그인(Font·Alignment·Emoji·Mention·CloudServices·Autosave)을 정리하고, GHS 전체 허용을 줄이고, `<style jsx global>`을 `globals.css`로 옮긴다. 기존 글 HTML이 쓰는 서식을 덤프에서 먼저 확인해 편집할 때 서식이 지워지지 않게 한다.
+- 결정(2026-10-22): CKEditor를 걷어내고 직접 만든 마크다운 원문 편집 에디터(툴바 + 미리보기)로 바꾼다. 본문은 마크다운으로 저장한다. 이전 계획(CKEditor 플러그인·GHS 정리)은 폐기한다.
+- 대상: 알려진 문제 보안 5~7.
+
+**기능**
+
+- 툴바: 본문·제목1~3, 굵게 `**`, 기울임 `*`, 취소선 `~~`, 밑줄 `++`(→ `<ins>`), 형광펜 `==`(→ `<mark>`), 글머리 `-`·번호 `1.` 목록, 인용 `>`, 구분선 `---`, 코드블록 ```` ``` ````·인라인 코드 `` ` ``, 수식 `$…$`·`$$…$$`, 링크 `[]()`, 이미지 `![](버킷:경로)`. 단축키는 ⌘/Ctrl + B·I·K.
+- 툴바 동작: 선택 영역을 문법으로 감싸거나 풀고(토글), 줄 단위 문법(제목·목록·인용)은 선택한 줄 앞에 붙이거나 뗀다. 툴바로 넣은 문법도 ⌘Z로 되돌릴 수 있게 textarea 입력 기록을 살린다.
+- 미리보기: 데스크톱은 좌우 분할, 모바일은 작성·미리보기 탭. 글 화면과 같은 렌더러를 브라우저에서 돌린다(편집 화면은 관리자 전용이라 번들 부담이 작다).
+- 이미지: 툴바·붙여넣기·끌어놓기로 올린다. 올리는 동안 자리표시자를 넣었다가 키로 바꾼다. 글의 공개 범위 버킷으로 올리고(보안 5), 첨부·썸네일과 같은 업로드 함수 하나를 쓴다(7단계 `PostEditor` 항목에서 옮김).
+- 빼는 것: 스크린샷의 `($)`(용도 확인 전 제외), 표·체크리스트 입력 버튼, 글자색·글꼴·정렬.
+
+**렌더링**
+
+- `markdown-it`(raw HTML 끔)에 형광펜(`markdown-it-mark`)·밑줄(`markdown-it-ins`)·수식(KaTeX) 플러그인을 붙인다. raw HTML을 끄므로 별도 정화기 없이 본문 XSS가 막힌다(보안 7). 링크는 `javascript:` 등을 막는 markdown-it 기본 검사를 쓴다.
+- 이미지의 `버킷:경로` 키는 `coverSrcFromImageKey`로 주소를 바꾸고, 외부 URL은 그대로 둔다.
+- 글 화면은 서버 컴포넌트 `MarkdownContent`가 HTML을 만든다. 클라이언트 컴포넌트인 `FeedCard`에는 서버에서 만든 본문을 children으로 넘긴다.
+- 요약(`toExcerpt`)은 마크다운 토큰에서 글자만 뽑는다.
+- 표·체크리스트는 기존 글에 쓴 것이 있으면 렌더러에서만 켠다(markdown-it 표는 기본, 체크리스트는 플러그인).
+- 코드 문법 강조는 이번 범위에서 빼고, 필요하면 나중에 서버 쪽(shiki)으로 붙인다.
+
+**기존 글 변환**
+
+- 선행: 1단계 백업. 덤프에서 기존 HTML이 실제로 쓰는 서식(표·체크리스트·형광펜·이미지 캡션·글자색·인라인 style)을 먼저 센다.
+- `scripts/`에 일회성 변환 스크립트를 둔다(turndown + 규칙: `<mark>`→`==`, `<u>`→`++`, `<s>`→`~~`, `<figure>` 이미지→`![캡션](키)`, 공개 버킷 URL→`버킷:경로` 키). 기본은 dry-run으로 글마다 변환 전후를 파일로 남기고, 검토한 뒤 `--apply`로 쓴다.
+- 글자색·글꼴 크기·정렬·인라인 style은 사라진다. dry-run 보고서에 손실이 생기는 글을 표시한다.
+- 아래 1~5를 로컬에서 끝내고 한 번에 배포한 직후 `--apply`를 실행한다. 그 사이 몇 분은 기존 글이 깨져 보일 수 있다.
+
+**순서(커밋 단위)**
+
+1. 렌더러: `lib/markdown.ts`의 `renderMarkdown`과 새 `toExcerpt`, 테스트.
+2. 에디터: 편집 로직(감싸기 토글·줄 문법 토글) `lib/markdown-edit.ts`와 테스트, `MarkdownEditor`(툴바·미리보기·이미지 업로드), `PostEditor`의 CkEditor 교체, 업로드 함수 통합.
+3. 글 화면: `HtmlContent` → `MarkdownContent`, KaTeX CSS, 본문 스타일(`.ck-content` → `prose` 기반, 형광펜·밑줄 다크 모드).
+4. 변환 스크립트와 dry-run 검토(1단계 백업 뒤).
+5. 정리: `ckeditor5`·`@ckeditor/ckeditor5-react` 의존성, `CkEditor.tsx`·`HtmlContent.tsx`, `globals.css`의 `--ck-*`·`.ck-content` 스타일 삭제. 이미지 응답 `Cache-Control: private`(보안 6), SVG 업로드 차단(보안 7). CLAUDE.md·README 갱신.
+6. 배포 직후 변환 `--apply`.
+
+> **결과** (2026-10-22): 1~6 완료. 커밋 `f97d9ce`·`c65883a`·`8968007`(렌더러·에디터·글 화면), `b317624`(이미지 보안), `cfa7d53`(CKEditor 제거), `35ffd11`(변환 스크립트).
+> - 계획과 다르게: 변환을 push **직전**에 적용했다. 홈(`/`)·sitemap은 빌드 때 프리렌더되어 1일·1분 캐시되므로, 먼저 배포하면 깨진 본문이 캐시에 남는다. 그 사이 몇 분은 옛 배포에서 본문이 마크다운 글자로 보였다.
+> - dry-run에서 찾아 규칙을 더했다: 겹치거나 붙은 굵게, 문장부호만 굵게, 인라인 코드 안 서식, 표 칸 안 문단, 주소 안 이스케이프, 본문 `$` 이스케이프. 변환 전후 글자는 135개 모두 같았고 인라인 style만 6개 글(아티클 4·다이어리 2)에서 사라졌다.
+> - 렌더러에 `markdown-it-cjk-friendly`(한국어 조사 앞 굵게)와 `breaks: true`(엔터 한 번 = 줄바꿈)를 더했다.
+> - 원본 HTML 백업은 로컬 `tmp/convert-html-to-markdown/backup-*.json`(gitignore)에 있다. 되돌리려면 `node scripts/convert-html-to-markdown.mjs --restore <파일>`.
+
+**결정**
+
+- 기존 글은 일괄 변환한다(권장). 렌더러가 마크다운 하나만 다루면 된다. 대안은 HTML 글을 남겨 두고 수정할 때 변환하는 것인데, 렌더러가 두 형식을 다뤄야 하고 `content_format` 열이 필요하다.
+
+**하지 않는 것**: 글 공개 범위를 나중에 바꿀 때 이미 올린 이미지를 다른 버킷으로 옮기기, 코드 문법 강조, 표 입력 UI.
 
 ## 알려진 문제 (2026-10-21 코드 검토)
 
@@ -115,9 +160,9 @@
 2. (해결: 2단계, DB 함수 `is_admin()`은 확인 필요) **`user_metadata.is_admin` 신뢰.** 사용자가 스스로 바꿀 수 있는 값이라, 회원가입 후 `updateUser`로 누구나 관리자가 된다(`isAdminDb`·미들웨어).
 3. (해결: 2단계) 미들웨어가 사용자 id·email을 **응답** 헤더로 내보낸다. 의도한 성능 최적화는 동작하지 않는다.
 4. (해결: 2단계) 열린 리다이렉트: 로그인 `from`, 콜백 `next`가 `//evil.example`이면 외부로 이동한다.
-5. 본문 편집기(CKEditor) 이미지는 글 공개 범위와 상관없이 공개 버킷에 올라간다. 비공개 글·다이어리 본문 이미지가 URL로 열린다.
-6. 비공개 버킷 이미지 응답에도 `Cache-Control: public, max-age=31536000, immutable`을 붙인다.
-7. 본문 HTML을 정화 없이 렌더링한다(`HtmlContent`). SVG 업로드도 허용한다. 관리자 판정이 뚫리면 저장형 XSS가 된다.
+5. (해결: 8단계) 본문 편집기(CKEditor) 이미지는 글 공개 범위와 상관없이 공개 버킷에 올라간다. 비공개 글·다이어리 본문 이미지가 URL로 열린다.
+6. (해결: 8단계) 비공개 버킷 이미지 응답에도 `Cache-Control: public, max-age=31536000, immutable`을 붙인다.
+7. (해결: 8단계, 마크다운 렌더러가 raw HTML을 끈다) 본문 HTML을 정화 없이 렌더링한다(`HtmlContent`). SVG 업로드도 허용한다. 관리자 판정이 뚫리면 저장형 XSS가 된다.
 8. `getCategories`가 `requireAdmin` 없이 service role을 쓴다(`isAdminDb`에만 기댄다).
 9. (해결: 2단계) 로그아웃이 GET `/logout`이라 다른 사이트가 링크·이미지로 로그아웃시킬 수 있다. 브라우저에서 `signOut`한 뒤 GET을 또 불러 두 번 처리한다.
 10. (해결: 4단계 일부) `server-only`가 `lib/server/publicPosts.ts`에만 있어 service role 클라이언트 모듈이 클라이언트 번들로 import되는 것을 빌드가 막지 못한다.
