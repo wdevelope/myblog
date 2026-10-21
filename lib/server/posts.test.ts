@@ -68,7 +68,7 @@ describe("관리자 판정에 따른 글 조회", () => {
     const posts = createQuery({ data: [], error: null });
     mocks.tables.posts = posts;
 
-    await getPostsDirectly({ type: "blog", user: { id: "attacker" } });
+    await getPostsDirectly({ type: "blog" });
 
     expect(posts.calls).toContainEqual(["eq", "visibility", "public"]);
   });
@@ -84,7 +84,7 @@ describe("관리자 판정에 따른 글 조회", () => {
     mocks.getUser.mockResolvedValue({ data: { user }, error: null });
     mocks.tables.posts = createQuery({ data: privatePostRow, error: null });
 
-    await expect(getPostBySlugDirectly({ slug: "secret", user })).rejects.toMatchObject({
+    await expect(getPostBySlugDirectly({ slug: "secret" })).rejects.toMatchObject({
       status: 403,
     });
   });

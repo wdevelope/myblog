@@ -17,11 +17,11 @@ export default async function DiaryEntryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { user, isAdmin } = await getViewer();
+  const { isAdmin } = await getViewer();
 
   let post = null;
   try {
-    post = await getPostBySlugDirectly({ slug, user });
+    post = await getPostBySlugDirectly({ slug });
   } catch (e) {
     const err = e as { status?: number };
     if (err.status === 403 || err.status === 404) {

@@ -10,8 +10,8 @@ export const metadata = {
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
 export default async function FeedPage() {
-  const { user, isAdmin } = await getViewer();
-  const posts = await getPostsDirectly({ type: "feed", user });
+  const { isAdmin } = await getViewer();
+  const posts = await getPostsDirectly({ type: "feed" });
 
   return (
     <div className="mx-auto max-w-xl space-y-8">

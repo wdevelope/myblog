@@ -8,6 +8,7 @@ import { getViewer } from "@/lib/server/admin";
 import { getPostsDirectly } from "@/lib/server/posts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toExcerpt } from "@/lib/markdown";
+import { coverSrcFromImageKey } from "@/lib/image";
 import { notFound } from "next/navigation";
 import CategorySelect from "./CategorySelect";
 
@@ -16,24 +17,6 @@ export const metadata = {
 };
 
 export const revalidate = 86400; // REVALIDATE_PERIOD
-
-function coverSrcFromImageKey(key: string) {
-  const [bucket, ...rest] = key.split(":");
-  const objectPath = rest.join(":");
-  const looksLikeSupabaseKey = Boolean(bucket && objectPath);
-  if (!looksLikeSupabaseKey) return key;
-
-  if (bucket === "post-images-public") {
-    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!base) return null;
-    const path = encodeURIComponent(objectPath).replaceAll("%2F", "/");
-    return `${base}/storage/v1/object/public/${bucket}/${path}`;
-  }
-
-  return `/api/images?bucket=${encodeURIComponent(
-    bucket
-  )}&path=${encodeURIComponent(objectPath)}`;
-}
 
 function LockIcon({ className }: { className?: string }) {
   return <FiLock className={className ?? "size-5"} />;
@@ -66,7 +49,7 @@ type Props = {
 };
 
 export default async function BlogIndexPage({ searchParams }: Props) {
-  const { user, isAdmin } = await getViewer();
+  const { isAdmin } = await getViewer();
   const sp = (await searchParams) ?? {};
   const selectedCategory =
     typeof sp.category === "string" ? sp.category.trim() : "";
@@ -87,7 +70,7 @@ export default async function BlogIndexPage({ searchParams }: Props) {
     // To get SIDEBAR counts correctly for Admin, we actually need to fetch ALL posts regardless of category?
     // The original code fetched "getPosts({ type: 'blog' })" regardless of selection, then filtered in memory.
     // Let's replicate that to ensure sidebar counts are correct.
-    const allVisiblePosts = await getPostsDirectly({ type: "blog", user });
+    const allVisiblePosts = await getPostsDirectly({ type: "blog" });
     sidebarTotalCount = allVisiblePosts.length;
 
     categoryCounts = allVisiblePosts.reduce<Record<string, number>>(

@@ -2,7 +2,7 @@ import "server-only";
 
 import type { Post, PostType } from "@/lib/types";
 import { getSupabaseEnv } from "@/lib/supabase/env";
-import { mapPost, type PostRow } from "@/lib/server/posts";
+import { mapPost, type PostRow } from "@/lib/server/postRow";
 
 type NextRequestInit = RequestInit & {
   next?: { revalidate?: number; tags?: string[] };

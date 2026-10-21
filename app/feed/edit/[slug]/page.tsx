@@ -16,9 +16,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function FeedEditPage({ params }: Props) {
-  const user = await requireAdmin("/feed");
+  await requireAdmin("/feed");
   const { slug } = await params;
-  const post = await getPostBySlugDirectly({ slug, user });
+  const post = await getPostBySlugDirectly({ slug });
   if (post.type !== "feed") notFound();
 
   return (

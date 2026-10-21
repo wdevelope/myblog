@@ -2,49 +2,10 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { getViewer } from "@/lib/server/admin";
-import type { Post, PostType, Comment, Visibility } from "@/lib/types";
+import { mapPost, type PostRow } from "@/lib/server/postRow";
+import type { Post, PostType, Comment } from "@/lib/types";
 
-export type PostRow = {
-    id: string;
-    slug: string;
-    type: PostType;
-    visibility: Visibility;
-    title: string;
-    content: string;
-    category_slug: string | null;
-    created_at: string;
-    updated_at: string | null;
-    image_keys: string[] | null;
-    thumbnail_image_key: string | null;
-    view_count?: number;
-    comments?: { count: number }[];
-};
-
-export function mapPost(row: PostRow): Post {
-    return {
-        id: row.id,
-        slug: row.slug,
-        type: row.type,
-        visibility: row.visibility,
-        title: row.title,
-        content: row.content,
-        categorySlug: row.category_slug,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at ?? row.created_at,
-        imageKeys: row.image_keys ?? [],
-        thumbnailImageKey: row.thumbnail_image_key,
-        viewCount: row.view_count,
-        commentCount: row.comments?.[0]?.count ?? 0,
-    };
-}
-
-export async function getPostsDirectly(params: {
-    type: PostType;
-    category?: string;
-    user?: { id: string; email?: string | null } | null;
-    limit?: number;
-    offset?: number;
-}): Promise<Post[]> {
+export async function getPostsDirectly(params: { type: PostType }): Promise<Post[]> {
     const { isAdmin } = await getViewer();
     const supabase = await createSupabaseServerClient();
 
@@ -86,11 +47,7 @@ export async function getPostsDirectly(params: {
         .eq("type", params.type)
         .order("created_at", { ascending: false });
 
-    if (params.category) query = query.eq("category_slug", params.category);
     if (!isAdmin) query = query.eq("visibility", "public");
-
-    if (params.limit) query = query.limit(params.limit);
-    if (params.offset) query = query.range(params.offset, params.offset + (params.limit ?? 10) - 1);
 
     const { data: posts, error } = await query;
     if (error) throw new Error(`DB Error: ${error.message}`);
@@ -98,10 +55,7 @@ export async function getPostsDirectly(params: {
     return (posts ?? []).map((p) => mapPost(p as PostRow));
 }
 
-export async function getPostBySlugDirectly(params: {
-    slug: string;
-    user?: { id: string; email?: string | null } | null;
-}): Promise<Post> {
+export async function getPostBySlugDirectly(params: { slug: string }): Promise<Post> {
     const { isAdmin } = await getViewer();
     const supabase = await createSupabaseServerClient();
 
@@ -132,10 +86,7 @@ export async function getPostBySlugDirectly(params: {
     return mapPost(post as PostRow);
 }
 
-export async function getCommentsDirectly(params: {
-    postId: string;
-    user?: { id: string; email?: string | null } | null;
-}): Promise<Comment[]> {
+export async function getCommentsDirectly(params: { postId: string }): Promise<Comment[]> {
     const { isAdmin } = await getViewer();
     const supabase = await createSupabaseServerClient();
 

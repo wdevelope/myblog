@@ -4,13 +4,6 @@ import { assertAdmin } from "@/lib/server/admin";
 
 export const runtime = "nodejs";
 
-function uuid() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
 function safeExtension(file: File) {
   const fromType = file.type.split("/")[1]?.trim().toLowerCase();
   const fromName = file.name.split(".").pop()?.trim().toLowerCase();
@@ -102,7 +95,7 @@ export async function POST(request: Request) {
 
     const date = new Date().toISOString().slice(0, 10);
     const ext = safeExtension(file);
-    const path = `${date}/${uuid()}.${ext}`;
+    const path = `${date}/${crypto.randomUUID()}.${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
     const { error } = await service.storage
       .from(bucket)

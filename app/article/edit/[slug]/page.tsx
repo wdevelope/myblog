@@ -16,9 +16,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ArticleEditPage({ params }: Props) {
-  const user = await requireAdmin("/article");
+  await requireAdmin("/article");
   const { slug } = await params;
-  const post = await getPostBySlugDirectly({ slug, user });
+  const post = await getPostBySlugDirectly({ slug });
   if (post.type !== "blog") notFound();
 
   return (

@@ -9,8 +9,8 @@ export const metadata = {
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
 export default async function DiaryPage() {
-  const { user, isAdmin } = await getViewer();
-  const posts = await getPostsDirectly({ type: "diary", user });
+  const { isAdmin } = await getViewer();
+  const posts = await getPostsDirectly({ type: "diary" });
 
   return (
     <DiaryIndexClient posts={posts} isAdmin={isAdmin} />

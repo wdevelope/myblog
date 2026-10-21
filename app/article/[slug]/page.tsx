@@ -23,7 +23,7 @@ export default async function BlogPostPage({
 
   let post;
   try {
-    post = await getPostBySlugDirectly({ slug, user });
+    post = await getPostBySlugDirectly({ slug });
   } catch (e) {
     const err = e as { status?: number };
     if (err.status === 403) redirect("/");
@@ -33,7 +33,7 @@ export default async function BlogPostPage({
 
   if (post.type !== "blog") notFound();
 
-  const comments = user ? await getCommentsDirectly({ postId: post.id, user }) : [];
+  const comments = user ? await getCommentsDirectly({ postId: post.id }) : [];
 
   return (
     <article className="mx-auto max-w-4xl space-y-5">
