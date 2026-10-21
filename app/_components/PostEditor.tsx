@@ -17,16 +17,11 @@ import { toAutoTitle } from "@/lib/markdown";
 import { coverSrcFromImageKey } from "@/lib/image";
 import { postHref } from "@/lib/constants";
 // import PostImages from "@/app/_components/PostImages";
-// import HtmlContent from "@/app/_components/HtmlContent";
 import DeletePostButton from "@/app/_components/DeletePostButton";
 import { cn } from "@/lib/utils";
 import { getCategories } from "@/lib/actions/categories";
 import { createPost } from "@/lib/actions/posts";
-import dynamic from "next/dynamic";
-
-const CkEditor = dynamic(() => import("@/app/_components/CkEditor"), {
-  ssr: false,
-});
+import MarkdownEditor from "@/app/_components/MarkdownEditor";
 
 type DraftPayloadV1 = {
   version: 1;
@@ -298,8 +293,9 @@ export default function PostEditor({
     };
   }, [buildDraftPayload, draftKey, hasMeaningfulDraft]);
 
+  // 첨부·썸네일·본문 이미지가 함께 쓰는 업로드. 글의 공개 범위 버킷으로 올린다.
   const uploadFiles = useCallback(
-    async (files: FileList | null, addToGallery = true) => {
+    async (files: FileList | File[] | null, addToGallery = true) => {
       setError(null);
       if (!files?.length) return [];
 
@@ -331,10 +327,6 @@ export default function PostEditor({
     },
     [type, visibility]
   );
-
-  // const textareaRef = useRef<HTMLTextAreaElement | null>(null); // Removed: CKEditor handles this
-
-  // handlePaste removed: CKEditor handles uploads internally via Adapter
 
   async function submit() {
     setError(null);
@@ -398,7 +390,7 @@ export default function PostEditor({
 
         <div className="flex items-center gap-2 md:gap-3">
           <span className="text-sm text-gray-400 font-medium mr-2">
-            {content.replace(/<[^>]*>/g, "").length}자
+            {content.length}자
           </span>
           <button
             type="button"
@@ -463,11 +455,12 @@ export default function PostEditor({
 
           <div className="flex-1 overflow-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative">
             <div className="h-full">
-              <CkEditor
+              <MarkdownEditor
                 title={title}
                 onTitleChange={type === "feed" ? undefined : setTitle}
                 value={content}
                 onChange={setContent}
+                onUploadImages={(files) => uploadFiles(files, false)}
                 placeholder="내용을 입력하세요."
               />
             </div>

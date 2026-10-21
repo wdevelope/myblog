@@ -1,5 +1,7 @@
 import { ButtonLink, Card, CardBody } from "@/app/_components/ui";
+import MarkdownContent from "@/app/_components/MarkdownContent";
 import { FeedCard } from "@/app/feed/FeedCard";
+import { toExcerpt } from "@/lib/markdown";
 import { getViewer } from "@/lib/server/admin";
 import { getPostsDirectly } from "@/lib/server/posts";
 
@@ -33,6 +35,8 @@ export default async function FeedPage() {
                 content: post.content, // explicitly include to show we are aware
               }}
               isAdmin={isAdmin}
+              excerpt={toExcerpt(post.content, 1000)}
+              body={<MarkdownContent content={post.content} compact />}
             />
           ))
         ) : (

@@ -43,11 +43,14 @@ export async function GET(request: Request) {
     );
   }
 
-  // Return the image data with proper headers
+  // 비공개 이미지가 CDN 같은 공유 캐시에 남으면 관리자 확인 없이 다시 나갈 수 있다.
   return new Response(blob, {
     headers: {
       "Content-Type": blob.type || "image/png",
-      "Cache-Control": "public, max-age=31536000, immutable",
+      "Cache-Control":
+        bucket === PUBLIC_IMAGE_BUCKET
+          ? "public, max-age=31536000, immutable"
+          : "private, no-store",
     },
   });
 }
@@ -83,9 +86,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const service = createSupabaseServiceClient();
-  const keys: string[] = [];
-
+  // 하나라도 거절할 파일이 있으면 아무것도 올리지 않는다(앞의 파일만 Storage에 남지 않게).
+  // SVG는 스크립트를 담을 수 있어 공개 버킷 주소로 열면 Storage 도메인에서 실행된다.
   for (const file of files) {
     if (!file.type.startsWith("image/")) {
       return NextResponse.json(
@@ -93,7 +95,18 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    if (file.type === "image/svg+xml") {
+      return NextResponse.json(
+        { error: "SVG 이미지는 올릴 수 없어요." },
+        { status: 400 }
+      );
+    }
+  }
 
+  const service = createSupabaseServiceClient();
+  const keys: string[] = [];
+
+  for (const file of files) {
     const date = new Date().toISOString().slice(0, 10);
     const ext = safeExtension(file);
     const path = `${date}/${crypto.randomUUID()}.${ext}`;

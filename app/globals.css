@@ -42,38 +42,6 @@
   --muted: #94a3b8;
 
   --muted: #94a3b8;
-
-  /* CKEditor Dark Mode Overrides */
-  --ck-color-base-background: #111827;
-  --ck-color-base-text: #ffffff;
-  --ck-color-base-border: rgba(255, 255, 255, 0.1);
-  --ck-color-base-action: #3b82f6;
-  --ck-color-base-focus: #3b82f6;
-  --ck-color-base-error: #ef4444;
-  --ck-color-base-icon: #ffffff;
-
-  --ck-color-toolbar-background: #111827;
-  --ck-color-toolbar-border: rgba(255, 255, 255, 0.1);
-
-  --ck-color-button-default-hover-background: #1f2937;
-  --ck-color-button-default-active-background: #374151;
-  --ck-color-button-on-background: #1f2937;
-  --ck-color-button-on-hover-background: #374151;
-  --ck-color-button-on-text: #3b82f6;
-
-  --ck-color-dropdown-panel-background: #111827;
-  --ck-color-dropdown-panel-border: rgba(255, 255, 255, 0.2);
-
-  --ck-color-list-background: #111827;
-  --ck-color-list-button-hover-background: #1f2937;
-  --ck-color-list-button-text: #ffffff;
-
-  --ck-color-panel-background: #111827;
-  --ck-color-panel-border: rgba(255, 255, 255, 0.2);
-
-  --ck-color-input-background: #0b0f19;
-  --ck-color-input-border: rgba(255, 255, 255, 0.1);
-  --ck-color-input-text: #ffffff;
 }
 
 body {
@@ -92,22 +60,6 @@ input[type="submit"]:not(:disabled),
 input[type="reset"]:not(:disabled),
 [role="button"]:not([aria-disabled="true"]) {
   cursor: pointer;
-}
-
-/* Force CKEditor Content to use explicit dark mode colors */
-.dark .ck-content,
-.dark .ck-content * {
-  --ck-color-base-text: var(--foreground) !important;
-  color: var(--foreground) !important;
-}
-
-.dark .ck-content h1,
-.dark .ck-content h2,
-.dark .ck-content h3,
-.dark .ck-content h4,
-.dark .ck-content strong,
-.dark .ck-content b {
-  color: var(--foreground) !important;
 }
 
 ::selection {
@@ -156,14 +108,40 @@ input[type="reset"]:not(:disabled),
   --tw-prose-invert-td-borders: var(--border) !important;
 }
 
-/* Ensure CKEditor elements inherit the correct color */
-.ck-content p,
-.ck-content li,
-.ck-content blockquote,
-.ck-content table {
-  color: var(--tw-prose-body, var(--foreground)) !important;
+/* 마크다운 본문(MarkdownContent): prose가 다루지 않는 형광펜·밑줄·인라인 코드·블록 수식 */
+.markdown-body {
+  --mark-bg: rgba(250, 204, 21, 0.4);
 }
 
-.ck-content strong {
-  color: var(--tw-prose-bold, var(--foreground)) !important;
+.dark .markdown-body {
+  --mark-bg: rgba(250, 204, 21, 0.3);
+}
+
+.markdown-body mark {
+  background: var(--mark-bg);
+  color: inherit;
+  padding: 0 0.15em;
+  border-radius: 0.2em;
+}
+
+.markdown-body ins {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.markdown-body :not(pre) > code {
+  background: var(--surface-2);
+  padding: 0.15em 0.35em;
+  border-radius: 0.3em;
+  font-weight: 500;
+}
+
+.markdown-body :not(pre) > code::before,
+.markdown-body :not(pre) > code::after {
+  content: none;
+}
+
+.markdown-body .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
 }

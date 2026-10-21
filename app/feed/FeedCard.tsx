@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { FiHeart, FiMessageCircle, FiBookmark } from "react-icons/fi";
 import { AnimatePresence, motion } from "framer-motion";
@@ -9,10 +9,19 @@ import type { Post } from "@/lib/types";
 import { Card, CardBody } from "@/app/_components/ui";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 import { coverKeyOf, coverSrcFromImageKey } from "@/lib/image";
-import HtmlContent from "@/app/_components/HtmlContent";
-import { toExcerpt } from "@/lib/markdown";
 
-export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
+// 요약과 본문은 서버에서 만들어 넘긴다. 클라이언트 컴포넌트가 렌더러를 import하면 공개 피드 번들에 markdown-it·KaTeX가 실린다.
+export function FeedCard({
+  post,
+  isAdmin,
+  excerpt,
+  body,
+}: {
+  post: Post;
+  isAdmin: boolean;
+  excerpt: string;
+  body: ReactNode;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -30,8 +39,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
 
   const coverKey = coverKeyOf(post);
   const coverSrc = coverKey ? coverSrcFromImageKey(coverKey) : null;
-  const textContent = toExcerpt(post.content, 1000);
-  const shouldShowMore = textContent.length > 140;
+  const shouldShowMore = excerpt.length > 140;
 
   return (
     <Card className="relative overflow-hidden transition hover:shadow-lg">
@@ -173,7 +181,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
             <div className="space-y-3">
               <div className="text-[14px] leading-normal text-foreground font-normal">
                 <span className="font-bold mr-2 text-foreground">원스</span>
-                <HtmlContent content={post.content} isFeed />
+                {body}
               </div>
               <button
                 type="button"
@@ -189,7 +197,7 @@ export function FeedCard({ post, isAdmin }: { post: Post; isAdmin: boolean }) {
                 <span className="font-bold mr-2 text-foreground border-none bg-transparent p-0">
                   원스
                 </span>
-                {textContent}
+                {excerpt}
               </p>
               {shouldShowMore ? (
                 <button
