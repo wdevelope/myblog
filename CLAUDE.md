@@ -42,7 +42,7 @@ npm run build                          # next build --webpack (Turbopack 제한�
 - 쓰기: `lib/actions/*.ts` 서버 액션. 반환은 `{ success: true, … } | { success: false, error }`이고, 성공하면 `revalidateTag`·`revalidatePath`로 공개 캐시를 무효화한다.
 - 이미지: `app/api/images` 라우트 핸들러가 service role로 Storage에 올리고 내려준다. 키 형식은 `<버킷>:<경로>`.
 - Supabase 클라이언트: `lib/supabase/server.ts`(서버, RLS 적용), `client.ts`(브라우저), `service.ts`(서버 전용, RLS 우회 — `requireAdmin` 뒤에만).
-- 인증: Supabase Auth(이메일·비밀번호). 관문은 `lib/server/admin.ts`의 `requireLogin`·`requireAdmin`이다(현행 결함은 로드맵 2단계).
+- 인증: Supabase Auth(이메일·비밀번호). 관문은 `lib/server/admin.ts`다. 화면 분기는 `getViewer()`(user·isAdmin), 페이지 접근은 `requireLogin`·`requireAdmin`(redirect), 서버 액션·라우트 핸들러는 `assertAdmin()`(실패를 돌려줌). 관리자는 `app_metadata.is_admin` 또는 `public.users.is_admin`만 본다. `proxy.ts`는 `sb-` 쿠키가 있을 때 세션 갱신만 한다.
 - ISR: 라우트 세그먼트 `revalidate`는 리터럴이어야 하므로 `86400 // REVALIDATE_PERIOD`로 쓴다.
 
 ## 규약
