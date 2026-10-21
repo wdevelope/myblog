@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
-import { FiHeart, FiMessageCircle, FiBookmark } from "react-icons/fi";
+import { FiHeart, FiBookmark } from "react-icons/fi";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn, formatPostDate } from "@/lib/utils";
 import type { Post } from "@/lib/types";
@@ -25,7 +25,6 @@ export function FeedCard({
   const [expanded, setExpanded] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [isCommented, setIsCommented] = useState(false);
   const [showSaveToast, setShowSaveToast] = useState(false);
 
   const handleSave = () => {
@@ -118,18 +117,6 @@ export function FeedCard({
                 )}
               />
             </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.8 }}
-              onClick={() => setIsCommented(!isCommented)}
-              className="p-1 hover:opacity-60 transition outline-none"
-            >
-              <FiMessageCircle
-                className={cn(
-                  "size-6 transition-colors",
-                  isCommented ? "fill-primary text-primary" : ""
-                )}
-              />
-            </motion.button>
           </div>
           <div className="relative">
             <AnimatePresence>
@@ -160,20 +147,11 @@ export function FeedCard({
           </div>
         </div>
 
-        {/* Row 2: Likes (Dummy count adjustment) */}
-        <div className="mt-1 flex gap-3">
-          <p className="text-[14px] font-bold text-foreground">
-            좋아요 {isLiked ? 8 : 7}개
+        {(post.commentCount ?? 0) > 0 && (
+          <p className="mt-1 text-[14px] font-bold text-foreground">
+            댓글 {post.commentCount}개
           </p>
-          {(post.commentCount ?? 0) > 0 && (
-            <>
-              <span className="text-muted">·</span>
-              <p className="text-[14px] font-bold text-foreground">
-                댓글 {post.commentCount}개
-              </p>
-            </>
-          )}
-        </div>
+        )}
 
         {/* Row 3: Caption */}
         <div className="flex flex-col gap-1">
@@ -211,24 +189,6 @@ export function FeedCard({
             </div>
           )}
         </div>
-
-        {/* Row 4: Dummy Comment Animation */}
-        <AnimatePresence>
-          {isCommented && (
-            <motion.div
-              initial={{ opacity: 0, y: -10, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: "auto" }}
-              exit={{ opacity: 0, y: -10, height: 0 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="overflow-hidden pt-1"
-            >
-              <div className="text-[14px] leading-normal text-foreground">
-                <span className="font-bold mr-2 text-foreground">방문객</span>
-                피드가 좋네요 😊
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </CardBody>
     </Card>
   );
