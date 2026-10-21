@@ -5,63 +5,6 @@ import { getViewer } from "@/lib/server/admin";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 import type { Comment } from "@/lib/types";
 
-export type GetCommentsResult =
-  | { success: true; comments: Comment[] }
-  | { success: false; error: string };
-
-export async function getComments(postId: string): Promise<GetCommentsResult> {
-  if (!postId) {
-    return { success: false, error: "postId is required" };
-  }
-
-  const supabase = await createSupabaseServerClient();
-  const { user, isAdmin } = await getViewer();
-  if (!user) {
-    return { success: false, error: "unauthorized" };
-  }
-
-  const { data: post, error: postError } = await supabase
-    .from("posts")
-    .select("id,type,visibility")
-    .eq("id", postId)
-    .maybeSingle();
-
-  if (postError) {
-    return { success: false, error: `DB Error: ${postError.message}` };
-  }
-  if (!post) {
-    return { success: false, error: "not_found" };
-  }
-  if (post.type === "diary") {
-    return { success: false, error: "diary does not support comments" };
-  }
-  if (post.visibility === "private" && !isAdmin) {
-    return { success: false, error: "forbidden" };
-  }
-
-  const { data: comments, error } = await supabase
-    .from("comments")
-    .select("id,post_id,parent_id,author_id,content,created_at")
-    .eq("post_id", postId)
-    .order("created_at", { ascending: true });
-
-  if (error) {
-    return { success: false, error: `DB Error: ${error.message}` };
-  }
-
-  return {
-    success: true,
-    comments: (comments ?? []).map((c) => ({
-      id: c.id,
-      postId: c.post_id,
-      parentId: c.parent_id,
-      authorId: c.author_id,
-      content: c.content,
-      createdAt: c.created_at,
-    })),
-  };
-}
-
 export type CreateCommentInput = {
   postSlug: string;
   content: string;
