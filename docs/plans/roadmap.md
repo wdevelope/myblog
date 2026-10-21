@@ -1,22 +1,24 @@
 # 로드맵
 
 - **작성:** 2026-10-21
-- **근거:** 운영 재개 준비 중 코드 검토 결과, 사용자 결정(2026-10-21: DB를 Supabase에서 MongoDB로 전환)
+- **근거:** 운영 재개 준비 중 코드 검토 결과, 사용자 결정(2026-10-21: MongoDB 전환을 철회하고 Supabase를 유지, 리전 정렬·ISR 복구를 앞당김)
 
 이전 `tasklist.md`를 대체한다. 끝난 단계는 `[x]`로 바꾸고 한 줄 결과를 남긴다.
 
 ## 진행 현황
 
 - [x] 0. Claude 기본 세팅 — CLAUDE.md, `.env` 접근 차단, Vitest, CI(lint·typecheck·test), commit 스킬
-- [ ] 1. Supabase 프로젝트 상태 확인과 데이터 백업 (사용자 작업)
+- [ ] 1. Supabase 백업과 도메인 재등록 (사용자 작업)
 - [ ] 2. 관리자 판정 보안 수정
-- [ ] 3. MongoDB 전환
+- [ ] 3. 리전 정렬과 ISR 복구
 
-## 1. Supabase 프로젝트 상태 확인과 데이터 백업
+## 1. Supabase 백업과 도메인 재등록
 
-- 2026-10-21 현재 `mgyoglaujbxfbuxxlcfj.supabase.co`가 DNS에서 조회되지 않는다(NXDOMAIN). `npm run build`가 sitemap 프리렌더에서 실패하고 운영 사이트도 DB에 닿지 못한다.
-- 대시보드에서 프로젝트 상태를 확인하고, 일시정지면 Restore한다. 복구되면 `pg_dump`로 스키마·데이터를, Storage 버킷(`post-images-public`·`post-images-private`) 파일을 백업한다. 기본 스키마가 저장소에 없어서 덤프가 유일한 원본이다.
-- 복구하면 아래 보안 문제가 열린 채 운영되므로 바로 2단계를 하거나 백업 후 다시 일시정지한다.
+- 2026-10-21 오전에는 `mgyoglaujbxfbuxxlcfj.supabase.co`가 DNS에서 조회되지 않았고(NXDOMAIN), 같은 날 오후에는 REST 엔드포인트가 401로 응답한다(프로젝트 활성). 대시보드에서 상태를 확인한다.
+- `pg_dump`로 스키마·데이터를, Storage 버킷(`post-images-public`·`post-images-private`) 파일을 백업한다. 기본 스키마가 저장소에 없어서 덤프가 유일한 원본이다.
+- 프로젝트가 활성이면 아래 보안 문제가 열린 채 운영되므로 바로 2단계를 하거나 백업 후 다시 일시정지한다.
+- 도메인 `w-life.store`가 만료돼 whois에서 등록 가능 상태다(2026-10-21). 다시 등록하거나 갱신가가 낮은 도메인으로 옮긴다. 도메인을 바꾸면 Vercel 도메인, Supabase Auth의 Site URL·Redirect URLs, `NEXT_PUBLIC_SITE_URL`, CLAUDE.md·README의 주소를 함께 바꾼다.
+- 기한 2026-10-30: 외부 자료에 따르면 기존 무료 프로젝트도 이날부터 Data API(PostgREST) 접근에 명시적 Postgres GRANT가 필요하다. `publicPosts.ts`가 anon 키로 PostgREST를 직접 부르므로, Supabase 공지로 적용 여부를 확인하고 해당하면 GRANT를 새 마이그레이션으로 추가한다.
 
 ## 2. 관리자 판정 보안 수정
 
@@ -24,10 +26,15 @@
 - 방향: 관리자 판정은 `auth.getUser()`로 검증한 사용자의 `app_metadata.is_admin` 또는 `public.users.is_admin`만 본다. 요청 헤더·`user_metadata`는 보지 않는다. 미들웨어는 세션 갱신만 한다. 리다이렉트는 같은 출처 경로만 허용한다. 각각 회귀 테스트를 같이 쓴다.
 - 배포 전 확인: 실제 관리자 계정의 플래그가 `app_metadata` 또는 `users` 테이블에 있는지(`user_metadata`에만 있으면 관리자도 막힌다), DB 함수 `is_admin()`이 무엇을 보는지.
 
-## 3. MongoDB 전환
+## 3. 리전 정렬과 ISR 복구
 
-- 착수 전에 정할 것: 범위(DB만 / +인증 / +이미지 저장소), 호스팅(Atlas 등), 기존 데이터 이전 여부, 드라이버(`mongodb` / Mongoose), RLS가 하던 권한 검사를 서버 코드로 옮기는 방식, 공개 목록 캐시 대체(`unstable_cache`·`"use cache"`), 통합 테스트(`mongodb-memory-server`).
-- 진행: 짧은 전환 계획을 이 문서에 쓰고 확인받은 뒤 posts → comments → categories → images·auth 순서로 옮긴다. 다 옮긴 뒤 `supabase/`와 `lib/supabase/`를 지운다.
+- 방향: Supabase(Postgres·Auth·Storage)와 Vercel Hobby를 유지해 월 0원으로 운영한다. 느린 원인은 무료 플랜 성능보다 매 요청 동적 렌더링과 리전 불일치로 본다. MongoDB·Firebase는 검토 후 보류했다(인증·이미지 저장소·RLS까지 바꿔야 하고 위 원인은 그대로 남는다).
+- 순서: 아래 1 → 2 → 3. 각각 짧은 계획을 확인받은 뒤 구현하고, 시작 전과 끝난 뒤 `/`·`/article`·상세 하나의 TTFB를 잰다.
+
+1. **리전 정렬.** `vercel.json`이 없어 Vercel 함수가 기본 리전 `iad1`(워싱턴)에서 돈다. 대시보드에서 Supabase 리전을 확인하고, `vercel.json`의 `regions`로 함수 리전을 같은 곳(서울이면 `icn1`)에 맞춘다.
+2. **ISR 복구.** 대상은 알려진 문제 "ISR이 사실상 꺼져 있다"와 댓글 액션의 캐시 미무효화다. 공개 목록·상세가 `headers()`·쿠키를 읽지 않게 하고, 로그인·관리자 여부로 달라지는 부분(관리자 버튼, 댓글 입력)은 클라이언트 말단 컴포넌트로 뺀다. 쓰기·댓글 액션은 상세 경로까지 무효화한다. `next build` 출력에서 해당 경로가 정적·ISR로 나오는지 확인한다.
+   - 착수 전에 정할 것: 관리자에게 비공개 글을 공개 목록에 섞어 보일지, 관리자 전용 경로로 분리할지. 다이어리 목록처럼 비관리자에게 본문을 지워 보이는 화면의 처리.
+3. **일시정지 방지.** ISR이 살면 DB 요청이 줄어 무료 플랜의 7일 무활동 일시정지 위험이 커진다. Vercel Cron(Hobby는 하루 1회)으로 가벼운 조회를 하는 라우트 핸들러를 두고 `CRON_SECRET`으로 막는다.
 
 ## 알려진 문제 (2026-10-21 코드 검토)
 

@@ -18,7 +18,7 @@
 
 ## 작업 방식
 
-- 큰 기능·구조 변경(MongoDB 전환 등)은 로드맵에 짧은 계획을 쓰고 확인받은 뒤 구현한다.
+- 큰 기능·구조 변경은 로드맵에 짧은 계획을 쓰고 확인받은 뒤 구현한다.
 - 로직(`lib/`·라우트 핸들러·미들웨어)을 바꾸면 테스트를 같이 쓴다. 버그는 재현 테스트를 먼저 쓰고 실패를 확인한 뒤 고친다. 화면 마크업·스타일은 테스트 대신 브라우저로 확인한다.
 - 테스트는 소스 옆 `<이름>.test.ts(x)`, 제목은 한국어다. Supabase 클라이언트와 `next/headers`·`next/navigation`·`next/cache`는 `vi.mock`으로 바꾼다. 화면 테스트는 첫 줄에 `// @vitest-environment jsdom`.
 - 끝내기 전에 `npm run lint && npm run typecheck && npm test`. `npm run build`는 DB에 접속해야 통과하므로, 접속 불가로 실패하면 그대로 보고한다.
@@ -34,7 +34,7 @@ npm run lint && npm run typecheck
 npm run build                          # next build --webpack (Turbopack 제한으로 고정)
 ```
 
-## 구조 (현행 Supabase → MongoDB 전환 예정)
+## 구조
 
 - Next.js 16 App Router, React 19, TypeScript strict, Tailwind CSS v4, CKEditor 5(본문은 HTML로 저장), next-themes, sonner. 경로 별칭 `@/*`는 저장소 루트다.
 - 공개 목록(홈·아티클 목록·sitemap): `lib/server/publicPosts.ts`가 anon 키로 PostgREST를 `fetch`하고 태그 캐시(`posts:public:<type>`)를 건다.

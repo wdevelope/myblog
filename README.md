@@ -6,7 +6,7 @@ Next.js(App Router) + Tailwind CSS 기반 개인 블로그(w-life). 배포는 Ve
 - 공개 범위: `public` / `private` (글 단위, 피드는 항상 공개)
 - 댓글: 로그인 사용자, `diary`는 미지원
 - 이미지 첨부: 모든 글 타입 지원
-- 데이터: 현재 Supabase(Postgres·Auth·Storage). MongoDB로 전환할 예정이다([로드맵](docs/plans/roadmap.md) 3단계).
+- 데이터: Supabase(Postgres·Auth·Storage)
 
 에이전트 작업 규칙은 [CLAUDE.md](CLAUDE.md)를 본다.
 
