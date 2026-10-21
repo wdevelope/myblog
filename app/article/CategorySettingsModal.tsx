@@ -22,16 +22,7 @@ export default function CategorySettingsModal() {
 
   const [newSlug, setNewSlug] = useState("");
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
-  const [editingValue, setEditingValue] = useState("");
-
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const [deleteMoveTo, setDeleteMoveTo] = useState<string>("");
-
-  const categoriesMap = useMemo(() => {
-    const map = new Map<string, Category>();
-    for (const c of categories) map.set(c.slug, c);
-    return map;
-  }, [categories]);
 
   const moveTargets = useMemo(() => {
     if (!pendingDelete) return [];
@@ -60,120 +51,109 @@ export default function CategorySettingsModal() {
     await refreshList();
   }
 
-  function close() {
-    dialogRef.current?.close();
+  // 이름 변경과 삭제 확인은 한 번에 한 행에서만 열린다.
+  function resetEditState() {
     setEditingSlug(null);
-    setEditingValue("");
     setPendingDelete(null);
-    setDeleteMoveTo("");
   }
 
-  async function onCreate() {
+  function close() {
+    dialogRef.current?.close();
+    resetEditState();
+  }
+
+  // 아티클 목록의 카테고리 사이드바는 서버 컴포넌트라 모달 목록과 함께 새로 그려야 한다.
+  // sonner는 loading·success가 없으면 그 토스트를 띄우지 않으므로 messages 없이 부르면 실패만 알린다.
+  function run(
+    action: () => Promise<void>,
+    messages: { loading?: string; success?: string } = {}
+  ) {
+    const promise = (async () => {
+      await action();
+      await refreshList();
+      router.refresh();
+    })();
+
+    toast.promise(promise, {
+      ...messages,
+      error: (err: Error) => err.message,
+    });
+  }
+
+  function onCreate() {
     const slug = newSlug.trim();
     if (!slug) {
       toast.error("카테고리 이름을 입력해주세요.");
       return;
     }
 
-    const promise = (async () => {
-      const result = await createCategory(slug);
-
-      if (!result.success) {
-        if (result.error === "conflict") {
-          throw new Error("이미 존재하는 카테고리예요.");
+    run(
+      async () => {
+        const result = await createCategory(slug);
+        if (!result.success) {
+          if (result.error === "conflict") {
+            throw new Error("이미 존재하는 카테고리예요.");
+          }
+          throw new Error(result.error ?? "카테고리 생성에 실패했어요.");
         }
-        throw new Error(result.error ?? "카테고리 생성에 실패했어요.");
+        setNewSlug("");
+      },
+      { loading: "카테고리 생성 중...", success: "카테고리 생성 완료" }
+    );
+  }
+
+  function onMove(slug: string, direction: "up" | "down") {
+    run(async () => {
+      const result = await reorderCategory(slug, direction);
+      if (!result.success) {
+        throw new Error("카테고리 순서 변경에 실패했어요.");
       }
-
-      setNewSlug("");
-      await refreshList();
-      router.refresh();
-      return "카테고리 생성 완료";
-    })();
-
-    toast.promise(promise, {
-      loading: "카테고리 생성 중...",
-      success: (data) => data,
-      error: (err: Error) => err.message,
     });
   }
 
-  async function onMove(slug: string, direction: "up" | "down") {
-    const result = await reorderCategory(slug, direction);
-
-    if (!result.success) {
-      toast.error("카테고리 순서 변경에 실패했어요.");
-      return;
-    }
-
-    await refreshList();
-    router.refresh();
-  }
-
-  async function onChangeVisibility(
-    slug: string,
-    visibility: "public" | "private"
-  ) {
-    const result = await updateCategory(slug, { visibility });
-
-    if (!result.success) {
-      toast.error("카테고리 공개 범위 변경에 실패했어요.");
-      return;
-    }
-
-    await refreshList();
-    router.refresh();
+  function onChangeVisibility(slug: string, visibility: "public" | "private") {
+    run(async () => {
+      const result = await updateCategory(slug, { visibility });
+      if (!result.success) {
+        throw new Error("카테고리 공개 범위 변경에 실패했어요.");
+      }
+    });
   }
 
   function startEdit(slug: string) {
     setEditingSlug(slug);
-    setEditingValue(slug);
     setPendingDelete(null);
   }
 
-  async function onRename() {
-    if (!editingSlug) return;
-    const next = editingValue.trim();
+  function onRename(slug: string, value: string) {
+    const next = value.trim();
     if (!next) {
       toast.error("새 이름을 입력해주세요.");
       return;
     }
 
-    const promise = (async () => {
-      const result = await updateCategory(editingSlug, { slug: next });
-
-      if (!result.success) {
-        if (result.error === "conflict") {
-          throw new Error("이미 존재하는 카테고리예요.");
+    run(
+      async () => {
+        const result = await updateCategory(slug, { slug: next });
+        if (!result.success) {
+          if (result.error === "conflict") {
+            throw new Error("이미 존재하는 카테고리예요.");
+          }
+          throw new Error(result.error ?? "카테고리 이름 변경에 실패했어요.");
         }
-        throw new Error(result.error ?? "카테고리 이름 변경에 실패했어요.");
-      }
-
-      setEditingSlug(null);
-      setEditingValue("");
-      await refreshList();
-      router.refresh();
-      return "카테고리 이름 변경 완료";
-    })();
-
-    toast.promise(promise, {
-      loading: "이름 변경 중...",
-      success: (data) => data,
-      error: (err: Error) => err.message,
-    });
+        setEditingSlug(null);
+      },
+      { loading: "이름 변경 중...", success: "카테고리 이름 변경 완료" }
+    );
   }
 
   function requestDelete(slug: string) {
     setPendingDelete(slug);
-    setDeleteMoveTo("");
     setEditingSlug(null);
-    setEditingValue("");
   }
 
-  async function onDelete() {
-    if (!pendingDelete) return;
-
-    const inUse = categoriesMap.get(pendingDelete)?.inUse ?? 0;
+  function onDelete(category: Category, deleteMoveTo: string) {
+    const inUse = category.inUse ?? 0;
     const moveTo = inUse > 0 ? deleteMoveTo : undefined;
     if (inUse > 0 && !deleteMoveTo) {
       toast.error("이동할 카테고리를 선택해주세요.");
@@ -187,28 +167,19 @@ export default function CategorySettingsModal() {
     );
     if (!ok) return;
 
-    const promise = (async () => {
-      const result = await deleteCategory(pendingDelete, moveTo);
-
-      if (!result.success) {
-        if (result.error === "in_use") {
-          throw new Error("사용 중인 카테고리라서 이동 카테고리가 필요해요.");
+    run(
+      async () => {
+        const result = await deleteCategory(category.slug, moveTo);
+        if (!result.success) {
+          if (result.error === "in_use") {
+            throw new Error("사용 중인 카테고리라서 이동 카테고리가 필요해요.");
+          }
+          throw new Error(result.error ?? "카테고리 삭제에 실패했어요.");
         }
-        throw new Error(result.error ?? "카테고리 삭제에 실패했어요.");
-      }
-
-      setPendingDelete(null);
-      setDeleteMoveTo("");
-      await refreshList();
-      router.refresh();
-      return "카테고리 삭제 완료";
-    })();
-
-    toast.promise(promise, {
-      loading: "카테고리 삭제 중...",
-      success: (data) => data,
-      error: (err: Error) => err.message,
-    });
+        setPendingDelete(null);
+      },
+      { loading: "카테고리 삭제 중...", success: "카테고리 삭제 완료" }
+    );
   }
 
   return (
@@ -248,7 +219,7 @@ export default function CategorySettingsModal() {
             className="flex flex-col gap-3 sm:flex-row sm:items-end"
             onSubmit={(e) => {
               e.preventDefault();
-              void onCreate();
+              onCreate();
             }}
           >
             <label className="flex-1 space-y-2">
@@ -282,191 +253,24 @@ export default function CategorySettingsModal() {
 
             <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
               {categories.length ? (
-                categories.map((c, index) => {
-                  const inUse = c.inUse ?? 0;
-                  const isEditing = editingSlug === c.slug;
-                  const isDeleting = pendingDelete === c.slug;
-                  const canMoveUp = index > 0;
-                  const canMoveDown = index < categories.length - 1;
-
-                  return (
-                    <div key={c.slug} className="bg-surface px-4 py-3">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate text-sm font-bold">
-                              {c.slug}
-                            </span>
-                            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-muted">
-                              사용 {inUse}
-                            </span>
-                            <span
-                              className={[
-                                "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] ring-1",
-                                c.visibility === "public"
-                                  ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20"
-                                  : "bg-amber-500/10 text-amber-600 ring-amber-500/20",
-                              ].join(" ")}
-                              title={c.visibility === "public" ? "공개" : "비공개"}
-                            >
-                              {c.visibility === "public" ? (
-                                <FiGlobe className="size-3.5" />
-                              ) : (
-                                <FiLock className="size-3.5" />
-                              )}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                          {!isEditing && !isDeleting ? (
-                            <>
-                              <div className="inline-flex items-center overflow-hidden rounded-lg border border-border bg-surface">
-                                <button
-                                  type="button"
-                                  onClick={() => void onMove(c.slug, "up")}
-                                  disabled={!canMoveUp}
-                                  className="px-2 py-1.5 text-xs font-bold text-foreground transition hover:bg-surface-2 disabled:opacity-40"
-                                  aria-label="위로"
-                                  title="위로"
-                                >
-                                  ↑
-                                </button>
-                                <div className="h-7 w-px bg-border" />
-                                <button
-                                  type="button"
-                                  onClick={() => void onMove(c.slug, "down")}
-                                  disabled={!canMoveDown}
-                                  className="px-2 py-1.5 text-xs font-bold text-foreground transition hover:bg-surface-2 disabled:opacity-40"
-                                  aria-label="아래로"
-                                  title="아래로"
-                                >
-                                  ↓
-                                </button>
-                              </div>
-                              <select
-                                value={c.visibility}
-                                onChange={(e) =>
-                                  void onChangeVisibility(
-                                    c.slug,
-                                    e.target.value as "public" | "private"
-                                  )
-                                }
-                                className="h-8 rounded-lg border border-border bg-surface px-2 text-xs font-bold outline-none focus:border-primary/40"
-                                aria-label="공개 범위"
-                                title="공개 범위"
-                              >
-                                <option value="public">공개</option>
-                                <option value="private">비공개</option>
-                              </select>
-                            </>
-                          ) : null}
-                          <button
-                            type="button"
-                            onClick={() => startEdit(c.slug)}
-                            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-bold transition hover:bg-surface-2"
-                          >
-                            이름 변경
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => requestDelete(c.slug)}
-                            className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-500/15"
-                          >
-                            삭제
-                          </button>
-                        </div>
-                      </div>
-
-                      {isEditing ? (
-                        <form
-                          className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end"
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            void onRename();
-                          }}
-                        >
-                          <label className="flex-1 space-y-2">
-                            <span className="text-xs font-bold text-muted">
-                              새 이름
-                            </span>
-                            <input
-                              value={editingValue}
-                              onChange={(e) => setEditingValue(e.target.value)}
-                              className="h-10 w-full rounded-xl border border-border bg-surface-2 px-3 text-sm outline-none focus:border-primary/40"
-                              autoFocus
-                            />
-                          </label>
-                          <div className="flex gap-2">
-                            <button
-                              type="submit"
-                              className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
-                            >
-                              저장
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingSlug(null)}
-                              className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-bold transition hover:bg-surface-2"
-                            >
-                              취소
-                            </button>
-                          </div>
-                        </form>
-                      ) : null}
-
-                      {isDeleting ? (
-                        <div className="mt-3 space-y-3 rounded-2xl border border-border bg-surface-2 p-4">
-                          {inUse > 0 ? (
-                            <label className="space-y-2">
-                              <span className="text-xs font-bold text-muted">
-                                삭제 전 이동 카테고리
-                              </span>
-                              <select
-                                value={deleteMoveTo}
-                                onChange={(e) =>
-                                  setDeleteMoveTo(e.target.value)
-                                }
-                                className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary/40"
-                              >
-                                <option value="">선택해주세요</option>
-                                {moveTargets.map((slug) => (
-                                  <option key={slug} value={slug}>
-                                    {slug}
-                                  </option>
-                                ))}
-                              </select>
-                              <p className="text-xs text-muted">
-                                현재 {inUse}개 글이 이 카테고리를 사용 중이에요.
-                              </p>
-                            </label>
-                          ) : (
-                            <p className="text-xs text-muted">
-                              사용 중인 글이 없어서 바로 삭제할 수 있어요.
-                            </p>
-                          )}
-
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => void onDelete()}
-                              className="inline-flex h-10 items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-bold text-white transition hover:bg-red-700"
-                            >
-                              삭제 확정
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setPendingDelete(null)}
-                              className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-bold transition hover:bg-surface-2"
-                            >
-                              취소
-                            </button>
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })
+                categories.map((c, index) => (
+                  <CategoryRow
+                    key={c.slug}
+                    category={c}
+                    canMoveUp={index > 0}
+                    canMoveDown={index < categories.length - 1}
+                    isEditing={editingSlug === c.slug}
+                    isDeleting={pendingDelete === c.slug}
+                    moveTargets={moveTargets}
+                    onMove={onMove}
+                    onChangeVisibility={onChangeVisibility}
+                    onStartEdit={startEdit}
+                    onRename={onRename}
+                    onRequestDelete={requestDelete}
+                    onDelete={onDelete}
+                    onCancel={resetEditState}
+                  />
+                ))
               ) : (
                 <div className="px-4 py-6 text-center text-sm text-muted">
                   {loading ? "불러오는 중..." : "카테고리가 없어요."}
@@ -477,5 +281,223 @@ export default function CategorySettingsModal() {
         </div>
       </dialog>
     </>
+  );
+}
+
+type CategoryRowProps = {
+  category: Category;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  isEditing: boolean;
+  isDeleting: boolean;
+  moveTargets: string[];
+  onMove: (slug: string, direction: "up" | "down") => void;
+  onChangeVisibility: (slug: string, visibility: "public" | "private") => void;
+  onStartEdit: (slug: string) => void;
+  onRename: (slug: string, value: string) => void;
+  onRequestDelete: (slug: string) => void;
+  onDelete: (category: Category, moveTo: string) => void;
+  onCancel: () => void;
+};
+
+function CategoryRow({
+  category,
+  canMoveUp,
+  canMoveDown,
+  isEditing,
+  isDeleting,
+  moveTargets,
+  onMove,
+  onChangeVisibility,
+  onStartEdit,
+  onRename,
+  onRequestDelete,
+  onDelete,
+  onCancel,
+}: CategoryRowProps) {
+  const [editingValue, setEditingValue] = useState("");
+  const [deleteMoveTo, setDeleteMoveTo] = useState("");
+  const inUse = category.inUse ?? 0;
+
+  return (
+    <div className="bg-surface px-4 py-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="truncate text-sm font-bold">
+              {category.slug}
+            </span>
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-muted">
+              사용 {inUse}
+            </span>
+            <span
+              className={[
+                "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] ring-1",
+                category.visibility === "public"
+                  ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20"
+                  : "bg-amber-500/10 text-amber-600 ring-amber-500/20",
+              ].join(" ")}
+              title={category.visibility === "public" ? "공개" : "비공개"}
+            >
+              {category.visibility === "public" ? (
+                <FiGlobe className="size-3.5" />
+              ) : (
+                <FiLock className="size-3.5" />
+              )}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {!isEditing && !isDeleting ? (
+            <>
+              <div className="inline-flex items-center overflow-hidden rounded-lg border border-border bg-surface">
+                <button
+                  type="button"
+                  onClick={() => onMove(category.slug, "up")}
+                  disabled={!canMoveUp}
+                  className="px-2 py-1.5 text-xs font-bold text-foreground transition hover:bg-surface-2 disabled:opacity-40"
+                  aria-label="위로"
+                  title="위로"
+                >
+                  ↑
+                </button>
+                <div className="h-7 w-px bg-border" />
+                <button
+                  type="button"
+                  onClick={() => onMove(category.slug, "down")}
+                  disabled={!canMoveDown}
+                  className="px-2 py-1.5 text-xs font-bold text-foreground transition hover:bg-surface-2 disabled:opacity-40"
+                  aria-label="아래로"
+                  title="아래로"
+                >
+                  ↓
+                </button>
+              </div>
+              <select
+                value={category.visibility}
+                onChange={(e) =>
+                  onChangeVisibility(
+                    category.slug,
+                    e.target.value as "public" | "private"
+                  )
+                }
+                className="h-8 rounded-lg border border-border bg-surface px-2 text-xs font-bold outline-none focus:border-primary/40"
+                aria-label="공개 범위"
+                title="공개 범위"
+              >
+                <option value="public">공개</option>
+                <option value="private">비공개</option>
+              </select>
+            </>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setEditingValue(category.slug);
+              onStartEdit(category.slug);
+            }}
+            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-bold transition hover:bg-surface-2"
+          >
+            이름 변경
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setDeleteMoveTo("");
+              onRequestDelete(category.slug);
+            }}
+            className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-500/15"
+          >
+            삭제
+          </button>
+        </div>
+      </div>
+
+      {isEditing ? (
+        <form
+          className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onRename(category.slug, editingValue);
+          }}
+        >
+          <label className="flex-1 space-y-2">
+            <span className="text-xs font-bold text-muted">
+              새 이름
+            </span>
+            <input
+              value={editingValue}
+              onChange={(e) => setEditingValue(e.target.value)}
+              className="h-10 w-full rounded-xl border border-border bg-surface-2 px-3 text-sm outline-none focus:border-primary/40"
+              autoFocus
+            />
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+            >
+              저장
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-bold transition hover:bg-surface-2"
+            >
+              취소
+            </button>
+          </div>
+        </form>
+      ) : null}
+
+      {isDeleting ? (
+        <div className="mt-3 space-y-3 rounded-2xl border border-border bg-surface-2 p-4">
+          {inUse > 0 ? (
+            <label className="space-y-2">
+              <span className="text-xs font-bold text-muted">
+                삭제 전 이동 카테고리
+              </span>
+              <select
+                value={deleteMoveTo}
+                onChange={(e) => setDeleteMoveTo(e.target.value)}
+                className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary/40"
+              >
+                <option value="">선택해주세요</option>
+                {moveTargets.map((slug) => (
+                  <option key={slug} value={slug}>
+                    {slug}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted">
+                현재 {inUse}개 글이 이 카테고리를 사용 중이에요.
+              </p>
+            </label>
+          ) : (
+            <p className="text-xs text-muted">
+              사용 중인 글이 없어서 바로 삭제할 수 있어요.
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onDelete(category, deleteMoveTo)}
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-bold text-white transition hover:bg-red-700"
+            >
+              삭제 확정
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-bold transition hover:bg-surface-2"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
