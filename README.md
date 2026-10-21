@@ -1,68 +1,54 @@
 # myblog
 
-Next.js(App Router) + Tailwind CSS 기반 개인 블로그.
+Next.js(App Router) + Tailwind CSS 기반 개인 블로그(w-life). 배포는 Vercel이다.
 
-- 글 타입: `blog` / `feed` / `diary`
-- 공개 범위: `public` / `private` (글 단위 선택)
-- 댓글: `blog/feed`만 지원, `diary`는 미지원
+- 글 타입: `blog`(아티클) / `feed` / `diary`
+- 공개 범위: `public` / `private` (글 단위, 피드는 항상 공개)
+- 댓글: 로그인 사용자, `diary`는 미지원
 - 이미지 첨부: 모든 글 타입 지원
-- 인증: Supabase Auth (Email/Password)
+- 데이터: 현재 Supabase(Postgres·Auth·Storage). MongoDB로 전환할 예정이다([로드맵](docs/plans/roadmap.md) 3단계).
 
-> 현재는 **Next.js Route Handlers + Supabase(Postgres/Storage/Auth)** 기반으로 동작합니다.  
-> 배포는 Vercel을 사용합니다.
+에이전트 작업 규칙과 개발 흐름(명세 → 테스트 → 구현)은 [CLAUDE.md](CLAUDE.md)를 본다.
 
-## Getting Started
+## 시작하기
 
-### 1) 환경 변수 준비
+### 1) 환경 변수
 
-`.env.local`을 만들고 `/.env.example`을 참고해 값을 채워주세요.
+`.env.local`을 만들고 [`.env.example`](.env.example)을 참고해 값을 채운다.
 
-필수:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` (서버 전용: admin-only/private 이미지 signed URL 등에 사용)
-
-선택:
-
-- `NEXT_PUBLIC_API_BASE_URL` (미설정 시 자동으로 같은 origin의 `/api`를 사용)
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (필수)
+- `SUPABASE_SERVICE_ROLE_KEY` (필수, 서버 전용: 관리자 쓰기·비공개 이미지)
+- `NEXT_PUBLIC_SITE_URL` (선택, 기본 `https://www.w-life.store`: 메타데이터·sitemap·robots 기준 URL)
 
 ### 2) 실행
 
 ```bash
-npm i
-npm run dev
+npm install          # git 훅(tooling/git-hooks)도 함께 켜진다
+npm run dev          # http://localhost:2025
 ```
-
-브라우저에서 `http://localhost:3000` 접속.
 
 ## 주요 라우트
 
-- 공개 섹션: `/`, `/article`, `/feed`
-- 보호 섹션(admin 필요): `/diary`, `/article/write`, `/feed/write`, `/diary/write`
-- 인증: `/login` (로그인/회원가입), `/logout` (로그아웃)
+- 공개: `/`, `/article`(`?category=`, `?page=`), `/article/[slug]`, `/feed`, `/diary`, `/diary/[slug]`
+- 관리자: `/article/write`, `/article/edit/[slug]`, `/feed/write`, `/feed/edit/[slug]`, `/diary/write`, `/diary/edit/[slug]`
+- 인증: `/login`(로그인·회원가입), `/auth/callback`, `/logout`
+- 이미지: `GET /api/images?bucket=&path=`(비공개 버킷은 관리자), `POST /api/images`(관리자 업로드)
+- 글·댓글·카테고리 쓰기는 서버 액션(`lib/actions/*.ts`)이다.
 
-## 로컬 목업 API
-
-- `GET /api/posts?type=blog|feed|diary`
-- `POST /api/posts` (admin 필요)
-- `GET /api/posts/[slug]`
-- `GET /api/comments?postId=...` (로그인 필요)
-- `POST /api/comments` (`diary`는 불가, 로그인 필요)
-- `GET /api/images?bucket=...&path=...` (admin 전용 signed URL 리다이렉트)
-- `POST /api/images` (admin 전용 이미지 업로드: `multipart/form-data`)
-
-## 빌드/검증
+## 검증
 
 ```bash
 npm run lint
-npm run build
+npm run typecheck
+npm test               # Vitest
+npm run spec:check     # 기능 명세 형식·테스트 연결
+npm run test:tooling   # 하네스 자체 테스트
+npm run build          # DB에 접속할 수 있어야 sitemap 프리렌더가 통과한다
 ```
 
-> 참고: 현재 실행 환경에서 Turbopack이 제한(os error 1)될 수 있어 `build`는 `webpack`으로 고정되어 있습니다.
+> 실행 환경에서 Turbopack이 제한(os error 1)될 수 있어 `build`는 webpack으로 고정되어 있다.
 
 ## 배포(Vercel)
 
-- Vercel에 Git 리포지토리 연결
-- Project Settings → Environment Variables에 `.env.example` 항목 설정
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`는 Vercel 환경변수로 반드시 설정
+- main 브랜치 push가 운영 배포다.
+- Project Settings → Environment Variables에 `.env.example` 항목을 설정한다.
