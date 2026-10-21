@@ -11,23 +11,7 @@
   --border: rgba(15, 23, 42, 0.08);
   --muted: #64748b;
 
-  /* Typography Colors */
-  --tw-prose-body: var(--foreground);
-  --tw-prose-headings: var(--foreground);
-  --tw-prose-lead: var(--muted);
-  --tw-prose-links: var(--primary);
-  --tw-prose-bold: var(--foreground);
-  --tw-prose-counters: var(--muted);
-  --tw-prose-bullets: var(--muted);
-  --tw-prose-hr: var(--border);
-  --tw-prose-quotes: var(--foreground);
-  --tw-prose-quote-borders: var(--border);
-  --tw-prose-captions: var(--muted);
-  --tw-prose-code: var(--foreground);
-  --tw-prose-pre-code: var(--background);
-  --tw-prose-pre-bg: var(--foreground);
-  --tw-prose-th-borders: var(--border);
-  --tw-prose-td-borders: var(--border);
+  --muted: #64748b;
 }
 
 @theme inline {
@@ -57,41 +41,7 @@
   --border: rgba(255, 255, 255, 0.1);
   --muted: #94a3b8;
 
-  /* Typography Colors (Dark Mode) */
-  --tw-prose-body: var(--foreground);
-  --tw-prose-headings: var(--foreground);
-  --tw-prose-lead: var(--muted);
-  --tw-prose-links: var(--primary);
-  --tw-prose-bold: var(--foreground);
-  --tw-prose-counters: var(--muted);
-  --tw-prose-bullets: var(--muted);
-  --tw-prose-hr: var(--border);
-  --tw-prose-quotes: var(--foreground);
-  --tw-prose-quote-borders: var(--border);
-  --tw-prose-captions: var(--muted);
-  --tw-prose-code: var(--foreground);
-  --tw-prose-pre-code: var(--background);
-  --tw-prose-pre-bg: var(--foreground);
-  --tw-prose-th-borders: var(--border);
-  --tw-prose-td-borders: var(--border);
-
-  /* Explicitly map prose-invert variables for Tailwind v4 compatibility */
-  --tw-prose-invert-body: var(--foreground);
-  --tw-prose-invert-headings: var(--foreground);
-  --tw-prose-invert-lead: var(--muted);
-  --tw-prose-invert-links: var(--primary);
-  --tw-prose-invert-bold: var(--foreground);
-  --tw-prose-invert-counters: var(--muted);
-  --tw-prose-invert-bullets: var(--muted);
-  --tw-prose-invert-hr: var(--border);
-  --tw-prose-invert-quotes: var(--foreground);
-  --tw-prose-invert-quote-borders: var(--border);
-  --tw-prose-invert-captions: var(--muted);
-  --tw-prose-invert-code: var(--foreground);
-  --tw-prose-invert-pre-code: var(--background);
-  --tw-prose-invert-pre-bg: var(--foreground);
-  --tw-prose-invert-th-borders: var(--border);
-  --tw-prose-invert-td-borders: var(--border);
+  --muted: #94a3b8;
 
   /* CKEditor Dark Mode Overrides */
   --ck-color-base-background: #111827;
@@ -163,4 +113,57 @@ input[type="reset"]:not(:disabled),
 ::selection {
   background: color-mix(in oklab, var(--primary) 30%, transparent);
   color: var(--foreground);
+}
+
+/* Tailwind Typography Customization */
+.prose {
+  --tw-prose-body: var(--foreground) !important;
+  --tw-prose-headings: var(--foreground) !important;
+  --tw-prose-lead: var(--muted) !important;
+  --tw-prose-links: var(--primary) !important;
+  --tw-prose-bold: var(--foreground) !important;
+  --tw-prose-counters: var(--muted) !important;
+  --tw-prose-bullets: var(--muted) !important;
+  --tw-prose-hr: var(--border) !important;
+  --tw-prose-quotes: var(--foreground) !important;
+  --tw-prose-quote-borders: var(--border) !important;
+  --tw-prose-captions: var(--muted) !important;
+  --tw-prose-code: var(--foreground) !important;
+  --tw-prose-pre-code: var(--background) !important;
+  --tw-prose-pre-bg: var(--foreground) !important;
+  --tw-prose-th-borders: var(--border) !important;
+  --tw-prose-td-borders: var(--border) !important;
+}
+
+.dark .prose-invert,
+.dark .prose,
+.prose-invert {
+  --tw-prose-invert-body: var(--foreground) !important;
+  --tw-prose-invert-headings: var(--foreground) !important;
+  --tw-prose-invert-lead: var(--muted) !important;
+  --tw-prose-invert-links: var(--primary) !important;
+  --tw-prose-invert-bold: var(--foreground) !important;
+  --tw-prose-invert-counters: var(--muted) !important;
+  --tw-prose-invert-bullets: var(--muted) !important;
+  --tw-prose-invert-hr: var(--border) !important;
+  --tw-prose-invert-quotes: var(--foreground) !important;
+  --tw-prose-invert-quote-borders: var(--border) !important;
+  --tw-prose-invert-captions: var(--muted) !important;
+  --tw-prose-invert-code: var(--foreground) !important;
+  --tw-prose-invert-pre-code: var(--background) !important;
+  --tw-prose-invert-pre-bg: var(--foreground) !important;
+  --tw-prose-invert-th-borders: var(--border) !important;
+  --tw-prose-invert-td-borders: var(--border) !important;
+}
+
+/* Ensure CKEditor elements inherit the correct color */
+.ck-content p,
+.ck-content li,
+.ck-content blockquote,
+.ck-content table {
+  color: var(--tw-prose-body, var(--foreground)) !important;
+}
+
+.ck-content strong {
+  color: var(--tw-prose-bold, var(--foreground)) !important;
 }
