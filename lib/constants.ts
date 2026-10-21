@@ -1,3 +1,17 @@
-// This value must be literal in Next.js route segments (statically analyzable).
-// Use search & replace with this reference comment: // REVALIDATE_PERIOD
-export const REVALIDATE_PERIOD = 86400; // 1 day in seconds
+import type { PostType } from "@/lib/types";
+
+// sitemap·robots·메타데이터의 기준 주소. 도메인을 사기 전에는 Vercel 환경변수에 vercel.app 주소를 넣는다.
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.w-life.store";
+
+// 글 타입 이름과 경로 이름이 다르다(blog → /article).
+const POST_TYPE_PATH: Record<PostType, string> = {
+  blog: "/article",
+  feed: "/feed",
+  diary: "/diary",
+};
+
+export function postHref(type: PostType, slug?: string) {
+  // 피드는 상세 화면이 없다.
+  if (!slug || type === "feed") return POST_TYPE_PATH[type];
+  return `${POST_TYPE_PATH[type]}/${slug}`;
+}

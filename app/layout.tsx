@@ -5,9 +5,10 @@ import SiteFooter from "@/app/_components/SiteFooter";
 import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "@/app/_components/ThemeProvider";
+import { SITE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.w-life.store"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "개발자 원스",
     template: "%s | 개발자 원스",

@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
 import { coverSrcFromImageKey } from "@/lib/image";
+import { postHref } from "@/lib/constants";
 // import PostImages from "@/app/_components/PostImages";
 // import HtmlContent from "@/app/_components/HtmlContent";
 import DeletePostButton from "@/app/_components/DeletePostButton";
@@ -373,10 +374,7 @@ export default function PostEditor({
 
     clearDraft();
     startTransition(() => {
-      if (result.data.type === "blog")
-        router.push(`/article/${result.data.slug}`);
-      else if (result.data.type === "feed") router.push(`/feed`);
-      else router.push(`/diary/${result.data.slug}`);
+      router.push(postHref(result.data.type, result.data.slug));
       router.refresh();
     });
   }

@@ -1,4 +1,5 @@
 import { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/constants";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -6,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.w-life.store"}/sitemap.xml`,
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

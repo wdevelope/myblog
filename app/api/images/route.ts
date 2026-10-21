@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assertAdmin } from "@/lib/server/admin";
+import { PRIVATE_IMAGE_BUCKET, PUBLIC_IMAGE_BUCKET } from "@/lib/image";
 
 export const runtime = "nodejs";
 
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
     );
   }
 
-  if (bucket !== "post-images-public" && !(await assertAdmin())) {
+  if (bucket !== PUBLIC_IMAGE_BUCKET && !(await assertAdmin())) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -60,9 +61,9 @@ export async function POST(request: Request) {
   const visibility = (form.get("visibility") ?? "").toString();
   const bucket =
     visibility === "public"
-      ? "post-images-public"
+      ? PUBLIC_IMAGE_BUCKET
       : visibility === "private"
-        ? "post-images-private"
+        ? PRIVATE_IMAGE_BUCKET
         : null;
 
   if (!bucket) {

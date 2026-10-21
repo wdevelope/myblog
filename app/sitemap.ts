@@ -1,10 +1,11 @@
 import { MetadataRoute } from "next";
 import { getPublicPosts } from "@/lib/server/publicPosts";
+import { SITE_URL } from "@/lib/constants";
 
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.w-life.store";
+    const baseUrl = SITE_URL;
 
     // Fetch all public blog posts
     const { data: blogPosts } = await getPublicPosts({
