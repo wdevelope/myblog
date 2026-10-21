@@ -144,6 +144,22 @@ input[type="reset"]:not(:disabled),
   cursor: pointer;
 }
 
+/* Force CKEditor Content to use explicit dark mode colors */
+.dark .ck-content,
+.dark .ck-content * {
+  --ck-color-base-text: var(--foreground) !important;
+  color: var(--foreground) !important;
+}
+
+.dark .ck-content h1,
+.dark .ck-content h2,
+.dark .ck-content h3,
+.dark .ck-content h4,
+.dark .ck-content strong,
+.dark .ck-content b {
+  color: var(--foreground) !important;
+}
+
 ::selection {
   background: color-mix(in oklab, var(--primary) 30%, transparent);
   color: var(--foreground);
