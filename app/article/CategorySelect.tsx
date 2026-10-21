@@ -38,7 +38,7 @@ export default function CategorySelect({
                     id="category-select"
                     value={selectedCategory || "all"}
                     onChange={handleChange}
-                    className="h-12 w-full appearance-none rounded-xl border border-border bg-surface px-4 pr-10 text-sm font-bold text-foreground outline-none ring-primary/20 transition focus:border-primary/60 focus:ring-4"
+                    className="h-12 w-full appearance-none rounded-xl border border-border bg-surface px-4 pr-10 text-base font-bold text-foreground sm:text-sm outline-none ring-primary/20 transition focus:border-primary/60 focus:ring-4"
                 >
                     <option value="all">전체 글 ({totalCount})</option>
                     {categories.map((category) => (

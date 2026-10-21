@@ -229,7 +229,7 @@ export default function CategorySettingsModal() {
                 value={newSlug}
                 onChange={(e) => setNewSlug(e.target.value)}
                 placeholder="예) 개발"
-                className="h-10 w-full rounded-xl border border-border bg-surface-2 px-3 text-sm outline-none focus:border-primary/40"
+                className="h-10 w-full rounded-xl border border-border bg-surface-2 px-3 text-base outline-none focus:border-primary/40 sm:text-sm"
               />
             </label>
             <button
@@ -383,7 +383,7 @@ function CategoryRow({
                     e.target.value as "public" | "private"
                   )
                 }
-                className="h-8 rounded-lg border border-border bg-surface px-2 text-xs font-bold outline-none focus:border-primary/40"
+                className="h-8 rounded-lg border border-border bg-surface px-2 text-base font-bold outline-none focus:border-primary/40 sm:text-xs"
                 aria-label="공개 범위"
                 title="공개 범위"
               >
@@ -430,7 +430,7 @@ function CategoryRow({
             <input
               value={editingValue}
               onChange={(e) => setEditingValue(e.target.value)}
-              className="h-10 w-full rounded-xl border border-border bg-surface-2 px-3 text-sm outline-none focus:border-primary/40"
+              className="h-10 w-full rounded-xl border border-border bg-surface-2 px-3 text-base outline-none focus:border-primary/40 sm:text-sm"
               autoFocus
             />
           </label>
@@ -462,7 +462,7 @@ function CategoryRow({
               <select
                 value={deleteMoveTo}
                 onChange={(e) => setDeleteMoveTo(e.target.value)}
-                className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary/40"
+                className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-base outline-none focus:border-primary/40 sm:text-sm"
               >
                 <option value="">선택해주세요</option>
                 {moveTargets.map((slug) => (

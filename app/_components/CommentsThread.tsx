@@ -58,7 +58,7 @@ function CommentComposer({
         onChange={(e) => setContent(e.target.value)}
         rows={3}
         disabled={disabled || isPending}
-        className="w-full rounded-2xl border border-border bg-transparent px-4 py-3 text-xs text-foreground outline-none transition focus:border-primary/60 disabled:opacity-60"
+        className="w-full rounded-2xl border border-border bg-transparent px-4 py-3 text-base text-foreground outline-none transition focus:border-primary/60 disabled:opacity-60 sm:text-xs"
         placeholder={placeholder}
       />
       {error ? <p className="text-xs text-red-600">{error}</p> : null}

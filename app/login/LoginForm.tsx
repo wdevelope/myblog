@@ -153,7 +153,7 @@ export default function LoginForm() {
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/60"
+              className="h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary/60 sm:text-sm"
               placeholder="you@example.com"
               autoComplete="email"
             />
@@ -167,7 +167,7 @@ export default function LoginForm() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/60"
+              className="h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary/60 sm:text-sm"
               placeholder="8자 이상"
               autoComplete={
                 mode === "login" ? "current-password" : "new-password"
@@ -184,7 +184,7 @@ export default function LoginForm() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/60"
+                className="h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary/60 sm:text-sm"
                 placeholder="비밀번호를 다시 입력"
                 autoComplete="new-password"
               />
