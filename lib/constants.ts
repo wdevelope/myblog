@@ -15,3 +15,9 @@ export function postHref(type: PostType, slug?: string) {
   if (!slug || type === "feed") return POST_TYPE_PATH[type];
   return `${POST_TYPE_PATH[type]}/${slug}`;
 }
+
+// /article 목록은 카테고리·쪽 번호를 경로로 나눠 정적으로 만든다(5단계 결정 2).
+export function articleListHref(category?: string | null, page = 1) {
+  const base = category ? `/article/category/${encodeURIComponent(category)}` : "/article";
+  return page > 1 ? `${base}/page/${page}` : base;
+}

@@ -372,3 +372,11 @@ describe("공개 댓글 조회", () => {
     ]);
   });
 });
+
+describe("범위를 벗어난 쪽", () => {
+  it("PostgREST가 416(Range Not Satisfiable)을 주면 빈 목록과 전체 개수를 돌려준다", async () => {
+    fetchMock.mockResolvedValue(new Response("", { status: 416, headers: { "content-range": "*/3" } }));
+
+    await expect(getPublicPosts({ type: "blog", page: 2, limit: 12 })).resolves.toEqual({ data: [], count: 3 });
+  });
+});

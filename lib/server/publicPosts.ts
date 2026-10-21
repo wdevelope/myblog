@@ -97,6 +97,10 @@ export async function getPublicPosts(params: {
 
   const response = await fetchPublicRest("posts", search, tags, { count: true });
 
+  // 글 수보다 큰 쪽 번호는 PostgREST가 416으로 답한다. 호출부가 빈 목록으로 404를 판단한다.
+  if (response.status === 416) {
+    return { data: [], count: countFromContentRange(response.headers.get("content-range")) ?? 0 };
+  }
   if (!response.ok) {
     const text = await response.text();
     throw new Error(`Supabase REST ${response.status}: ${text}`);
@@ -104,17 +108,14 @@ export async function getPublicPosts(params: {
 
   const rows = (await response.json()) as PostRow[];
 
-  // Parse Content-Range header for total count e.g. "0-9/100" or "*/100"
-  const contentRange = response.headers.get("content-range");
-  let count = rows.length;
-  if (contentRange) {
-    const total = contentRange.split("/")[1];
-    if (total && total !== "*") {
-      count = parseInt(total, 10);
-    }
-  }
-
+  const count = countFromContentRange(response.headers.get("content-range")) ?? rows.length;
   return { data: rows.map(mapPost), count };
+}
+
+// Content-Range 예: "0-9/100", "*/100". 전체 개수를 모르면("*") null.
+function countFromContentRange(contentRange: string | null) {
+  const total = contentRange?.split("/")[1];
+  return total && total !== "*" ? parseInt(total, 10) : null;
 }
 
 export async function getPublicPostCounts(

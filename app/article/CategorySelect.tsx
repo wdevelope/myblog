@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { articleListHref } from "@/lib/constants";
 
 interface Category {
     slug: string;
@@ -24,11 +25,7 @@ export default function CategorySelect({
 
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const value = e.target.value;
-        if (value === "all") {
-            router.push("/article");
-        } else {
-            router.push(`/article?category=${encodeURIComponent(value)}`);
-        }
+        router.push(articleListHref(value === "all" ? null : value));
     };
 
     return (

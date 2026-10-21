@@ -14,6 +14,7 @@ import { getPreviewViewer } from "@/lib/server/admin";
 import MarkdownContent from "@/app/_components/MarkdownContent";
 import { formatPostDate } from "@/lib/utils";
 import { toExcerpt } from "@/lib/markdown";
+import { articleListHref } from "@/lib/constants";
 
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
@@ -66,9 +67,7 @@ export default async function BlogPostPage({ params }: Props) {
             <>
               <span className="mx-2 text-muted/70">/</span>
               <Link
-                href={`/article?category=${encodeURIComponent(
-                  post.categorySlug
-                )}`}
+                href={articleListHref(post.categorySlug)}
                 className="hover:text-foreground"
               >
                 {post.categorySlug}

@@ -79,3 +79,30 @@ describe("proxy 세션 갱신", () => {
     expect(mocks.getUser).not.toHaveBeenCalled();
   });
 });
+
+describe("옛 /article 쿼리 주소 리다이렉트", () => {
+  function legacy(query: string) {
+    return proxy(new NextRequest(`http://localhost:2025/article${query}`));
+  }
+
+  it("카테고리·쪽 쿼리를 인코딩한 경로로 308 리다이렉트하고 쿼리는 버린다", async () => {
+    const response = await legacy(`?category=${encodeURIComponent("개발")}&page=2`);
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe(
+      `http://localhost:2025/article/category/${encodeURIComponent("개발")}/page/2`,
+    );
+  });
+
+  it("쪽 쿼리만 있으면 /article/page/<n>으로 보낸다", async () => {
+    const response = await legacy("?page=3");
+
+    expect(response.headers.get("location")).toBe("http://localhost:2025/article/page/3");
+  });
+
+  it("쿼리가 없으면 리다이렉트하지 않는다", async () => {
+    const response = await legacy("");
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+});

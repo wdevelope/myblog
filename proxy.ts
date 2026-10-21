@@ -2,8 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getSupabaseEnv } from "@/lib/supabase/env";
+import { articleListHref } from "@/lib/constants";
 
 export async function proxy(request: NextRequest) {
+  const legacy = legacyArticleListRedirect(request);
+  if (legacy) return legacy;
+
   // 세션 쿠키가 없는 방문자는 갱신할 세션이 없으므로 Supabase 왕복을 건너뛴다.
   if (!request.cookies.getAll().some((c) => c.name.startsWith("sb-"))) {
     return NextResponse.next();
@@ -37,6 +41,18 @@ export async function proxy(request: NextRequest) {
   await supabase.auth.getClaims();
 
   return response;
+}
+
+// /article 목록을 경로 기반 정적 페이지로 옮겨(5단계) 옛 쿼리 주소(?category=·?page=)를 새 경로로 보낸다.
+// next.config redirects는 한글 쿼리 값을 인코딩하지 않은 채 Location에 넣어 500이 나서 여기서 한다.
+function legacyArticleListRedirect(request: NextRequest) {
+  const { pathname, searchParams } = request.nextUrl;
+  if (pathname !== "/article" || (!searchParams.has("category") && !searchParams.has("page"))) {
+    return null;
+  }
+  const page = Number(searchParams.get("page") ?? "1");
+  const target = articleListHref(searchParams.get("category"), Number.isInteger(page) ? page : 1);
+  return NextResponse.redirect(new URL(target, request.url), 308);
 }
 
 export const config = {
