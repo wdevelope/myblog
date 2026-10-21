@@ -193,8 +193,8 @@ export default function MarkdownEditor({
 
   return (
     <div className="min-h-[500px]">
-      <div className="sticky top-0 z-40 border-b border-border bg-surface/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center gap-0.5 overflow-x-auto px-4 py-2 [scrollbar-width:none] sm:px-6 lg:justify-center lg:px-8">
+      <div className="sticky top-0 z-40 flex items-center border-b border-border bg-surface/80 backdrop-blur-md">
+        <div className="mx-auto flex min-w-0 max-w-7xl flex-1 items-center gap-0.5 overflow-x-auto px-4 py-2 [scrollbar-width:none] sm:px-6 lg:justify-center lg:px-8">
           <select
             aria-label="문단 스타일"
             value={headingLevel}
@@ -202,7 +202,7 @@ export default function MarkdownEditor({
               const level = Number(e.target.value) as HeadingLevel;
               run((s) => setHeading(s, level));
             }}
-            className="mr-1 h-9 shrink-0 rounded-lg border border-border bg-surface px-2 text-sm text-foreground"
+            className="mr-1 h-9 shrink-0 rounded-lg border border-border bg-surface px-2 text-base text-foreground sm:text-sm"
           >
             {HEADING_OPTIONS.map(({ level, label }) => (
               <option key={level} value={level}>
@@ -271,23 +271,24 @@ export default function MarkdownEditor({
               e.target.value = "";
             }}
           />
+        </div>
 
-          <div className="ml-auto flex shrink-0 rounded-lg bg-surface-2 p-0.5 text-xs font-bold md:hidden">
-            {(["write", "preview"] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                aria-pressed={mode === tab}
-                onClick={() => setMode(tab)}
-                className={cn(
-                  "rounded-md px-2.5 py-1.5 transition",
-                  mode === tab ? "bg-surface text-foreground shadow-sm" : "text-muted"
-                )}
-              >
-                {tab === "write" ? "작성" : "미리보기"}
-              </button>
-            ))}
-          </div>
+        {/* 툴바가 가로로 스크롤돼도 모바일에서 미리보기 전환은 항상 보이게 스크롤 영역 밖에 둔다 */}
+        <div className="mr-4 ml-2 flex shrink-0 rounded-lg bg-surface-2 p-0.5 text-xs font-bold sm:mr-6 md:hidden">
+          {(["write", "preview"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              aria-pressed={mode === tab}
+              onClick={() => setMode(tab)}
+              className={cn(
+                "rounded-md px-2.5 py-1.5 transition",
+                mode === tab ? "bg-surface text-foreground shadow-sm" : "text-muted"
+              )}
+            >
+              {tab === "write" ? "작성" : "미리보기"}
+            </button>
+          ))}
         </div>
       </div>
 

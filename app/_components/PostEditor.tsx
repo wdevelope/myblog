@@ -419,7 +419,7 @@ export default function PostEditor({
       <div className="flex-1 flex overflow-hidden bg-background">
         <div className="flex-1 flex flex-col min-w-0 overflow-visible relative">
           {pendingDraft ? (
-            <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm p-4 rounded-xl bg-surface border border-border shadow-2xl flex flex-col gap-3 animate-in slide-in-from-bottom-2 fade-in duration-300">
+            <div className="fixed bottom-6 right-6 z-50 w-[calc(100%-3rem)] max-w-sm p-4 rounded-xl bg-surface border border-border shadow-2xl flex flex-col gap-3 animate-in slide-in-from-bottom-2 fade-in duration-300">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <p className="text-sm font-bold text-foreground">
@@ -544,7 +544,7 @@ export default function PostEditor({
                     <select
                       value={categorySlug}
                       onChange={(e) => setCategorySlug(e.target.value)}
-                      className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition"
+                      className="w-full h-10 px-3 rounded-xl border border-border bg-background text-base sm:text-sm outline-none focus:border-primary transition"
                     >
                       <option value="">카테고리 선택</option>
                       {categoryOptions.map((slug) => (
@@ -580,7 +580,7 @@ export default function PostEditor({
                         <button
                           type="button"
                           onClick={() => removeImageKey(key)}
-                          className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                          className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition"
                         >
                           <FiX className="size-3" />
                         </button>
@@ -626,7 +626,7 @@ export default function PostEditor({
                         <button
                           type="button"
                           onClick={() => setThumbnailImageKey("")}
-                          className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition"
+                          className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition"
                         >
                           <FiX className="size-4" />
                         </button>
