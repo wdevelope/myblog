@@ -1,6 +1,4 @@
-"use client";
-
-import "ckeditor5/ckeditor5.css";
+import "ckeditor5/ckeditor5-content.css";
 import { cn } from "@/lib/utils";
 
 // This component is responsible for rendering HTML content created by CKEditor.
