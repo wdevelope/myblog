@@ -44,7 +44,6 @@ export default function AuthButton({
         const promise = (async () => {
             const supabase = createSupabaseBrowserClient();
             await supabase.auth.signOut();
-            await fetch("/logout", { redirect: "manual" }).catch(() => null);
             router.replace("/login");
             router.refresh();
             return "로그아웃 완료";

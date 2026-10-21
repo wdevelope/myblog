@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { safeRedirectPath } from "@/lib/redirect";
@@ -19,19 +19,7 @@ function getRememberedEmail() {
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
   const from = safeRedirectPath(searchParams.get("from"));
-  const loggedOut = searchParams.get("logged_out") === "1";
-
-  useEffect(() => {
-    if (!loggedOut) return;
-    toast.success("로그아웃 완료");
-
-    const next = new URLSearchParams(searchParamsString);
-    next.delete("logged_out");
-    const qs = next.toString();
-    router.replace(qs ? `/login?${qs}` : "/login");
-  }, [loggedOut, router, searchParamsString]);
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState(() => getRememberedEmail().email);
