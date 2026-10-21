@@ -51,4 +51,3 @@ next-env.d.ts
 # Claude Code 개인·임시 파일
 .claude/worktrees/
 .claude/settings.local.json
-.claude/guard-exempt.local

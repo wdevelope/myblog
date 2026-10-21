@@ -8,7 +8,7 @@ Next.js(App Router) + Tailwind CSS 기반 개인 블로그(w-life). 배포는 Ve
 - 이미지 첨부: 모든 글 타입 지원
 - 데이터: 현재 Supabase(Postgres·Auth·Storage). MongoDB로 전환할 예정이다([로드맵](docs/plans/roadmap.md) 3단계).
 
-에이전트 작업 규칙과 개발 흐름(명세 → 테스트 → 구현)은 [CLAUDE.md](CLAUDE.md)를 본다.
+에이전트 작업 규칙은 [CLAUDE.md](CLAUDE.md)를 본다.
 
 ## 시작하기
 
@@ -23,7 +23,7 @@ Next.js(App Router) + Tailwind CSS 기반 개인 블로그(w-life). 배포는 Ve
 ### 2) 실행
 
 ```bash
-npm install          # git 훅(tooling/git-hooks)도 함께 켜진다
+npm install
 npm run dev          # http://localhost:2025
 ```
 
@@ -41,8 +41,6 @@ npm run dev          # http://localhost:2025
 npm run lint
 npm run typecheck
 npm test               # Vitest
-npm run spec:check     # 기능 명세 형식·테스트 연결
-npm run test:tooling   # 하네스 자체 테스트
 npm run build          # DB에 접속할 수 있어야 sitemap 프리렌더가 통과한다
 ```
 

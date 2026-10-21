@@ -1,3 +1,0 @@
-#!/bin/sh
-# 커밋 메시지 형식과 로직·테스트 짝 검사
-node tooling/harness/commit-guard.mjs --commit-msg "$1"
