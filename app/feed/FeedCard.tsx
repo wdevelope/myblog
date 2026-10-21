@@ -54,7 +54,7 @@ export function FeedCard({
           priority={false}
         />
         <div className="flex-1">
-          <p className="text-sm font-semibold text-foreground">원스</p>
+          <p className="text-sm font-semibold text-foreground">오웬</p>
           <p className="text-xs text-muted" suppressHydrationWarning>
             {formatPostDate(post.createdAt)}
           </p>
@@ -180,7 +180,7 @@ export function FeedCard({
           {expanded ? (
             <div className="space-y-3">
               <div className="text-[14px] leading-normal text-foreground font-normal">
-                <span className="font-bold mr-2 text-foreground">원스</span>
+                <span className="font-bold mr-2 text-foreground">오웬</span>
                 {body}
               </div>
               <button
@@ -195,7 +195,7 @@ export function FeedCard({
             <div className="relative group/content">
               <p className="line-clamp-2 text-[14px] leading-normal text-foreground font-normal">
                 <span className="font-bold mr-2 text-foreground border-none bg-transparent p-0">
-                  원스
+                  오웬
                 </span>
                 {excerpt}
               </p>

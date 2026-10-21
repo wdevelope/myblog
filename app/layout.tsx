@@ -10,13 +10,13 @@ import { SITE_URL } from "@/lib/constants";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "개발자 원스",
-    template: "%s | 개발자 원스",
+    default: "개발자 오웬",
+    template: "%s | 개발자 오웬",
   },
-  description: "개발자 원스의 인생이야기",
+  description: "개발자 오웬의 인생이야기",
   openGraph: {
-    title: "개발자 원스",
-    description: "개발자 원스의 인생이야기",
+    title: "개발자 오웬",
+    description: "개발자 오웬의 인생이야기",
     type: "website",
     locale: "ko_KR",
   },

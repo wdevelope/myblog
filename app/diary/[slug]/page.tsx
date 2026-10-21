@@ -58,7 +58,7 @@ export default async function DiaryEntryPage({
               className="size-10 rounded-full object-cover ring-1 ring-border"
             />
             <div className="space-y-1">
-              <p className="text-sm font-bold text-foreground">원스</p>
+              <p className="text-sm font-bold text-foreground">오웬</p>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
                 <span>
                   {post

@@ -25,7 +25,7 @@ export default async function BlogPostPage({
   const post = await getPostForRoute("blog", slug);
   if (!post) notFound();
 
-  const comments = user ? await getCommentsDirectly({ postId: post.id }) : [];
+  const comments = user ? await getCommentsDirectly(post) : [];
 
   return (
     <article className="mx-auto max-w-4xl space-y-5">
@@ -82,7 +82,7 @@ export default async function BlogPostPage({
               className="size-10 rounded-full object-cover ring-1 ring-border"
             />
             <div className="space-y-1">
-              <p className="text-sm font-bold text-foreground">원스</p>
+              <p className="text-sm font-bold text-foreground">오웬</p>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
                 <span>
                   {formatPostDate(post.createdAt, "ko")}

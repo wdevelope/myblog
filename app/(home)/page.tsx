@@ -18,7 +18,7 @@ export default function Home() {
         <div className="space-y-5">
           <h1 className="text-4xl font-black leading-tight tracking-tight md:text-5xl">
             안녕하세요. <br />
-            개발자 원스입니다.
+            개발자 오웬입니다.
           </h1>
 
           <div className="flex flex-wrap gap-3">
