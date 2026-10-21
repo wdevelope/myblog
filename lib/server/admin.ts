@@ -1,4 +1,5 @@
 import "server-only";
+import { draftMode } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
@@ -23,6 +24,14 @@ export const getViewer = cache(async (): Promise<Viewer> => {
 
   return { user, isAdmin: !error && Boolean(row?.is_admin) };
 });
+
+// 공개 페이지용. 관리자가 로그인하면 켜지는 draft mode 요청에서만 세션을 읽는다.
+// 방문자 요청은 쿠키를 읽지 않아 페이지가 정적(ISR)으로 남는다. 판정은 그대로 getViewer가 한다.
+export async function getPreviewViewer(): Promise<Viewer> {
+  const { isEnabled } = await draftMode();
+  if (!isEnabled) return { user: null, isAdmin: false };
+  return getViewer();
+}
 
 // 서버 액션·라우트 핸들러용: redirect하지 않고 호출부가 실패 응답을 고르게 한다.
 export async function assertAdmin(): Promise<User | null> {

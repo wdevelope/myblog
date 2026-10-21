@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "@supabase/supabase-js";
-import { assertAdmin, getViewer, requireAdmin } from "@/lib/server/admin";
+import { assertAdmin, getPreviewViewer, getViewer, requireAdmin } from "@/lib/server/admin";
 
 const mocks = vi.hoisted(() => ({
   requestHeaders: new Headers(),
+  draftEnabled: false,
   getUser: vi.fn(),
   usersRow: vi.fn(),
   redirect: vi.fn((url: string) => {
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("next/headers", () => ({
   headers: async () => mocks.requestHeaders,
+  draftMode: async () => ({ isEnabled: mocks.draftEnabled }),
 }));
 
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
@@ -125,5 +127,22 @@ describe("requireAdmin", () => {
     signedIn(makeUser());
 
     await expect(requireAdmin("/article/write")).rejects.toThrow("NEXT_REDIRECT:/");
+  });
+});
+
+describe("getPreviewViewer", () => {
+  it("draft mode가 꺼져 있으면 세션을 읽지 않고 방문자로 본다", async () => {
+    mocks.draftEnabled = false;
+
+    await expect(getPreviewViewer()).resolves.toEqual({ user: null, isAdmin: false });
+    expect(mocks.getUser).not.toHaveBeenCalled();
+  });
+
+  it("draft mode가 켜져 있으면 검증한 세션으로 관리자를 판정한다", async () => {
+    mocks.draftEnabled = true;
+    const admin = makeUser({ app_metadata: { is_admin: true } });
+    mocks.getUser.mockResolvedValue({ data: { user: admin }, error: null });
+
+    await expect(getPreviewViewer()).resolves.toMatchObject({ isAdmin: true });
   });
 });

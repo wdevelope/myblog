@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { disableAdminMode } from "@/lib/adminMode";
 import { toast } from "sonner";
 
 export default function LogoutButton({
@@ -17,6 +18,7 @@ export default function LogoutButton({
     const promise = (async () => {
       const supabase = createSupabaseBrowserClient();
       await supabase.auth.signOut();
+      await disableAdminMode();
       router.replace("/login");
       router.refresh();
       return "로그아웃 완료";

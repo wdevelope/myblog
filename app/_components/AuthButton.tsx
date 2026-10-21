@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { disableAdminMode, enableAdminMode, isAdminModeChecked } from "@/lib/adminMode";
 import { toast } from "sonner";
 
 type User = { id: string; email?: string | null } | null;
@@ -28,6 +29,12 @@ export default function AuthButton({
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
             setLoading(false);
+            // 브라우저를 다시 열어 관리자 화면 쿠키만 사라졌으면 다시 켜고 화면을 새로 받는다.
+            if (session && !isAdminModeChecked()) {
+                void enableAdminMode().then((enabled) => {
+                    if (enabled) router.refresh();
+                });
+            }
         });
 
         // 인증 상태 변경 구독
@@ -38,12 +45,13 @@ export default function AuthButton({
         });
 
         return () => subscription.unsubscribe();
-    }, []);
+    }, [router]);
 
     async function onLogout() {
         const promise = (async () => {
             const supabase = createSupabaseBrowserClient();
             await supabase.auth.signOut();
+            await disableAdminMode();
             router.replace("/login");
             router.refresh();
             return "로그아웃 완료";
