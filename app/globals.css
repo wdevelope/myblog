@@ -167,3 +167,41 @@ input[type="reset"]:not(:disabled),
 .ck-content strong {
   color: var(--tw-prose-bold, var(--foreground)) !important;
 }
+
+/* 마크다운 본문(MarkdownContent): prose가 다루지 않는 형광펜·밑줄·인라인 코드·블록 수식 */
+.markdown-body {
+  --mark-bg: rgba(250, 204, 21, 0.4);
+}
+
+.dark .markdown-body {
+  --mark-bg: rgba(250, 204, 21, 0.3);
+}
+
+.markdown-body mark {
+  background: var(--mark-bg);
+  color: inherit;
+  padding: 0 0.15em;
+  border-radius: 0.2em;
+}
+
+.markdown-body ins {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.markdown-body :not(pre) > code {
+  background: var(--surface-2);
+  padding: 0.15em 0.35em;
+  border-radius: 0.3em;
+  font-weight: 500;
+}
+
+.markdown-body :not(pre) > code::before,
+.markdown-body :not(pre) > code::after {
+  content: none;
+}
+
+.markdown-body .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
