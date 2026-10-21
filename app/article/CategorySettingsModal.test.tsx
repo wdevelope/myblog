@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import CategorySettingsModal from "./CategorySettingsModal";
 import { getCategories, updateCategory } from "@/lib/actions/categories";
 
@@ -126,5 +126,33 @@ describe("CategorySettingsModal 쓰기 흐름", () => {
     );
     expect(refresh).not.toHaveBeenCalled();
     expect(getCategories).toHaveBeenCalledTimes(1);
+  });
+});
+
+// 브라우저는 ESC에 cancel 이벤트를 보내고, 막히지 않으면 컴포넌트의 close 함수를 거치지 않고 대화상자를 닫는다.
+function pressEscape() {
+  const dialog = screen.getByRole<HTMLDialogElement>("dialog");
+  if (fireEvent(dialog, new Event("cancel", { cancelable: true }))) {
+    act(() => dialog.close());
+  }
+}
+
+describe("CategorySettingsModal 닫기", () => {
+  it.each<[string, () => void]>([
+    ["ESC로", pressEscape],
+    ["닫기 버튼으로", () => fireEvent.click(screen.getByRole("button", { name: "닫기" }))],
+  ])("%s 닫았다가 다시 열면 편집 중이던 이름 변경이 남아 있지 않다", async (_how, closeModal) => {
+    render(<CategorySettingsModal />);
+    await openModal();
+    fireEvent.click(screen.getByRole("button", { name: "이름 변경" }));
+    fireEvent.change(screen.getByDisplayValue("개발"), {
+      target: { value: "임시 이름" },
+    });
+
+    closeModal();
+    await openModal();
+
+    expect(screen.queryByDisplayValue("임시 이름")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "저장" })).not.toBeInTheDocument();
   });
 });

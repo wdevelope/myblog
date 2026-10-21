@@ -59,7 +59,6 @@ export default function CategorySettingsModal() {
 
   function close() {
     dialogRef.current?.close();
-    resetEditState();
   }
 
   // 아티클 목록의 카테고리 사이드바는 서버 컴포넌트라 모달 목록과 함께 새로 그려야 한다.
@@ -194,8 +193,10 @@ export default function CategorySettingsModal() {
         <FiSettings className="size-4" aria-hidden />
       </button>
 
+      {/* ESC처럼 브라우저가 직접 닫는 경로도 close 이벤트는 거치므로 편집 상태는 여기서 비운다. */}
       <dialog
         ref={dialogRef}
+        onClose={resetEditState}
         className="fixed left-1/2 top-1/2 max-h-[calc(100dvh-2rem)] w-[min(720px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-3xl border border-border bg-surface p-0 text-foreground shadow-2xl backdrop:bg-black/30"
       >
         <div className="flex items-center justify-between gap-4 border-b border-border p-5">
