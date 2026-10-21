@@ -107,3 +107,68 @@ describe("POST /api/images 권한", () => {
     expect(mocks.upload).not.toHaveBeenCalled();
   });
 });
+
+const admin = { id: "admin-1", app_metadata: { is_admin: true }, user_metadata: {} };
+
+function uploadRequest(files: File[]) {
+  const form = new FormData();
+  form.set("visibility", "public");
+  for (const file of files) form.append("files", file);
+  return new Request(`${ORIGIN}/api/images`, { method: "POST", body: form });
+}
+
+describe("GET /api/images 캐시", () => {
+  it("비공개 버킷 이미지는 공유 캐시에 남지 않게 private, no-store로 준다", async () => {
+    signedIn(admin);
+
+    const res = await GET(new Request(imageUrl("post-images-private")));
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe("private, no-store");
+  });
+
+  it("공개 버킷 이미지는 오래 캐시한다", async () => {
+    signedIn(null);
+
+    const res = await GET(new Request(imageUrl("post-images-public")));
+
+    expect(res.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
+  });
+});
+
+describe("POST /api/images 파일 검사", () => {
+  it("SVG는 이미지여도 올리지 않고 400을 돌려준다", async () => {
+    signedIn(admin);
+
+    const res = await POST(uploadRequest([new File(["<svg/>"], "a.svg", { type: "image/svg+xml" })]));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "SVG 이미지는 올릴 수 없어요." });
+    expect(mocks.upload).not.toHaveBeenCalled();
+  });
+
+  it("허용하지 않는 파일이 섞여 있으면 앞의 파일도 올리지 않는다", async () => {
+    signedIn(admin);
+
+    const res = await POST(
+      uploadRequest([
+        new File(["image"], "a.png", { type: "image/png" }),
+        new File(["<svg/>"], "b.svg", { type: "image/svg+xml" }),
+      ]),
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.upload).not.toHaveBeenCalled();
+  });
+
+  it("관리자가 올린 이미지는 날짜 폴더 키로 돌려준다", async () => {
+    signedIn(admin);
+
+    const res = await POST(uploadRequest([new File(["image"], "a.png", { type: "image/png" })]));
+
+    expect(res.status).toBe(200);
+    const { keys } = (await res.json()) as { keys: string[] };
+    expect(keys).toHaveLength(1);
+    expect(keys[0]).toMatch(/^post-images-public:\d{4}-\d{2}-\d{2}\/[0-9a-f-]{36}\.png$/);
+  });
+});
