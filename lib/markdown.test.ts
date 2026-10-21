@@ -98,6 +98,12 @@ describe("마크다운 렌더링", () => {
     expect(html).toContain('<code class="language-ts">const a = 1 &lt; 2;');
     expect(html).toContain("<table>");
   });
+
+  it("표는 좁은 화면에서 가로로 스크롤되도록 감싼다", () => {
+    const html = renderMarkdown(["| 이름 | 값 |", "| --- | --- |", "| a | 1 |"].join("\n"));
+    expect(html).toMatch(/^<div class="table-scroll"><table>/);
+    expect(html).toMatch(/<\/table>\n?<\/div>\n?$/);
+  });
 });
 
 describe("본문 요약", () => {

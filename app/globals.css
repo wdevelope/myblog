@@ -145,3 +145,12 @@ input[type="reset"]:not(:disabled),
   overflow-x: auto;
   overflow-y: hidden;
 }
+
+/* 셀 안에서 어절을 끊지 않아야 표가 좁아질 때 글자 단위로 쪼개지는 대신 가로로 스크롤된다 */
+.markdown-body .table-scroll {
+  overflow-x: auto;
+}
+
+.markdown-body .table-scroll :is(th, td) {
+  word-break: keep-all;
+}

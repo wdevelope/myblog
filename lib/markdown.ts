@@ -19,6 +19,8 @@ const renderToken: RendererRule = (tokens, idx, options, _env, self) =>
   self.renderToken(tokens, idx, options);
 const renderImage = md.renderer.rules.image ?? renderToken;
 const renderLinkOpen = md.renderer.rules.link_open ?? renderToken;
+const renderTableOpen = md.renderer.rules.table_open ?? renderToken;
+const renderTableClose = md.renderer.rules.table_close ?? renderToken;
 
 md.renderer.rules.image = (tokens, idx, options, env, self) => {
   const token = tokens[idx];
@@ -36,6 +38,13 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
   }
   return renderLinkOpen(tokens, idx, options, env, self);
 };
+
+// 열이 많은 표가 좁은 화면에서 글자 단위로 쪼개지지 않도록 본문 대신 표만 가로로 스크롤한다.
+md.renderer.rules.table_open = (tokens, idx, options, env, self) =>
+  `<div class="table-scroll">${renderTableOpen(tokens, idx, options, env, self)}`;
+
+md.renderer.rules.table_close = (tokens, idx, options, env, self) =>
+  `${renderTableClose(tokens, idx, options, env, self)}</div>\n`;
 
 export function renderMarkdown(source: string): string {
   return md.render(source);
