@@ -1,4 +1,4 @@
-import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
+import { getViewer } from "@/lib/server/admin";
 import { getPostsDirectly } from "@/lib/server/posts";
 import DiaryIndexClient from "@/app/diary/DiaryIndexClient";
 
@@ -9,11 +9,8 @@ export const metadata = {
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
 export default async function DiaryPage() {
-  const user = await getCurrentUser();
-  const [isAdmin, posts] = await Promise.all([
-    isAdminDb(user),
-    getPostsDirectly({ type: "diary", user }),
-  ]);
+  const { user, isAdmin } = await getViewer();
+  const posts = await getPostsDirectly({ type: "diary", user });
 
   return (
     <DiaryIndexClient posts={posts} isAdmin={isAdmin} />

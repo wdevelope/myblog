@@ -1,7 +1,7 @@
 "use server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isAdminDb } from "@/lib/server/admin";
+import { getViewer } from "@/lib/server/admin";
 import type { Comment } from "@/lib/types";
 
 export type GetCommentsResult =
@@ -14,12 +14,10 @@ export async function getComments(postId: string): Promise<GetCommentsResult> {
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) {
+  const { user, isAdmin } = await getViewer();
+  if (!user) {
     return { success: false, error: "unauthorized" };
   }
-
-  const isAdmin = await isAdminDb(auth.user);
 
   const { data: post, error: postError } = await supabase
     .from("posts")
@@ -77,8 +75,8 @@ export async function createComment(
   input: CreateCommentInput
 ): Promise<CreateCommentResult> {
   const supabase = await createSupabaseServerClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) {
+  const { user, isAdmin } = await getViewer();
+  if (!user) {
     return { success: false, error: "unauthorized" };
   }
 
@@ -105,7 +103,6 @@ export async function createComment(
     return { success: false, error: "diary does not support comments" };
   }
 
-  const isAdmin = await isAdminDb(auth.user);
   if (post.visibility === "private" && !isAdmin) {
     return { success: false, error: "forbidden" };
   }
@@ -136,7 +133,7 @@ export async function createComment(
     .from("comments")
     .insert({
       post_id: post.id,
-      author_id: auth.user.id,
+      author_id: user.id,
       content: input.content.trim(),
       parent_id: parentId,
     })
@@ -171,12 +168,10 @@ export async function deleteComment(
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) {
+  const { user, isAdmin } = await getViewer();
+  if (!user) {
     return { success: false, error: "unauthorized" };
   }
-
-  const isAdmin = await isAdminDb(auth.user);
 
   // 1. 댓글 정보 조회 (권한 확인용)
   const { data: comment, error: fetchError } = await supabase
@@ -193,7 +188,7 @@ export async function deleteComment(
   }
 
   // 2. 권한 검사: 작성자 본인이거나 관리자여야 함
-  if (comment.author_id !== auth.user.id && !isAdmin) {
+  if (comment.author_id !== user.id && !isAdmin) {
     return { success: false, error: "forbidden" };
   }
 

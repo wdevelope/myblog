@@ -1,61 +1,44 @@
+import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-import { headers } from "next/headers";
+export type Viewer = { user: User | null; isAdmin: boolean };
 
-export const getCurrentUser = cache(async () => {
-  // [PERF] 미들웨어에서 주입한 헤더 정보가 있는지 먼저 확인합니다.
-  // 이 헤더가 있다면 중복으로 Supabase 서버에 물어볼 필요가 없어 속도가 매우 빨라집니다.
-  const headersList = await headers();
-  const userId = headersList.get("x-user-id");
-  const userEmail = headersList.get("x-user-email");
-
-  if (userId) {
-    return {
-      id: userId,
-      email: userEmail,
-      // 필요한 다른 필드가 있다면 여기에 빈 값으로 추가하거나 헤더를 더 주입합니다.
-    } as unknown as User;
-  }
-
+// 요청 헤더와 user_metadata는 클라이언트·사용자 본인이 바꿀 수 있어 판정에 쓰지 않는다.
+// auth.getUser()는 Auth 서버에서 세션을 검증하고, app_metadata는 service role만 바꿀 수 있다.
+export const getViewer = cache(async (): Promise<Viewer> => {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
-  return data.user ?? null;
-});
+  const user = data.user;
+  if (!user) return { user: null, isAdmin: false };
+  if (user.app_metadata?.is_admin) return { user, isAdmin: true };
 
-export const isAdminDb = cache(async (user: { id: string } | null | undefined) => {
-  if (!user?.id) return false;
-
-  // [PERF] 1. JWT의 app_metadata 또는 user_metadata에 is_admin 정보가 있는지 먼저 확인합니다. (Custom Claims 활용)
-  const u = user as { app_metadata?: { is_admin?: boolean }; user_metadata?: { is_admin?: boolean } };
-  if (u.app_metadata?.is_admin || u.user_metadata?.is_admin) return true;
-
-  // [PERF] 2. 미들웨어에서 주입한 관리자 여부 헤더가 있는지 확인합니다.
-  const headersList = await headers();
-  if (headersList.get("x-user-is-admin") === "true") return true;
-
-  // [PERF] 3. 마지막 수단으로 DB를 직접 조회합니다.
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
+  const { data: row, error } = await supabase
     .from("users")
     .select("is_admin")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (error) return false;
-  return Boolean(data?.is_admin);
+  return { user, isAdmin: !error && Boolean(row?.is_admin) };
 });
 
+// 서버 액션·라우트 핸들러용: redirect하지 않고 호출부가 실패 응답을 고르게 한다.
+export async function assertAdmin(): Promise<User | null> {
+  const { user, isAdmin } = await getViewer();
+  return user && isAdmin ? user : null;
+}
+
 export async function requireLogin(from: string) {
-  const user = await getCurrentUser();
+  const { user } = await getViewer();
   if (user) return user;
   redirect(`/login?from=${encodeURIComponent(from)}`);
 }
 
 export async function requireAdmin(from: string) {
   const user = await requireLogin(from);
-  if (!(await isAdminDb(user))) redirect("/");
+  const { isAdmin } = await getViewer();
+  if (!isAdmin) redirect("/");
   return user;
 }

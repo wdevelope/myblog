@@ -1,6 +1,6 @@
 import { ButtonLink, Card, CardBody } from "@/app/_components/ui";
 import { FeedCard } from "./FeedCard";
-import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
+import { getViewer } from "@/lib/server/admin";
 import { getPostsDirectly } from "@/lib/server/posts";
 
 export const metadata = {
@@ -10,11 +10,8 @@ export const metadata = {
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
 export default async function FeedPage() {
-  const user = await getCurrentUser();
-  const [isAdmin, posts] = await Promise.all([
-    isAdminDb(user),
-    getPostsDirectly({ type: "feed", user }),
-  ]);
+  const { user, isAdmin } = await getViewer();
+  const posts = await getPostsDirectly({ type: "feed", user });
 
   return (
     <div className="mx-auto max-w-xl space-y-8">

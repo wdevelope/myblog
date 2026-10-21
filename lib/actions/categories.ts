@@ -3,7 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { isAdminDb, requireAdmin } from "@/lib/server/admin";
+import { assertAdmin, getViewer } from "@/lib/server/admin";
 import {
   publicBlogCategoryTag,
   publicPostsTag,
@@ -35,8 +35,7 @@ export type GetCategoriesResult =
 
 export async function getCategories(): Promise<GetCategoriesResult> {
   const supabase = await createSupabaseServerClient();
-  const { data: authData } = await supabase.auth.getUser();
-  const isAdmin = await isAdminDb(authData.user);
+  const { isAdmin } = await getViewer();
 
   const { data: categories, error } = await supabase
     .from("categories")
@@ -97,7 +96,7 @@ export type CreateCategoryResult =
 export async function createCategory(
   slug: string
 ): Promise<CreateCategoryResult> {
-  await requireAdmin("/");
+  if (!(await assertAdmin())) return { success: false, error: "unauthorized" };
 
   const normalizedSlug = normalizeSlug(slug);
   if (!normalizedSlug) {
@@ -164,7 +163,7 @@ export async function updateCategory(
   oldSlug: string,
   input: UpdateCategoryInput
 ): Promise<UpdateCategoryResult> {
-  await requireAdmin("/");
+  if (!(await assertAdmin())) return { success: false, error: "unauthorized" };
 
   const normalizedOldSlug = normalizeSlug(oldSlug);
   if (!normalizedOldSlug) {
@@ -253,7 +252,7 @@ export async function deleteCategory(
   slug: string,
   moveTo?: string
 ): Promise<DeleteCategoryResult> {
-  await requireAdmin("/");
+  if (!(await assertAdmin())) return { success: false, error: "unauthorized" };
 
   const normalizedSlug = normalizeSlug(slug);
   if (!normalizedSlug) {
@@ -336,7 +335,7 @@ export async function reorderCategory(
   slug: string,
   direction: "up" | "down"
 ): Promise<ReorderCategoryResult> {
-  await requireAdmin("/");
+  if (!(await assertAdmin())) return { success: false, error: "unauthorized" };
 
   const normalizedSlug = normalizeSlug(slug);
   if (!normalizedSlug || !["up", "down"].includes(direction)) {

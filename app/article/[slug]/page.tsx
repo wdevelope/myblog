@@ -8,7 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { FiLock, FiGlobe } from "react-icons/fi";
 import { CardBody } from "@/app/_components/ui";
-import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
+import { getViewer } from "@/lib/server/admin";
 import HtmlContent from "@/app/_components/HtmlContent";
 
 export const revalidate = 86400; // REVALIDATE_PERIOD
@@ -19,7 +19,7 @@ export default async function BlogPostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const user = await getCurrentUser();
+  const { user, isAdmin } = await getViewer();
 
   let post;
   try {
@@ -33,10 +33,7 @@ export default async function BlogPostPage({
 
   if (post.type !== "blog") notFound();
 
-  const [isAdmin, comments] = await Promise.all([
-    isAdminDb(user),
-    user ? getCommentsDirectly({ postId: post.id, user }) : Promise.resolve([]),
-  ]);
+  const comments = user ? await getCommentsDirectly({ postId: post.id, user }) : [];
 
   return (
     <article className="mx-auto max-w-4xl space-y-5">

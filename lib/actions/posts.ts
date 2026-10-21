@@ -3,7 +3,7 @@
 import { revalidateTag, revalidatePath } from "next/cache";
 import type { PostType, Visibility } from "@/lib/types";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { requireAdmin } from "@/lib/server/admin";
+import { assertAdmin } from "@/lib/server/admin";
 import {
   publicBlogCategoryTag,
   publicPostsTag,
@@ -45,7 +45,8 @@ export type CreatePostResult =
 export async function createPost(
   input: CreatePostInput
 ): Promise<CreatePostResult> {
-  const user = await requireAdmin("/");
+  const user = await assertAdmin();
+  if (!user) return { success: false, error: "unauthorized" };
 
   if (!input.type || !["blog", "feed", "diary"].includes(input.type)) {
     return { success: false, error: "type must be one of: blog, feed, diary" };
@@ -232,7 +233,7 @@ export type DeletePostResult =
   | { success: false; error: string };
 
 export async function deletePost(slug: string): Promise<DeletePostResult> {
-  await requireAdmin("/");
+  if (!(await assertAdmin())) return { success: false, error: "unauthorized" };
 
   const service = createSupabaseServiceClient();
   const { data: deleted, error } = await service

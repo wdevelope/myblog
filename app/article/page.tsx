@@ -4,7 +4,7 @@ import { FiLock, FiGlobe } from "react-icons/fi";
 import CategorySettingsModal from "@/app/article/CategorySettingsModal";
 import type { Post } from "@/lib/types";
 import { getPublicPosts, getPublicPostCounts } from "@/lib/server/publicPosts";
-import { getCurrentUser, isAdminDb } from "@/lib/server/admin";
+import { getViewer } from "@/lib/server/admin";
 import { getPostsDirectly } from "@/lib/server/posts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toExcerpt } from "@/lib/markdown";
@@ -66,8 +66,7 @@ type Props = {
 };
 
 export default async function BlogIndexPage({ searchParams }: Props) {
-  const user = await getCurrentUser();
-  const isAdmin = await isAdminDb(user);
+  const { user, isAdmin } = await getViewer();
   const sp = (await searchParams) ?? {};
   const selectedCategory =
     typeof sp.category === "string" ? sp.category.trim() : "";
