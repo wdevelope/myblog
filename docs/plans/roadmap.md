@@ -9,7 +9,7 @@
 
 - [x] 0. Claude 기본 세팅 — CLAUDE.md, `.env` 접근 차단, Vitest, CI(lint·typecheck·test), commit 스킬
 - [ ] 1. Supabase 백업과 운영 주소 정리 (사용자 작업)
-- [x] 2. 관리자 판정 보안 수정과 인증 관문 정리 — `getViewer`·`assertAdmin`, `proxy.ts`, 같은 출처 리다이렉트, GET `/logout` 제거, 회귀 테스트 38개(2026-10-21). 배포 전 확인이 남았다(2절)
+- [x] 2. 관리자 판정 보안 수정과 인증 관문 정리 — `getViewer`·`assertAdmin`, `proxy.ts`, 같은 출처 리다이렉트, GET `/logout` 제거, 회귀 테스트 38개(2026-10-21). 배포 전 확인 완료, 그 과정에서 찾은 보안 11은 마이그레이션으로 막음(2026-10-22, 2절)
 - [ ] 3. 리전 정렬
 - [x] 4. 기반 정리와 테스트 안전망 — `getPostForRoute`·`loadPostForEdit`, `revalidatePublicPosts`, `formatPostDate`(KST)·`coverKeyOf`, `postHref`·`SITE_URL`, 로딩 route group, 행 매핑 분리(2026-10-22, 테스트 파일 15개·82개)
 - [ ] 5. ISR 복구와 일시정지 방지
@@ -38,11 +38,11 @@
 - 관문 API 정리: 인자 없는 `getViewer()`(user·isAdmin)와 실패를 돌려주는 `assertAdmin()`(서버 액션·라우트 핸들러용)으로 나눈다. 지금은 `requireAdmin`이 액션 안에서도 redirect하고, 댓글 액션은 `"unauthorized"`를 돌려주고, 이미지 GET은 401 대신 로그인으로 보낸다. 페이지는 지금처럼 `requireAdmin`(redirect)을 쓴다.
 - 미들웨어는 `proxy.ts`로 이름을 바꾸고 `sb-` 쿠키가 없으면 클라이언트를 만들지 않는다. 로그아웃은 GET 라우트를 지우고 브라우저 `signOut()` 하나로 한다.
 - 테스트: 이 단계에서 Supabase 클라이언트 mock을 만들고 4단계에서 넓힌다.
-- 배포 전 확인(사용자, Supabase SQL Editor): 실제 관리자 계정의 플래그가 `app_metadata` 또는 `users` 테이블에 있는지(`user_metadata`에만 있으면 관리자도 막힌다), DB 함수 `is_admin()`이 무엇을 보는지(`user_metadata`를 보면 RLS에도 같은 구멍이 있어 새 마이그레이션이 필요하다), 사용자가 `public.users`의 자기 `is_admin`을 바꿀 수 없는지.
+- 배포 전 확인(2026-10-22, Supabase MCP 읽기 전용 조회): 관리자 계정 1개가 `app_metadata.is_admin`과 `users.is_admin` 모두 `true`이고 `user_metadata`에 플래그가 있는 계정은 없다. `is_admin()`은 `public.users.is_admin`만 읽는다. 다만 `users`의 자기 행 쓰기 정책 때문에 누구나 자기 `is_admin`을 바꿀 수 있어(보안 11) `20261022010000_lock_users_admin_flag.sql`로 막고 운영 DB에 적용했다.
 
 ## 3. 리전 정렬
 
-- `vercel.json`이 없어 Vercel 함수가 기본 리전 `iad1`(워싱턴)에서 돈다. 대시보드에서 Supabase 리전을 확인하고(사용자), `vercel.json`의 `regions`로 함수 리전을 같은 곳(서울이면 `icn1`)에 맞춘다.
+- `vercel.json`이 없어 Vercel 함수가 기본 리전 `iad1`(워싱턴)에서 돈다. Supabase 리전은 `ap-northeast-2`(서울)이다(2026-10-22 확인). `vercel.json`의 `regions`로 함수 리전을 `icn1`(서울)에 맞춘다.
 - 바꾸기 전과 후에 `/`·`/article`·상세 하나의 TTFB를 재서 5단계와 비교할 기준으로 남긴다.
 
 ## 4. 기반 정리와 테스트 안전망
@@ -121,6 +121,7 @@
 8. `getCategories`가 `requireAdmin` 없이 service role을 쓴다(`isAdminDb`에만 기댄다).
 9. (해결: 2단계) 로그아웃이 GET `/logout`이라 다른 사이트가 링크·이미지로 로그아웃시킬 수 있다. 브라우저에서 `signOut`한 뒤 GET을 또 불러 두 번 처리한다.
 10. (해결: 4단계 일부) `server-only`가 `lib/server/publicPosts.ts`에만 있어 service role 클라이언트 모듈이 클라이언트 번들로 import되는 것을 빌드가 막지 못한다.
+11. (해결: 2026-10-22 마이그레이션 `20261022010000_lock_users_admin_flag.sql`, 운영 DB 적용) **`users.is_admin` 자가 승격.** `users`의 INSERT·UPDATE 정책이 자기 행인지(`id = auth.uid()`)만 보고 열을 막지 않아, 로그인 사용자가 PostgREST로 자기 행의 `is_admin`을 `true`로 넣거나 바꿀 수 있었다. `is_admin()`(RLS: 글·카테고리 쓰기, 비공개 조회)과 앱의 관리자 판정이 모두 이 값을 본다. 자기 행 쓰기 정책을 지우고 anon·authenticated의 INSERT·UPDATE·DELETE를 회수했다. Supabase 기본 TRUNCATE 권한은 PostgREST로 실행할 수 없어 남겼다.
 
 ### 동작·데이터
 
