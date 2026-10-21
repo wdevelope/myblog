@@ -84,25 +84,17 @@ export async function loadPostForEdit(type: PostType, slug: string): Promise<Pos
     return post;
 }
 
-export async function getCommentsDirectly(params: { postId: string }): Promise<Comment[]> {
+// 호출부가 getPostForRoute로 이미 읽은 글을 넘긴다. 글을 다시 읽으면 상세마다 DB 왕복이 하나 더 생긴다.
+export async function getCommentsDirectly(post: Pick<Post, "id" | "type" | "visibility">): Promise<Comment[]> {
     const { isAdmin } = await getViewer();
-    const supabase = await createSupabaseServerClient();
-
-    const { data: post, error: postError } = await supabase
-        .from("posts")
-        .select("id,type,visibility")
-        .eq("id", params.postId)
-        .maybeSingle();
-
-    if (postError) throw new Error(`DB Error: ${postError.message}`);
-    if (!post) throw new Error("Post not found");
     if (post.type === "diary") return [];
     if (post.visibility === "private" && !isAdmin) return [];
 
+    const supabase = await createSupabaseServerClient();
     const { data: comments, error } = await supabase
         .from("comments")
         .select("id,post_id,parent_id,author_id,content,created_at")
-        .eq("post_id", params.postId)
+        .eq("post_id", post.id)
         .order("created_at", { ascending: true });
 
     if (error) throw new Error(`DB Error: ${error.message}`);

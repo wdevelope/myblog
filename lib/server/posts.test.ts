@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getPostForRoute, getPostsDirectly, loadPostForEdit } from "@/lib/server/posts";
+import { getCommentsDirectly, getPostForRoute, getPostsDirectly, loadPostForEdit } from "@/lib/server/posts";
 
 type QueryResult = { data: unknown; error: null };
 
@@ -161,5 +161,71 @@ describe("loadPostForEdit", () => {
     mocks.tables.posts = createQuery({ data: privatePostRow, error: null });
 
     await expect(loadPostForEdit("blog", "secret")).resolves.toMatchObject({ slug: "secret" });
+  });
+});
+
+describe("getCommentsDirectly", () => {
+  const commentRow = {
+    id: "comment-1",
+    post_id: "post-1",
+    parent_id: null,
+    author_id: "user-1",
+    content: "댓글",
+    created_at: "2026-01-02T00:00:00Z",
+  };
+
+  it("넘겨받은 글로 판정하고 글을 다시 읽지 않은 채 댓글만 한 번 조회한다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+    const posts = createQuery({ data: null, error: null });
+    const comments = createQuery({ data: [commentRow], error: null });
+    mocks.tables.posts = posts;
+    mocks.tables.comments = comments;
+
+    const result = await getCommentsDirectly({ id: "post-1", type: "blog", visibility: "public" });
+
+    expect(posts.calls).toEqual([]);
+    expect(comments.calls).toContainEqual(["eq", "post_id", "post-1"]);
+    expect(result).toEqual([
+      {
+        id: "comment-1",
+        postId: "post-1",
+        parentId: null,
+        authorId: "user-1",
+        content: "댓글",
+        createdAt: "2026-01-02T00:00:00Z",
+      },
+    ]);
+  });
+
+  it("다이어리 글이면 댓글을 조회하지 않고 빈 배열을 돌려준다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
+    const comments = createQuery({ data: [commentRow], error: null });
+    mocks.tables.comments = comments;
+
+    await expect(
+      getCommentsDirectly({ id: "post-1", type: "diary", visibility: "public" })
+    ).resolves.toEqual([]);
+    expect(comments.calls).toEqual([]);
+  });
+
+  it("비관리자에게 비공개 글의 댓글은 조회하지 않는다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+    const comments = createQuery({ data: [commentRow], error: null });
+    mocks.tables.comments = comments;
+
+    await expect(
+      getCommentsDirectly({ id: "post-1", type: "blog", visibility: "private" })
+    ).resolves.toEqual([]);
+    expect(comments.calls).toEqual([]);
+  });
+
+  it("관리자는 비공개 글의 댓글도 조회한다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
+    const comments = createQuery({ data: [commentRow], error: null });
+    mocks.tables.comments = comments;
+
+    const result = await getCommentsDirectly({ id: "post-1", type: "blog", visibility: "private" });
+
+    expect(result).toHaveLength(1);
   });
 });
