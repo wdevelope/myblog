@@ -60,21 +60,22 @@
 ## 5. ISR 복구와 일시정지 방지
 
 - 조회를 "공개(쿠키 없음, 태그 캐시)"와 "관리자" 두 계열로 나눈다. 공개 페이지는 공개 계열만 쓴다. 비관리자 다이어리 목록(본문 가림)은 모든 비관리자에게 같으므로 쿠키 없이 캐시한다.
-- 로그인 상태는 레이아웃의 `AuthProvider` 하나가 구독하고 `useViewer()`·`<AdminOnly>`로 읽는다. `AuthButton`·`MobileNav`의 중복 구독과 로그아웃 코드를 합친다. 서버 액션의 권한 검사는 그대로 둔다.
+- 결정(2026-10-22)
+  1. 관리자 화면은 draft mode로 본다. 관리자가 로그인하면 `assertAdmin()` 확인 뒤 draft mode를 켜고, 로그아웃하면 끈다. draft 쿠키가 있는 요청만 동적으로 렌더링되고 그 안에서 `getViewer()`가 관리자를 다시 확인한다(쿠키는 Next가 서명해 위조할 수 없다). 방문자는 정적 HTML을 받는다. 원안의 `AuthProvider`·`useViewer()`·`<AdminOnly>`는 만들지 않는다.
+  2. `/article`은 카테고리·페이지 번호를 경로로 옮겨 정적화한다(`/article/page/[n]`, `/article/category/[slug]`, `/article/category/[slug]/page/[n]`). 옛 `?category=`·`?page=` 주소는 새 경로로 리다이렉트한다.
+  3. 다이어리 본문은 관리자 전용을 유지한다(CLAUDE.md 제품 규칙). 방문자에게 목록은 제목만(비공개는 "일기"), 상세는 안내 화면, 없는 slug는 404다. 목록과 존재 확인은 쿠키 없는 캐시 함수(service role, 본문 제외)로 한다.
+  4. 댓글은 누구나 읽는다. 댓글 조회 RLS 정책을 anon까지 넓히는 마이그레이션을 추가하고 댓글을 정적 HTML에 넣는다. 쓰기·삭제 버튼만 클라이언트에서 로그인 상태를 보고 띄운다. 댓글 액션은 `revalidatePublicPosts`로 상세를 무효화한다. 목록의 댓글 수가 0으로 보이던 문제도 함께 풀린다.
 
   | 경로 | 지금 동적인 이유 | 할 일 |
   |---|---|---|
   | `/` | 없음 | 빌드 출력으로 정적인지 확인 |
-  | `/feed` | `getViewer`(쿠키)·쿠키 조회 | `getPublicPosts`로 교체. `FeedCard`를 서버 컴포넌트로 바꾸고 펼치기·관리자 메뉴만 클라이언트로, 더미 좋아요·댓글 제거 |
-  | `/article/[slug]` | 같음 + 단건·댓글 쿠키 조회 | anon 단건 조회와 `generateStaticParams`. 수정·삭제 메뉴와 댓글을 클라이언트 말단으로, `generateMetadata` 추가 |
-  | `/diary` | 같음 + 쿠키 조회 | 비관리자 조회를 쿠키 없이. `DiaryIndexClient`를 `<Suspense>`로 감싸고(`useSearchParams`) 필요한 필드만 넘김 |
-  | `/diary/[slug]` | 같음 | 공개만 anon 조회, 비공개는 404 |
-  | `/article` | 같음 + `searchParams`·카테고리 쿠키 조회 | 아래 결정 1 |
+  | `/feed` | `getViewer`(쿠키)·쿠키 조회 | `getPublicPosts`로 교체. 관리자 메뉴·쓰기 버튼은 draft mode에서만, 더미 좋아요·댓글 제거 |
+  | `/article/[slug]` | 같음 + 단건·댓글 쿠키 조회 | 공개 단건·댓글 조회와 `generateStaticParams`·`generateMetadata`. 댓글 쓰기·삭제만 클라이언트 |
+  | `/diary` | 같음 + 쿠키 조회 | 비관리자 목록을 쿠키 없는 캐시 함수로, `DiaryIndexClient`를 `<Suspense>`로 감쌈(`useSearchParams`) |
+  | `/diary/[slug]` | 같음 | 결정 3 |
+  | `/article` | 같음 + `searchParams`·카테고리 쿠키 조회 | 결정 2 |
 
-- 공개 fetch의 revalidate 기본값 60초를 세그먼트와 같은 86400초로 맞춘다(태그 무효화가 있다). 댓글 액션도 `revalidatePublicPosts`로 무효화한다(글 액션은 4단계에서 상세 경로까지 무효화한다).
-- 착수 전에 정할 것
-  1. `/article`: (a) 카테고리를 지금 리다이렉트만 하는 `/article/category/[slug]` 경로로, 페이지 번호도 경로로 옮겨 정적화한다. (b) 쿼리 문자열을 유지하고 데이터 캐시만 한다(동적 렌더링).
-  2. 관리자에게 비공개 글을 공개 목록에 섞어 보일지, 관리자 전용 경로로 분리할지.
+- 공개 fetch의 revalidate 기본값 60초를 세그먼트와 같은 86400초로 맞춘다(태그 무효화가 있다).
 - 확인: `next build` 출력에서 위 경로가 정적·ISR로 나오는지, 배포 뒤 `x-vercel-cache: HIT`인지, 3단계 TTFB와 비교한다.
 - 일시정지 방지: ISR이 살면 DB 요청이 줄어 무료 플랜의 7일 무활동 일시정지 위험이 커진다. Vercel Cron(Hobby는 하루 1회)으로 공개 조회 함수를 부르는 라우트 핸들러를 두고 `CRON_SECRET`으로 막는다.
 
