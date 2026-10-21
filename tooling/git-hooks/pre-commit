@@ -1,0 +1,14 @@
+#!/bin/sh
+# 커밋 전 검사: 공백·충돌 표시 → 커밋 가드(비밀값·마이그레이션·명세 소속·테스트 제목·타입 우회)
+# → 명세 검사 → 스테이징된 TS가 있으면 eslint와 타입 검사
+set -e
+git diff --cached --check
+node tooling/harness/commit-guard.mjs --staged
+node tooling/harness/spec-check.mjs > /dev/null
+
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|mts)$' || true)
+if [ -n "$STAGED_TS" ]; then
+  # shellcheck disable=SC2086
+  npx --no-install eslint --max-warnings=0 $STAGED_TS
+  npx --no-install tsc --noEmit
+fi
