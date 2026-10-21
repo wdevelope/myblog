@@ -6,7 +6,15 @@
     "dev": "next dev --port 2025",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:tooling": "node --test \"tooling/**/*.test.mjs\" \".claude/hooks/*.test.mjs\"",
+    "spec:check": "node tooling/harness/spec-check.mjs",
+    "guard": "node tooling/harness/commit-guard.mjs --staged",
+    "prepare": "git config core.hooksPath tooling/git-hooks || true",
+    "setup:hooks": "git config core.hooksPath tooling/git-hooks"
   },
   "dependencies": {
     "@ckeditor/ckeditor5-react": "^11.0.1",

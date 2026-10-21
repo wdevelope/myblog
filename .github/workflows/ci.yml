@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# build는 sitemap 프리렌더가 DB에 접속해야 해서 Vercel 배포가 맡는다.
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:tooling
+      - run: npm run spec:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
