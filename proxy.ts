@@ -32,7 +32,9 @@ export async function proxy(request: NextRequest) {
   });
 
   // 서버 컴포넌트가 돌기 전에 만료된 액세스 토큰을 갱신한다. 판정은 서버 컴포넌트·액션의 getViewer가 한다.
-  await supabase.auth.getUser();
+  // getUser는 요청마다 Auth 서버를 왕복한다. getClaims는 ES256 서명을 JWKS(전역 캐시)로 로컬 검증하고,
+  // 만료된 토큰만 getSession 안에서 갱신한다.
+  await supabase.auth.getClaims();
 
   return response;
 }

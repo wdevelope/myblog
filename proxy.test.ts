@@ -7,6 +7,7 @@ type CookieMethods = { setAll: (cookies: CookieToSet[]) => void };
 
 const mocks = vi.hoisted(() => ({
   createServerClient: vi.fn(),
+  getClaims: vi.fn(),
   getUser: vi.fn(),
 }));
 
@@ -31,8 +32,10 @@ function request(cookie?: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
-  mocks.createServerClient.mockImplementation(() => ({ auth: { getUser: mocks.getUser } }));
+  mocks.getClaims.mockResolvedValue({ data: { claims: { sub: adminUser.id } }, error: null });
+  mocks.createServerClient.mockImplementation(() => ({
+    auth: { getClaims: mocks.getClaims, getUser: mocks.getUser },
+  }));
 });
 
 describe("proxy 세션 갱신", () => {
@@ -46,7 +49,7 @@ describe("proxy 세션 갱신", () => {
   it("sb- 쿠키가 있으면 세션을 확인하되 x-user-* 헤더를 싣지 않는다", async () => {
     const res = await proxy(request("sb-project-auth-token=token"));
 
-    expect(mocks.getUser).toHaveBeenCalledTimes(1);
+    expect(mocks.getClaims).toHaveBeenCalledTimes(1);
     expect([...res.headers.keys()].filter((key) => key.includes("x-user"))).toEqual([]);
   });
 
@@ -54,9 +57,9 @@ describe("proxy 세션 갱신", () => {
     mocks.createServerClient.mockImplementation(
       (_url: string, _key: string, options: { cookies: CookieMethods }) => ({
         auth: {
-          getUser: async () => {
+          getClaims: async () => {
             options.cookies.setAll([{ name: "sb-project-auth-token", value: "refreshed" }]);
-            return { data: { user: adminUser }, error: null };
+            return { data: { claims: { sub: adminUser.id } }, error: null };
           },
         },
       }),
@@ -67,5 +70,12 @@ describe("proxy 세션 갱신", () => {
     expect(res.cookies.get("sb-project-auth-token")?.value).toBe("refreshed");
     // Next는 x-middleware-request-* 헤더로 바뀐 요청 헤더를 서버 컴포넌트에 넘긴다.
     expect(res.headers.get("x-middleware-request-cookie")).toBe("sb-project-auth-token=refreshed");
+  });
+
+  it("살아 있는 토큰은 Auth 서버 왕복(getUser) 없이 서명만 확인한다", async () => {
+    await proxy(request("sb-project-auth-token=token"));
+
+    expect(mocks.getClaims).toHaveBeenCalledTimes(1);
+    expect(mocks.getUser).not.toHaveBeenCalled();
   });
 });
