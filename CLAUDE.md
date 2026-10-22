@@ -46,7 +46,7 @@ npm run build                          # next build --webpack (Turbopack 제한�
 - `/article` 목록은 경로 기반이다(`/article/page/[n]`, `/article/category/[slug]`, `/article/category/[slug]/page/[n]`, 링크는 `articleListHref`). 옛 `?category=`·`?page=` 주소는 `proxy.ts`가 308로 보낸다.
 - 관리자 조회: `lib/server/posts.ts`가 쿠키 세션 서버 클라이언트(RLS 적용)로 읽는다.
 - 쓰기: `lib/actions/*.ts` 서버 액션. 반환은 `{ success: true, … } | { success: false, error }`이고, 성공하면 `revalidatePublicPosts`로 공개 캐시(태그·경로)를 무효화한다. 댓글 쓰기·삭제도 그 글의 상세를 무효화한다. 태그는 `updateTag`로 바로 만료하므로 서버 액션에서만 부른다(`revalidateTag(tag, profile)`는 쓴 직후 첫 방문자에게 이전 내용을 준다). 목록 페이지가 route group 안에 있어 `revalidatePath`는 `type` 없이 주소로 부른다.
-- 이미지: `app/api/images` 라우트 핸들러가 service role로 Storage에 올리고 내려준다. 키 형식은 `<버킷>:<경로>`. 비공개 버킷 응답은 `Cache-Control: private, no-store`이고, SVG는 올리지 않는다.
+- 이미지: `app/api/images` 라우트 핸들러가 service role로 Storage에 올리고 내려준다. 키 형식은 `<버킷>:<경로>`. 비공개 버킷 응답은 `Cache-Control: private, no-store`이고, SVG는 올리지 않는다. 버킷은 올리는 순간의 공개 범위로 정해지므로, 글을 저장할 때 `createPost`가 글 공개 범위와 다른 버킷의 파일(본문·첨부·썸네일)을 같은 경로로 옮기고 키를 바꾼다(피드는 공개).
 - Supabase 클라이언트: `lib/supabase/server.ts`(서버, RLS 적용), `client.ts`(브라우저), `service.ts`(서버 전용, RLS 우회 — `requireAdmin` 뒤에만. 예외: 방문자 다이어리 목록의 본문 없는 조회, 회원 탈퇴 `deleteAccount`의 본인 계정 삭제).
 - 인증: Supabase Auth(이메일·비밀번호). 관문은 `lib/server/admin.ts`다. 화면 분기는 `getViewer()`(user·isAdmin), 페이지 접근은 `requireLogin`·`requireAdmin`(redirect), 서버 액션·라우트 핸들러는 `assertAdmin()`(실패를 돌려줌). 관리자는 `app_metadata.is_admin`(JSON `true`)만 보고, RLS의 `is_admin()`도 JWT의 같은 값을 본다. 관리자 지정은 SQL Editor(service role)로 `auth.users.raw_app_meta_data`에 `is_admin: true`를 넣고 다시 로그인한다(RLS는 토큰이 갱신돼야 반영). `proxy.ts`는 `sb-` 쿠키가 있을 때 세션 갱신만 한다.
 - 마이페이지(`/mypage`, `requireLogin`·동적): 닉네임·프로필 사진, 내 댓글, 비밀번호 변경, 회원 탈퇴(관리자는 못 한다). 헤더는 로그인하면 아바타가 여기로 간다.
