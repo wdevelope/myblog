@@ -15,6 +15,7 @@
 - 비밀값(`.env*`)을 읽거나 쓰거나 커밋하지 않는다(`.claude/settings.json`이 읽기·쓰기를 막는다). 변수 이름만 `.env.example`에 적는다.
 - `git push`는 Vercel 운영 배포다. 사용자가 요청할 때만 한다. `--no-verify`와 히스토리 수정(`amend`·`rebase`·`reset`)도 요청할 때만.
 - `supabase/migrations/`의 커밋된 SQL은 고치지 않고 새 파일로 추가한다.
+- Supabase 프로젝트는 둘이다. MCP로 DB를 다룰 때 기본 대상은 개발 `myblog-dev`(`admadefdkybuvklpezht`)이고, 운영 `myblog`(`mgyoglaujbxfbuxxlcfj`)에는 읽기 전용 조회와 사용자가 확인한 마이그레이션 적용만 한다.
 
 ## 작업 방식
 
@@ -23,6 +24,7 @@
 - 테스트는 소스 옆 `<이름>.test.ts(x)`, 제목은 한국어다. Supabase 클라이언트와 `next/headers`·`next/navigation`·`next/cache`는 `vi.mock`으로 바꾼다. 화면 테스트는 첫 줄에 `// @vitest-environment jsdom`.
 - 끝내기 전에 `npm run lint && npm run typecheck && npm test`. `npm run build`는 DB에 접속해야 통과하므로, 접속 불가로 실패하면 그대로 보고한다.
 - 커밋은 `commit` 스킬로 한다(한국어 Conventional Commit).
+- DB 구조 변경: `supabase/migrations/`에 새 파일을 쓰고, Supabase MCP `apply_migration`으로 개발 프로젝트에 먼저 적용해 확인한 뒤 사용자 확인을 받고 운영에 적용한다. 개발용 가짜 데이터는 `supabase/seed.sql`이다(운영에는 넣지 않는다).
 
 ## 명령어
 

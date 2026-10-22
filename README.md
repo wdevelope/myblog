@@ -15,12 +15,24 @@ Next.js(App Router) + Tailwind CSS 기반 개인 블로그(w-life). 배포는 Ve
 
 ### 1) 환경 변수
 
-`.env.local`을 만들고 [`.env.example`](.env.example)을 참고해 값을 채운다.
+[`.env.example`](.env.example)을 참고해 두 파일을 만든다.
+
+- `.env`: 운영 Supabase(`myblog`) 값. `npm run build`가 쓴다.
+- `.env.development.local`: 개발 Supabase(`myblog-dev`) 값. `npm run dev`는 이 파일을 `.env`보다 먼저 읽어 개발 프로젝트에 붙는다.
 
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (필수)
 - `SUPABASE_SERVICE_ROLE_KEY` (필수, 서버 전용: 관리자 쓰기·비공개 이미지)
 - `NEXT_PUBLIC_SITE_URL` (선택, 기본 `https://www.w-life.store`: 메타데이터·sitemap·robots 기준 URL)
 - `CRON_SECRET` (운영 필수: Vercel Cron `/api/cron/keep-alive` 인증. Supabase 무료 플랜 일시정지 방지)
+
+### 개발 DB
+
+운영(`myblog`)과 개발(`myblog-dev`)은 서로 다른 Supabase 프로젝트다(DB·Auth·Storage 모두 따로, 둘 다 서울 리전).
+
+- 구조: `supabase/migrations/`가 원본이다. 새 마이그레이션은 개발 프로젝트에 먼저 적용해 확인하고 운영에 적용한다.
+- 데이터: `supabase/seed.sql`(가짜 글·카테고리·댓글)을 개발 프로젝트의 SQL Editor에서 실행한다. 운영에는 넣지 않는다.
+- 테스트 계정: 개발 프로젝트 대시보드 Authentication → Add user(Auto Confirm)로 관리자·일반 계정을 만들고, 관리자는 SQL Editor에서 `update auth.users set raw_app_meta_data = raw_app_meta_data || '{"is_admin": true}' where email = '<이메일>';` 뒤 다시 로그인한다. 계정을 만든 뒤 seed를 다시 실행하면 댓글이 채워진다.
+- 개발 프로젝트는 7일 동안 쓰지 않으면 일시정지된다. 대시보드에서 다시 켜면 데이터는 그대로다.
 
 ### 2) 실행
 
