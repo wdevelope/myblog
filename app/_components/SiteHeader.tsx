@@ -4,6 +4,8 @@ import MobileNav from "@/app/_components/MobileNav";
 import NavLink from "@/app/_components/NavLink";
 import AuthButton from "@/app/_components/AuthButton";
 import AdminModeToggle from "@/app/_components/AdminModeToggle";
+import AdminNavProgress from "@/app/_components/AdminNavProgress";
+import { Suspense } from "react";
 import Image from "next/image";
 import { ThemeToggle } from "@/app/_components/ThemeToggle";
 
@@ -35,6 +37,12 @@ export default async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/75 backdrop-blur-md">
+      {/* useSearchParams를 읽어 Suspense로 감싼다. 관리자 화면 요청에서만 그리므로 방문자 정적 HTML에는 없다. */}
+      {adminMode ? (
+        <Suspense fallback={null}>
+          <AdminNavProgress />
+        </Suspense>
+      ) : null}
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4">
         <div className="flex items-center gap-8">
           <Brand />
