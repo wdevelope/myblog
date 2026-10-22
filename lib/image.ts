@@ -25,6 +25,18 @@ export function imagePathsInBucket(post: PostImageFields, bucket: string): strin
   return [...paths];
 }
 
+export function imageKeysOf(post: PostImageFields): string[] {
+  return [PUBLIC_IMAGE_BUCKET, PRIVATE_IMAGE_BUCKET].flatMap((bucket) =>
+    imagePathsInBucket(post, bucket).map((path) => `${bucket}:${path}`)
+  );
+}
+
+// keys 중 posts 어느 글도 쓰지 않는 키. 같은 경로라도 버킷이 다르면 다른 파일이라 키 전체로 비교한다.
+export function imageKeysUnusedBy(keys: string[], posts: PostImageFields[]): string[] {
+  const used = new Set(posts.flatMap(imageKeysOf));
+  return keys.filter((key) => !used.has(key));
+}
+
 // 옮긴 경로의 키만 버킷 이름을 바꾼다. 경로와 크기·정렬 조각(#w=…)은 그대로다.
 export function replaceImageBucket<T extends PostImageFields>(post: T, from: string, to: string, paths: string[]): T {
   const moved = new Set(paths);

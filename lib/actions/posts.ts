@@ -9,6 +9,8 @@ import {
   PRIVATE_IMAGE_BUCKET,
   PUBLIC_IMAGE_BUCKET,
   imageBucketFor,
+  imageKeysOf,
+  imageKeysUnusedBy,
   imagePathsInBucket,
   replaceImageBucket,
 } from "@/lib/image";
@@ -112,9 +114,13 @@ export async function createPost(
   const baseSlug = (input.id ? input.slug?.trim() : null) || "post";
   const service = createSupabaseServiceClient();
 
-  // 수정으로 slug·카테고리가 바뀌면 이전 값의 공개 캐시도 무효화해야 한다.
+  // 수정으로 slug·카테고리가 바뀌면 이전 값의 공개 캐시도 무효화해야 하고, 새 버전에서 뺀 이미지는 저장 뒤에 지운다.
   const { data: previous } = input.id
-    ? await service.from("posts").select("slug,category_slug").eq("id", input.id).maybeSingle()
+    ? await service
+        .from("posts")
+        .select("slug,category_slug,content,image_keys,thumbnail_image_key")
+        .eq("id", input.id)
+        .maybeSingle()
     : { data: null };
   const categorySlug =
     input.type === "blog" ? input.categorySlug?.trim() ?? null : null;
@@ -241,6 +247,12 @@ export async function createPost(
     categories: [previous?.category_slug, saved.category_slug],
   });
 
+  if (previous) {
+    // 위에서 옮긴 파일은 이전 버전의 키가 옛 버킷을 가리킨다. 지금 위치로 바꿔 비교해야 버킷만 옮긴 파일을 지우지 않는다.
+    const previousPlaced = replaceImageBucket(postImages(previous), otherBucket, targetBucket, misplaced);
+    await removeUnusedImages(service, imageKeysUnusedBy(imageKeysOf(previousPlaced), [placed]));
+  }
+
   return {
     success: true,
     data: {
@@ -285,6 +297,45 @@ function stuckNotice(currentBucket: string, stuckPaths: string[]) {
     : "";
 }
 
+function postImages(row: { content: string | null; image_keys: string[] | null; thumbnail_image_key: string | null }) {
+  return { content: row.content ?? "", imageKeys: row.image_keys ?? [], thumbnailImageKey: row.thumbnail_image_key };
+}
+
+// 아래 배열 조건(`{a,b}`)은 supabase-js가 따옴표로 감싸지 않는다. 업로드가 만드는 글자가 아닌 키는 조건을 깨
+// 다른 글이 쓰는지 확인할 수 없으므로 지우지 않는다. `_`는 LIKE에서 아무 글자이지만 넓게 걸러질 뿐이다.
+const REMOVABLE_IMAGE_KEY = /^[\w./:-]+$/;
+
+// 글이 더 이상 쓰지 않게 된 이미지 파일을 지운다. 다른 글이 같은 파일을 쓰면 남긴다.
+// 글 저장·삭제는 이미 끝났으므로 실패해도 결과를 바꾸지 않고 서버 로그에만 남긴다(파일이 남을 뿐이다).
+async function removeUnusedImages(service: ReturnType<typeof createSupabaseServiceClient>, keys: string[]) {
+  const candidates = keys.filter((key) => REMOVABLE_IMAGE_KEY.test(key));
+  if (!candidates.length) return;
+  try {
+    // 본문은 글자 포함으로 넓게 거르고, 정확한 비교는 돌아온 글로 imageKeysUnusedBy가 한다.
+    const columns = "content,image_keys,thumbnail_image_key";
+    const lookups = await Promise.all([
+      service.from("posts").select(columns).likeAnyOf("content", candidates.map((key) => `%${key}%`)),
+      service.from("posts").select(columns).overlaps("image_keys", candidates),
+      service.from("posts").select(columns).in("thumbnail_image_key", candidates),
+    ]);
+    const lookupError = lookups.find((lookup) => lookup.error)?.error;
+    if (lookupError) {
+      console.error("이미지 정리: 다른 글이 쓰는지 확인하지 못해 지우지 않았어요.", lookupError.message, candidates);
+      return;
+    }
+    const unused = imageKeysUnusedBy(candidates, lookups.flatMap((lookup) => (lookup.data ?? []).map(postImages)));
+    for (const bucket of [PUBLIC_IMAGE_BUCKET, PRIVATE_IMAGE_BUCKET]) {
+      const prefix = `${bucket}:`;
+      const paths = unused.filter((key) => key.startsWith(prefix)).map((key) => key.slice(prefix.length));
+      if (!paths.length) continue;
+      const { error } = await service.storage.from(bucket).remove(paths);
+      if (error) console.error("이미지 정리: 파일을 지우지 못했어요.", error.message, paths.map((path) => prefix + path));
+    }
+  } catch (error) {
+    console.error("이미지 정리: 예상하지 못한 오류로 멈췄어요.", error, candidates);
+  }
+}
+
 export type DeletePostResult =
   | { success: true }
   | { success: false; error: string };
@@ -297,7 +348,7 @@ export async function deletePost(slug: string): Promise<DeletePostResult> {
     .from("posts")
     .delete()
     .eq("slug", slug)
-    .select("type,category_slug")
+    .select("type,category_slug,content,image_keys,thumbnail_image_key")
     .maybeSingle();
 
   if (error) {
@@ -312,6 +363,9 @@ export async function deletePost(slug: string): Promise<DeletePostResult> {
     slugs: [slug],
     categories: [deleted.category_slug],
   });
+
+  // 비공개 글을 지워도 그 이미지가 공개 버킷에 남아 주소로 열리는 일이 없게, 행을 지운 뒤 파일도 지운다.
+  await removeUnusedImages(service, imageKeysOf(postImages(deleted)));
 
   return { success: true };
 }

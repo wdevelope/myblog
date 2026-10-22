@@ -3,6 +3,8 @@ import {
   coverKeyOf,
   coverSrcFromImageKey,
   imageBucketFor,
+  imageKeysOf,
+  imageKeysUnusedBy,
   imagePathsInBucket,
   replaceImageBucket,
 } from "@/lib/image";
@@ -109,5 +111,48 @@ describe("글 공개 범위와 이미지 버킷", () => {
     const placed = replaceImageBucket({ ...post, thumbnailImageKey: null }, "post-images-public", "post-images-private", []);
     expect(placed.thumbnailImageKey).toBeNull();
     expect(placed.content).toBe(post.content);
+  });
+
+  it("한 글이 쓰는 두 버킷의 이미지 키를 본문 이미지 문법·첨부·썸네일에서 한 번씩 모은다", () => {
+    expect(imageKeysOf(post)).toEqual([
+      "post-images-public:2026-01-03/a.png",
+      "post-images-public:2026-01-03/b.png",
+      "post-images-public:2026-01-03/d.png",
+      "post-images-private:2026-01-03/c.png",
+    ]);
+    expect(imageKeysOf({ content: "이미지 없음", imageKeys: [], thumbnailImageKey: null })).toEqual([]);
+  });
+});
+
+describe("어느 글도 쓰지 않는 이미지 키", () => {
+  const none = { content: "", imageKeys: [], thumbnailImageKey: null };
+
+  it("주어진 글들의 본문·첨부·썸네일 어디에도 없는 키만 남긴다", () => {
+    const keys = [
+      "post-images-public:2026-01-03/a.png",
+      "post-images-public:2026-01-03/b.png",
+      "post-images-private:2026-01-03/c.png",
+      "post-images-private:2026-01-03/d.png",
+    ];
+    const posts = [
+      { ...none, content: "![](post-images-public:2026-01-03/a.png#w=60)" },
+      { ...none, imageKeys: ["post-images-private:2026-01-03/c.png"] },
+      { ...none, thumbnailImageKey: "post-images-private:2026-01-03/d.png" },
+    ];
+
+    expect(imageKeysUnusedBy(keys, posts)).toEqual(["post-images-public:2026-01-03/b.png"]);
+  });
+
+  it("같은 경로라도 버킷이 다르면 다른 파일로 본다", () => {
+    expect(
+      imageKeysUnusedBy(["post-images-public:2026-01-03/a.png"], [{ ...none, content: "![](post-images-private:2026-01-03/a.png)" }])
+    ).toEqual(["post-images-public:2026-01-03/a.png"]);
+  });
+
+  it("이미지 문법이 아닌 글자나 이름이 더 긴 파일은 쓰는 것으로 보지 않는다", () => {
+    const posts = [{ ...none, content: "post-images-public:2026-01-03/a.png\n![](post-images-public:2026-01-03/a.png.bak)" }];
+    expect(imageKeysUnusedBy(["post-images-public:2026-01-03/a.png"], posts)).toEqual([
+      "post-images-public:2026-01-03/a.png",
+    ]);
   });
 });

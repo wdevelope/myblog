@@ -149,7 +149,7 @@ class RoutedQuery {
   upsert() { return this; }
   async maybeSingle() {
     if (this.table === "categories") return { data: { slug: "dev" }, error: null };
-    if (this.selected === "slug,category_slug") {
+    if (this.selected.startsWith("slug,category_slug")) {
       return { data: { slug: "post-abc", category_slug: "old" }, error: null };
     }
     return { data: { id: "post-1" }, error: null };
@@ -182,14 +182,37 @@ describe("createPost 캐시 무효화", () => {
   });
 });
 
-// Storage 이동과 글 저장을 한 기록에 남겨 순서를 본다. failMoves는 실패시킬 `버킷:경로`(옮기기 전 위치)다.
-function imageService(options: { failMoves?: string[]; failSave?: boolean } = {}) {
+type ImageRow = { content: string; image_keys: string[] | null; thumbnail_image_key: string | null };
+
+// Storage 이동·삭제와 글 저장·삭제를 한 기록에 남겨 순서를 본다. failMoves는 실패시킬 `버킷:경로`(옮기기 전 위치)다.
+// previous는 수정 전 글, deleted는 deletePost가 지운 행, usedBy는 "다른 글이 쓰는지" 조회가 돌려줄 글이다.
+function imageService(
+  options: {
+    failMoves?: string[];
+    failSave?: boolean;
+    previous?: ImageRow;
+    deleted?: ImageRow;
+    usedBy?: ImageRow[];
+    failLookup?: boolean;
+    failRemove?: boolean;
+  } = {}
+) {
   const log: string[] = [];
   const payloads: Record<string, unknown>[] = [];
+  const lookups: [string, string, string[]][] = [];
   const service = {
     from: (table: string) => {
+      let selected = "";
+      let deleting = false;
+      const lookup = (method: string) => (column: string, values: string[]) => {
+        lookups.push([method, column, values]);
+        return query;
+      };
       const query = {
-        select: () => query,
+        select: (columns = "") => {
+          selected = columns;
+          return query;
+        },
         eq: () => query,
         order: () => query,
         limit: () => query,
@@ -199,11 +222,32 @@ function imageService(options: { failMoves?: string[]; failSave?: boolean } = {}
           log.push("upsert");
           return query;
         },
-        maybeSingle: async () => ({ data: table === "categories" ? { slug: "dev" } : null, error: null }),
+        delete: () => {
+          deleting = true;
+          log.push("delete");
+          return query;
+        },
+        likeAnyOf: lookup("likeAnyOf"),
+        overlaps: lookup("overlaps"),
+        in: lookup("in"),
+        maybeSingle: async () => {
+          if (table === "categories") return { data: { slug: "dev" }, error: null };
+          if (deleting) return { data: options.deleted ? { ...savedRow, ...options.deleted } : null, error: null };
+          if (selected.includes("content")) {
+            return { data: options.previous ? { slug: "post-abc", category_slug: "dev", ...options.previous } : null, error: null };
+          }
+          return { data: null, error: null };
+        },
         single: async () =>
           options.failSave
             ? { data: null, error: { message: "저장 실패" } }
             : { data: { ...savedRow, ...payloads.at(-1) }, error: null },
+        then: (resolve: (value: { data: ImageRow[] | null; error: { message: string } | null }) => unknown) =>
+          Promise.resolve(
+            options.failLookup
+              ? { data: null, error: { message: "조회 실패" } }
+              : { data: options.usedBy ?? [], error: null }
+          ).then(resolve),
       };
       return query;
     },
@@ -215,11 +259,17 @@ function imageService(options: { failMoves?: string[]; failSave?: boolean } = {}
             ? { data: null, error: { message: "move failed" } }
             : { data: { message: "Successfully moved" }, error: null };
         },
+        remove: async (paths: string[]) => {
+          log.push(`remove ${paths.map((path) => `${bucket}:${path}`).join(" ")}`);
+          return options.failRemove
+            ? { data: null, error: { message: "remove failed" } }
+            : { data: [], error: null };
+        },
       }),
     },
   };
   mocks.createServiceClient.mockReturnValue(service);
-  return { log, payloads };
+  return { log, payloads, lookups };
 }
 
 const privateInputWithPublicImages = {
@@ -319,5 +369,174 @@ describe("createPost 이미지 버킷", () => {
       "post-images-private:2026-01-03/c.png → post-images-public:2026-01-03/c.png",
     ]);
     expect(result).toEqual({ success: false, error: "DB Error: 저장 실패" });
+  });
+});
+
+const deletedWithImages = {
+  content: "![](post-images-public:2026-01-03/a.png#w=60)\n![](post-images-private:2026-01-03/b.png)",
+  image_keys: ["post-images-public:2026-01-03/c.png"],
+  thumbnail_image_key: "post-images-public:2026-01-03/a.png",
+};
+
+describe("deletePost 이미지 정리", () => {
+  beforeEach(() => {
+    signedIn(user({ app: { is_admin: true } }));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("글을 지운 뒤 그 글이 쓰던 본문·첨부·썸네일 이미지를 두 버킷에서 지운다", async () => {
+    const { log } = imageService({ deleted: deletedWithImages });
+
+    expect(await deletePost("post-abc")).toEqual({ success: true });
+    expect(log).toEqual([
+      "delete",
+      "remove post-images-public:2026-01-03/a.png post-images-public:2026-01-03/c.png",
+      "remove post-images-private:2026-01-03/b.png",
+    ]);
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it("지우기 전에 다른 글의 본문·첨부·썸네일이 그 키를 쓰는지 묻는다", async () => {
+    const { lookups } = imageService({ deleted: deletedWithImages });
+
+    await deletePost("post-abc");
+
+    const keys = [
+      "post-images-public:2026-01-03/a.png",
+      "post-images-public:2026-01-03/c.png",
+      "post-images-private:2026-01-03/b.png",
+    ];
+    expect(lookups).toEqual([
+      ["likeAnyOf", "content", keys.map((key) => `%${key}%`)],
+      ["overlaps", "image_keys", keys],
+      ["in", "thumbnail_image_key", keys],
+    ]);
+  });
+
+  it("다른 글이 쓰는 파일은 지우지 않는다", async () => {
+    const { log } = imageService({
+      deleted: deletedWithImages,
+      usedBy: [
+        { content: "![](post-images-public:2026-01-03/a.png)", image_keys: null, thumbnail_image_key: null },
+        { content: "", image_keys: ["post-images-private:2026-01-03/b.png"], thumbnail_image_key: null },
+        // 본문 조건은 글자 포함으로 넓게 거르므로, 이름이 더 긴 파일을 쓰는 글이 같이 올 수 있다.
+        { content: "![](post-images-public:2026-01-03/c.png.bak)", image_keys: null, thumbnail_image_key: null },
+      ],
+    });
+
+    expect(await deletePost("post-abc")).toEqual({ success: true });
+    expect(log).toEqual(["delete", "remove post-images-public:2026-01-03/c.png"]);
+  });
+
+  it("다른 글이 쓰는지 확인하지 못하면 아무것도 지우지 않고 삭제는 성공으로 돌려준다", async () => {
+    const { log } = imageService({ deleted: deletedWithImages, failLookup: true });
+
+    expect(await deletePost("post-abc")).toEqual({ success: true });
+    expect(log).toEqual(["delete"]);
+    expect(console.error).toHaveBeenCalled();
+  });
+
+  it("파일을 지우지 못해도 삭제는 성공으로 돌려주고 지우지 못한 키를 서버 로그에 남긴다", async () => {
+    imageService({ deleted: deletedWithImages, failRemove: true });
+
+    expect(await deletePost("post-abc")).toEqual({ success: true });
+    expect(console.error).toHaveBeenCalledWith(expect.any(String), "remove failed", [
+      "post-images-private:2026-01-03/b.png",
+    ]);
+  });
+
+  it("이미지가 없는 글은 조회도 Storage도 부르지 않는다", async () => {
+    const { log, lookups } = imageService({
+      deleted: { content: "![](https://example.com/a.png)", image_keys: [], thumbnail_image_key: null },
+    });
+
+    expect(await deletePost("post-abc")).toEqual({ success: true });
+    expect(log).toEqual(["delete"]);
+    expect(lookups).toEqual([]);
+  });
+
+  it("업로드가 만들지 않는 글자(쉼표 등)가 든 키는 다른 글 확인을 믿을 수 없어 지우지 않는다", async () => {
+    const { log, lookups } = imageService({
+      deleted: { content: "![](post-images-public:2026-01-03/a,b.png)", image_keys: [], thumbnail_image_key: null },
+    });
+
+    expect(await deletePost("post-abc")).toEqual({ success: true });
+    expect(log).toEqual(["delete"]);
+    expect(lookups).toEqual([]);
+  });
+});
+
+describe("createPost 수정 때 뺀 이미지 정리", () => {
+  const previous = {
+    content: "![](post-images-public:2026-01-03/a.png)\n![](post-images-public:2026-01-03/b.png)",
+    image_keys: ["post-images-public:2026-01-03/c.png"],
+    thumbnail_image_key: "post-images-public:2026-01-03/a.png",
+  };
+  const edit = { ...blogInput, id: "post-1", slug: "post-abc", content: "![](post-images-public:2026-01-03/a.png#w=60)" };
+
+  beforeEach(() => {
+    signedIn(user({ app: { is_admin: true } }));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("저장한 뒤 이전 버전이 쓰던 이미지 중 새 버전에 없는 것만 지운다", async () => {
+    const { log } = imageService({ previous });
+
+    const result = await createPost(edit);
+
+    expect(result.success).toBe(true);
+    expect(log).toEqual(["upsert", "remove post-images-public:2026-01-03/b.png post-images-public:2026-01-03/c.png"]);
+  });
+
+  it("비공개로 바꾸며 버킷만 옮긴 이미지는 지우지 않고, 뺀 이미지만 지금 위치에서 지운다", async () => {
+    const { log } = imageService({ previous });
+
+    const result = await createPost({ ...edit, visibility: "private" });
+
+    expect(result.success).toBe(true);
+    expect(log).toEqual([
+      "post-images-public:2026-01-03/a.png → post-images-private:2026-01-03/a.png",
+      "upsert",
+      "remove post-images-public:2026-01-03/b.png post-images-public:2026-01-03/c.png",
+    ]);
+  });
+
+  it("공개로 바꾸며 비공개 버킷에서 옮긴 이미지를 새 버전이 그대로 쓰면 지우지 않는다", async () => {
+    const { log } = imageService({
+      previous: { content: "![](post-images-private:2026-01-03/a.png)", image_keys: [], thumbnail_image_key: null },
+    });
+
+    await createPost({ ...edit, content: "![](post-images-private:2026-01-03/a.png)" });
+
+    expect(log).toEqual(["post-images-private:2026-01-03/a.png → post-images-public:2026-01-03/a.png", "upsert"]);
+  });
+
+  it("다른 글이 쓰는 이미지는 수정에서 빼도 지우지 않는다", async () => {
+    const { log } = imageService({
+      previous,
+      usedBy: [{ content: "", image_keys: null, thumbnail_image_key: "post-images-public:2026-01-03/c.png" }],
+    });
+
+    await createPost(edit);
+
+    expect(log).toEqual(["upsert", "remove post-images-public:2026-01-03/b.png"]);
+  });
+
+  it("저장이 실패하면 이전 이미지를 지우지 않는다", async () => {
+    const { log } = imageService({ previous, failSave: true });
+
+    const result = await createPost(edit);
+
+    expect(result).toEqual({ success: false, error: "DB Error: 저장 실패" });
+    expect(log).toEqual(["upsert"]);
+  });
+
+  it("파일을 지우지 못해도 저장은 성공으로 돌려준다", async () => {
+    imageService({ previous, failRemove: true });
+
+    const result = await createPost(edit);
+
+    expect(result.success).toBe(true);
+    expect(console.error).toHaveBeenCalled();
   });
 });
