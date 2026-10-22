@@ -1,5 +1,5 @@
-// 마크다운 에디터 툴바 동작. textarea의 값·선택 영역을 받아 "어디를 무엇으로 바꾸고 선택을 어디에 둘지"를 돌려준다.
-// 실제 반영은 에디터가 execCommand("insertText")로 해서 ⌘Z 기록을 살린다.
+// 마크다운 에디터 툴바 동작. 본문과 선택 영역을 받아 "어디를 무엇으로 바꾸고 선택을 어디에 둘지"를 돌려준다.
+// 실제 반영은 에디터가 CodeMirror 트랜잭션 하나로 해서 ⌘Z 한 번에 되돌린다.
 
 export type TextSelection = { value: string; start: number; end: number };
 export type TextEdit = {

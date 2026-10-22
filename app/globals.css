@@ -109,11 +109,13 @@ input[type="reset"]:not(:disabled),
 }
 
 /* 마크다운 본문(MarkdownContent): prose가 다루지 않는 형광펜·밑줄·인라인 코드·블록 수식 */
-.markdown-body {
+.markdown-body,
+.markdown-editor {
   --mark-bg: rgba(250, 204, 21, 0.4);
 }
 
-.dark .markdown-body {
+.dark .markdown-body,
+.dark .markdown-editor {
   --mark-bg: rgba(250, 204, 21, 0.3);
 }
 
@@ -153,6 +155,132 @@ input[type="reset"]:not(:disabled),
 
 .markdown-body .table-scroll :is(th, td) {
   word-break: keep-all;
+}
+
+/* 마크다운 에디터 작성 칸(MarkdownEditor, CodeMirror). 클래스는 lib/markdown-live-preview.ts가 붙인다.
+   CodeMirror가 나중에 넣는 기본 테마를 이기도록 .cm-editor까지 붙여 쓴다. */
+.markdown-editor .cm-editor {
+  background: transparent;
+  color: var(--foreground);
+  font-size: 1rem;
+  line-height: 1.75rem;
+}
+
+.markdown-editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+.markdown-editor .cm-editor .cm-scroller {
+  font-family: inherit;
+  line-height: inherit;
+}
+
+.markdown-editor .cm-editor .cm-content {
+  min-height: 50vh;
+  padding: 0;
+}
+
+.markdown-editor .cm-editor .cm-line {
+  padding: 0;
+}
+
+.markdown-editor .cm-editor .cm-placeholder {
+  color: var(--muted);
+}
+
+.markdown-editor .cm-md-strong {
+  font-weight: 700;
+}
+
+.markdown-editor .cm-md-em {
+  font-style: italic;
+}
+
+.markdown-editor .cm-md-strike {
+  text-decoration: line-through;
+}
+
+.markdown-editor .cm-md-underline {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.markdown-editor .cm-md-highlight {
+  background: var(--mark-bg);
+  border-radius: 0.2em;
+}
+
+.markdown-editor .cm-md-code {
+  background: var(--surface-2);
+  padding: 0.15em 0.35em;
+  border-radius: 0.3em;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+.markdown-editor .cm-md-link {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.markdown-editor .cm-md-syntax,
+.markdown-editor .cm-md-bullet {
+  color: var(--muted);
+}
+
+.markdown-editor .cm-md-h1 {
+  font-size: 1.875rem;
+  line-height: 2.5rem;
+  font-weight: 800;
+}
+
+.markdown-editor .cm-md-h2 {
+  font-size: 1.5rem;
+  line-height: 2.25rem;
+  font-weight: 700;
+}
+
+.markdown-editor .cm-md-h3 {
+  font-size: 1.25rem;
+  line-height: 2rem;
+  font-weight: 700;
+}
+
+.markdown-editor :is(.cm-md-h4, .cm-md-h5, .cm-md-h6) {
+  font-weight: 700;
+}
+
+.markdown-editor .cm-editor .cm-line.cm-md-quote {
+  border-left: 0.25rem solid var(--border);
+  padding-left: 1rem;
+}
+
+.markdown-editor .cm-editor .cm-line.cm-md-codeblock {
+  background: var(--surface-2);
+  padding: 0 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+.markdown-editor .cm-md-rule {
+  display: inline-block;
+  width: 100%;
+  vertical-align: middle;
+  border-top: 1px solid var(--border);
+}
+
+.markdown-editor .cm-md-image {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0.5rem 0;
+  border-radius: 0.5rem;
+  vertical-align: bottom;
+}
+
+.markdown-editor .cm-md-math-display {
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 /* 관리자 화면 이동 표시(AdminNavProgress). 진행률을 모르므로 막대가 왼쪽에서 오른쪽으로 계속 흐른다. */

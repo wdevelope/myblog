@@ -2,7 +2,7 @@ import "katex/dist/katex.min.css";
 import { renderMarkdown } from "@/lib/markdown";
 import { cn } from "@/lib/utils";
 
-// 마크다운 본문. 글 화면(서버)과 에디터 미리보기(클라이언트)가 같은 렌더러를 쓴다.
+// 마크다운 본문. 서버 컴포넌트에서만 쓴다(클라이언트에서 쓰면 markdown-it·KaTeX가 공개 번들에 실린다).
 // renderMarkdown은 본문의 HTML을 글자로 내보내므로 결과를 그대로 넣어도 된다.
 export default function MarkdownContent({
   content,
