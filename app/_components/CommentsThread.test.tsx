@@ -27,8 +27,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 const comments: Comment[] = [
-  { id: "c1", postId: "p1", parentId: null, authorId: "u1", content: "내 댓글", createdAt: "2026-01-01T00:00:00Z" },
-  { id: "c2", postId: "p1", parentId: null, authorId: "u2", content: "남의 댓글", createdAt: "2026-01-02T00:00:00Z" },
+  { id: "c1", postId: "p1", parentId: null, authorId: "u1", authorIsAdmin: false, content: "내 댓글", createdAt: "2026-01-01T00:00:00Z" },
+  { id: "c2", postId: "p1", parentId: null, authorId: "u2", authorIsAdmin: false, content: "남의 댓글", createdAt: "2026-01-02T00:00:00Z" },
 ];
 
 beforeEach(() => {
@@ -62,5 +62,21 @@ describe("댓글 영역(정적 페이지 안의 클라이언트 말단)", () => 
     render(<CommentsThread postSlug="hello" comments={comments} isAdmin={false} />);
 
     expect(screen.getByText("2026. 1. 1.")).toBeInTheDocument();
+  });
+
+  it("관리자 댓글은 Owen 이름과 로고, 다른 사용자 댓글은 사람 아이콘으로 보인다", () => {
+    const withAdmin: Comment[] = [
+      ...comments,
+      { id: "c3", postId: "p1", parentId: "c1", authorId: "admin-1", authorIsAdmin: true, content: "답글", createdAt: "2026-01-03T00:00:00Z" },
+    ];
+
+    render(<CommentsThread postSlug="hello" comments={withAdmin} isAdmin={false} />);
+
+    expect(screen.getByText("Owen")).toBeInTheDocument();
+    const adminAvatar = screen.getByRole("img", { name: "Owen" });
+    expect(adminAvatar.querySelector("img")).not.toBeNull();
+    const memberAvatar = screen.getByRole("img", { name: "사용자 u2" });
+    expect(memberAvatar.querySelector("img")).toBeNull();
+    expect(memberAvatar.querySelector("svg")).not.toBeNull();
   });
 });

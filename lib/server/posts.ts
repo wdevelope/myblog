@@ -60,7 +60,7 @@ export async function getCommentsDirectly(post: Pick<Post, "id" | "type" | "visi
     const supabase = await createSupabaseServerClient();
     const { data: comments, error } = await supabase
         .from("comments")
-        .select("id,post_id,parent_id,author_id,content,created_at")
+        .select("id,post_id,parent_id,author_id,author_is_admin,content,created_at")
         .eq("post_id", post.id)
         .order("created_at", { ascending: true });
 
@@ -71,6 +71,7 @@ export async function getCommentsDirectly(post: Pick<Post, "id" | "type" | "visi
         postId: c.post_id,
         parentId: c.parent_id,
         authorId: c.author_id,
+        authorIsAdmin: c.author_is_admin,
         content: c.content,
         createdAt: c.created_at,
     }));

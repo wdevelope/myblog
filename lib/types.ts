@@ -22,6 +22,7 @@ export type Comment = {
   postId: string;
   parentId?: string | null;
   authorId?: string | null;
+  authorIsAdmin: boolean;
   content: string;
   createdAt: string;
 };

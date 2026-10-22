@@ -98,6 +98,7 @@ export async function createComment(
       postId: created.post_id,
       parentId: created.parent_id,
       authorId: created.author_id,
+      authorIsAdmin: created.author_is_admin,
       content: created.content,
       createdAt: created.created_at,
     },

@@ -2,38 +2,18 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import type { Comment } from "@/lib/types";
 import { useSessionUser } from "@/app/_components/useSessionUser";
-import { formatPostDate } from "@/lib/utils";
+import UserAvatar from "@/app/_components/UserAvatar";
+import { formatPostDate, userDisplayName } from "@/lib/utils";
 import {
   createComment as createCommentAction,
   deleteComment as deleteCommentAction,
 } from "@/lib/actions/comments";
 
-function displayName(authorId?: string | null) {
-  if (!authorId) return "사용자";
-  return `사용자 ${authorId.slice(0, 6)}`;
-}
-
-function Avatar({ authorId }: { authorId?: string | null }) {
-  const label = displayName(authorId);
-  return (
-    <div
-      className="size-10 shrink-0 overflow-hidden rounded-full ring-1 ring-border"
-      aria-label={label}
-      title={label}
-    >
-      <Image
-        src="/logo.png"
-        alt={label}
-        width={40}
-        height={40}
-        className="h-full w-full object-cover"
-      />
-    </div>
-  );
+function displayName(comment: Comment) {
+  return userDisplayName(comment.authorId, comment.authorIsAdmin);
 }
 
 function CommentComposer({
@@ -181,11 +161,11 @@ export default function CommentsThread({
             return (
               <div key={c.id} className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <Avatar authorId={c.authorId} />
+                  <UserAvatar isAdmin={c.authorIsAdmin} label={displayName(c)} />
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       <span className="font-bold text-foreground">
-                        {displayName(c.authorId)}
+                        {displayName(c)}
                       </span>
                       <span className="text-muted">·</span>
                       <span className="text-muted">
@@ -236,11 +216,11 @@ export default function CommentsThread({
                   <div className="ml-14 space-y-4 border-l-2 border-border pl-5">
                     {replies.map((r) => (
                       <div key={r.id} className="flex items-start gap-4">
-                        <Avatar authorId={r.authorId} />
+                        <UserAvatar isAdmin={r.authorIsAdmin} label={displayName(r)} />
                         <div className="min-w-0 flex-1 space-y-2">
                           <div className="flex flex-wrap items-center gap-2 text-xs">
                             <span className="font-bold text-foreground">
-                              {displayName(r.authorId)}
+                              {displayName(r)}
                             </span>
                             <span className="text-muted">·</span>
                             <span className="text-muted">

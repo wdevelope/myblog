@@ -169,6 +169,7 @@ describe("getCommentsDirectly", () => {
     post_id: "post-1",
     parent_id: null,
     author_id: "user-1",
+    author_is_admin: true,
     content: "댓글",
     created_at: "2026-01-02T00:00:00Z",
   };
@@ -190,6 +191,7 @@ describe("getCommentsDirectly", () => {
         postId: "post-1",
         parentId: null,
         authorId: "user-1",
+        authorIsAdmin: true,
         content: "댓글",
         createdAt: "2026-01-02T00:00:00Z",
       },
