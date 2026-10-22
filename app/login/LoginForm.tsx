@@ -5,10 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { safeRedirectPath } from "@/lib/redirect";
 import { enableAdminMode } from "@/lib/adminMode";
+import NicknameField from "@/app/_components/NicknameField";
 import { toast } from "sonner";
 
 const REMEMBER_EMAIL_KEY = "myblog:remember_email";
 const SAVED_EMAIL_KEY = "myblog:saved_email";
+// 가입 트리거(profiles)가 닉네임 제약에 걸리면 Auth가 원인 없이 이 문구만 돌려준다. 중복확인을 통과했으니 그 사이에
+// 다른 사람이 같은 닉네임으로 가입한 경우다(18절 결정 5).
+const SIGNUP_DB_ERROR = "Database error saving new user";
 
 function getRememberedEmail() {
   if (typeof window === "undefined") return { remember: false, email: "" };
@@ -26,6 +30,8 @@ export default function LoginForm() {
   const [email, setEmail] = useState(() => getRememberedEmail().email);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [verifiedNickname, setVerifiedNickname] = useState<string | null>(null);
   const [rememberEmail, setRememberEmail] = useState(
     () => getRememberedEmail().remember
   );
@@ -37,8 +43,9 @@ export default function LoginForm() {
     () =>
       email.trim().length > 0 &&
       password.length >= 8 &&
-      (mode === "login" || password === confirmPassword),
-    [confirmPassword, email, mode, password]
+      (mode === "login" ||
+        (password === confirmPassword && verifiedNickname === nickname.trim())),
+    [confirmPassword, email, mode, nickname, password, verifiedNickname]
   );
 
   async function submit() {
@@ -65,10 +72,15 @@ export default function LoginForm() {
           options: {
             emailRedirectTo: `${window.location.origin
               }/auth/callback?next=${encodeURIComponent(from)}`,
+            data: { nickname: nickname.trim() },
           },
         }));
 
       if (result.error) {
+        if (mode === "signup" && result.error.message.includes(SIGNUP_DB_ERROR)) {
+          setVerifiedNickname(null);
+          throw new Error("그 사이 다른 사람이 이 닉네임으로 가입했어요. 다른 닉네임으로 다시 시도해 주세요.");
+        }
         throw new Error(result.error.message);
       }
 
@@ -161,6 +173,15 @@ export default function LoginForm() {
               autoComplete="email"
             />
           </label>
+
+          {mode === "signup" ? (
+            <NicknameField
+              id="signup-nickname"
+              value={nickname}
+              onChange={setNickname}
+              onVerified={setVerifiedNickname}
+            />
+          ) : null}
 
           <label className="flex flex-col gap-2">
             <span className="text-sm font-semibold text-foreground">
