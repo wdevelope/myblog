@@ -1,7 +1,9 @@
 "use server";
 
+import { after } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/server/admin";
+import { notifyNewComment } from "@/lib/server/notify";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 import type { Comment } from "@/lib/types";
 
@@ -33,7 +35,7 @@ export async function createComment(
 
   const { data: post, error: postError } = await supabase
     .from("posts")
-    .select("id,type,visibility,slug")
+    .select("id,type,visibility,slug,title")
     .eq("slug", input.postSlug)
     .maybeSingle();
 
@@ -90,6 +92,19 @@ export async function createComment(
 
   // 댓글은 정적 HTML에 들어 있으므로 그 글의 상세와 목록(댓글 수)을 다시 만든다.
   revalidatePublicPosts({ type: post.type, slugs: [post.slug] });
+
+  // 메일을 받는 사람이 관리자라 관리자 댓글은 알리지 않는다. 응답을 늦추지 않게 응답을 보낸 뒤 보낸다.
+  if (!isAdmin) {
+    after(() =>
+      notifyNewComment({
+        post: { type: post.type, slug: post.slug, title: post.title },
+        authorId: user.id,
+        content: created.content,
+        createdAt: created.created_at,
+        isReply: parentId !== null,
+      })
+    );
+  }
 
   return {
     success: true,

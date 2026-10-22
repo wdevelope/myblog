@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { revalidatePath, updateTag } from "next/cache";
 import { createComment, deleteComment } from "@/lib/actions/comments";
 
@@ -33,6 +33,14 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   writes: [] as string[],
   tables: {} as Record<string, unknown>,
+  afterTasks: [] as (() => unknown)[],
+}));
+
+// 응답 뒤에 할 일은 모아 두고 테스트가 직접 돌린다.
+vi.mock("next/server", () => ({
+  after: (task: () => unknown) => {
+    mocks.afterTasks.push(task);
+  },
 }));
 
 vi.mock("next/headers", () => ({
@@ -56,6 +64,7 @@ const userMetadataAdmin = {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.writes.length = 0;
+  mocks.afterTasks.length = 0;
   for (const key of [...mocks.requestHeaders.keys()]) {
     mocks.requestHeaders.delete(key);
   }
@@ -128,5 +137,106 @@ describe("댓글 공개 캐시 무효화", () => {
 
     expect(result.success).toBe(true);
     expect(revalidatePath).toHaveBeenCalledWith("/article/hello");
+  });
+});
+
+describe("새 댓글 메일 알림", () => {
+  const author = { id: "8353737f-5798-4a1b-9c2d-000000000000", app_metadata: {}, user_metadata: {} };
+  const admin = { id: "admin-1", app_metadata: { is_admin: true }, user_metadata: {} };
+  const fetchMock = vi.fn();
+
+  async function runAfterTasks() {
+    await Promise.all(mocks.afterTasks.map((task) => task()));
+  }
+
+  function sentEmail() {
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    return { url, init, body: JSON.parse(init.body as string) };
+  }
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue(new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    vi.stubEnv("COMMENT_NOTIFY_EMAIL", "owner@example.com");
+    mocks.getUser.mockResolvedValue({ data: { user: author }, error: null });
+    mocks.tables.posts = { id: "p1", type: "blog", visibility: "public", slug: "hello", title: "첫 글" };
+    mocks.tables.comments = {
+      id: "c1",
+      post_id: "p1",
+      parent_id: null,
+      author_id: author.id,
+      content: "좋은 글",
+      created_at: "2026-01-01T00:00:00Z",
+    };
+    mocks.tables.profiles = { nickname: "테스트회원" };
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("관리자가 쓴 댓글은 알리지 않는다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: admin }, error: null });
+
+    expect((await createComment({ postSlug: "hello", content: "좋은 글" })).success).toBe(true);
+    await runAfterTasks();
+
+    expect(mocks.afterTasks).toHaveLength(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("일반 댓글은 응답을 보낸 뒤 Resend로 알린다", async () => {
+    expect((await createComment({ postSlug: "hello", content: "좋은 글" })).success).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await runAfterTasks();
+
+    const { url, init, body } = sentEmail();
+    expect(url).toBe("https://api.resend.com/emails");
+    expect(init.headers).toMatchObject({ Authorization: "Bearer re_test_key" });
+    expect(body.to).toBe("owner@example.com");
+    expect(body.subject).toBe("[w-life] 새 댓글: 첫 글");
+    expect(body.text).toContain("작성자: 테스트회원");
+    expect(body.text).toContain("좋은 글");
+    expect(body).not.toHaveProperty("html");
+  });
+
+  it("답글이면 답글로 알린다", async () => {
+    // 가짜 쿼리는 표마다 같은 행을 돌려주므로 이 행이 부모 댓글이자 새로 쓴 답글이다.
+    const result = await createComment({ postSlug: "hello", content: "좋은 글", parentId: "c1" });
+    expect(result.success).toBe(true);
+
+    await runAfterTasks();
+
+    const { body } = sentEmail();
+    expect(body.subject).toBe("[w-life] 새 답글: 첫 글");
+    expect(body.text).toContain("새 답글이 달렸어요.");
+  });
+
+  it.each([
+    ["네트워크 오류", () => Promise.reject(new TypeError("fetch failed"))],
+    ["500 응답", () => Promise.resolve(new Response("error", { status: 500 }))],
+  ])("메일 발송이 실패해도(%s) 댓글 쓰기는 성공한다", async (_name, send) => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    fetchMock.mockImplementation(send);
+
+    const result = await createComment({ postSlug: "hello", content: "좋은 글" });
+
+    expect(result.success).toBe(true);
+    await expect(runAfterTasks()).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(consoleError).toHaveBeenCalled();
+  });
+
+  it("키가 없으면 댓글은 쓰고 메일은 보내지 않는다", async () => {
+    vi.stubEnv("RESEND_API_KEY", "");
+
+    expect((await createComment({ postSlug: "hello", content: "좋은 글" })).success).toBe(true);
+    await runAfterTasks();
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
