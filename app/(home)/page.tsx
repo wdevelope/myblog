@@ -63,29 +63,30 @@ async function LatestArticlesSection() {
   });
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-end justify-between gap-4 mb-3">
+    <section>
+      {/* 파란 밑줄이 회색 선을 덮도록 -mb-px로 겹쳐 선을 하나로 보이게 한다. */}
+      <div className="flex items-end justify-between gap-4 border-b border-border">
         <div className="flex items-center gap-5">
-          <span className="border-b-2 border-primary pb-3 text-sm font-bold text-primary">
+          <span className="-mb-px border-b-2 border-primary pb-3 text-sm font-bold text-primary">
             최신 아티클
           </span>
         </div>
         <Link
           href="/article"
-          className="text-sm font-bold text-primary hover:opacity-90"
+          className="pb-3 text-sm font-bold text-primary hover:opacity-90"
         >
           더 보기 →
         </Link>
       </div>
 
       {latestArticles.length ? (
-        <ul className="divide-y divide-border border-y border-border">
+        <ul className="divide-y divide-border border-b border-border">
           {latestArticles.map((post, index) => (
             <ArticleListItem key={post.id} post={post} priority={index === 0} />
           ))}
         </ul>
       ) : (
-        <Card>
+        <Card className="mt-4">
           <CardBody>
             <p className="text-sm text-muted">아직 아티클이 없어요.</p>
           </CardBody>
