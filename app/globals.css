@@ -278,6 +278,11 @@ input[type="reset"]:not(:disabled),
   vertical-align: bottom;
 }
 
+.markdown-editor .cm-md-image-selected {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .markdown-editor .cm-md-math-display {
   overflow-x: auto;
   overflow-y: hidden;

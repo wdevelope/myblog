@@ -1,5 +1,5 @@
 import { Language, defineLanguageFacet, syntaxTree } from "@codemirror/language";
-import { StateField, type EditorState, type Extension, type Range } from "@codemirror/state";
+import { EditorSelection, StateField, type EditorState, type Extension, type Range } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType, type DecorationSet } from "@codemirror/view";
 import katex from "katex/dist/katex.js";
 import { PRIVATE_IMAGE_BUCKET, PUBLIC_IMAGE_BUCKET, coverSrcFromImageKey } from "@/lib/image";
@@ -30,16 +30,18 @@ abstract class EditableWidget extends WidgetType {
   }
 }
 
-class ImageWidget extends EditableWidget {
+// 이미지는 원문을 드러내지 않으므로, 누르면 이미지 전체를 선택해 지우기 키로 지울 수 있게 한다.
+class ImageWidget extends WidgetType {
   constructor(
     readonly src: string,
-    readonly alt: string
+    readonly alt: string,
+    readonly selected: boolean
   ) {
     super();
   }
 
   eq(other: ImageWidget) {
-    return other.src === this.src && other.alt === this.alt;
+    return other.src === this.src && other.alt === this.alt && other.selected === this.selected;
   }
 
   toDOM(view: EditorView) {
@@ -47,9 +49,34 @@ class ImageWidget extends EditableWidget {
     image.src = this.src;
     image.alt = this.alt;
     image.className = "cm-md-image";
+    image.classList.toggle("cm-md-image-selected", this.selected);
     // 이미지가 늦게 열려 줄 높이가 바뀌면 에디터가 다시 재게 한다.
     image.onload = () => view.requestMeasure();
+    image.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      const from = view.posAtDOM(image);
+      view.state.field(livePreviewField).atomic.between(from, from, (start, end) => {
+        if (start !== from) return;
+        view.dispatch({ selection: EditorSelection.range(start, end) });
+        return false;
+      });
+      view.focus();
+    });
     return image;
+  }
+
+  // 선택 표시만 바뀌면 이미지를 다시 불러오지 않고 클래스만 바꾼다.
+  updateDOM(dom: HTMLElement) {
+    if (!(dom instanceof HTMLImageElement) || dom.getAttribute("src") !== this.src || dom.alt !== this.alt) {
+      return false;
+    }
+    dom.classList.toggle("cm-md-image-selected", this.selected);
+    return true;
+  }
+
+  // 누름은 위에서 직접 처리한다. 에디터가 받으면 커서를 이미지 앞에 둔다.
+  ignoreEvent(event: Event) {
+    return event.type === "mousedown";
   }
 }
 
@@ -215,7 +242,10 @@ function buildDecorations(state: EditorState): LivePreview {
           const key = doc.sliceString(url.from, url.to);
           const [open, close] = node.getChildren("LinkMark");
           const alt = open && close ? doc.sliceString(open.to, close.from) : "";
-          const widget = new ImageWidget(IMAGE_KEY.test(key) ? coverSrcFromImageKey(key) : key, alt);
+          const selected = state.selection.ranges.some(
+            (range) => !range.empty && range.from <= from && range.to >= to
+          );
+          const widget = new ImageWidget(IMAGE_KEY.test(key) ? coverSrcFromImageKey(key) : key, alt, selected);
           // 경로를 늘 숨기므로 커서가 문법 안으로 들어가지 못하게 한 덩어리로 둔다. 지우면 문법 전체가 지워진다.
           const image = Decoration.replace({ widget }).range(from, to);
           ranges.push(image);

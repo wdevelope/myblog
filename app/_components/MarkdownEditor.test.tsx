@@ -118,6 +118,18 @@ describe("마크다운 에디터", () => {
     expect(content().textContent).not.toContain(key);
   });
 
+  it("이미지를 누르면 이미지 전체를 선택해 지우기 키로 지울 수 있다", () => {
+    render(<Harness initial={"앞\n\n![](post-images-public:2026-10-22/a.png)\n\n뒤"} />);
+    select(0);
+    const image = content().querySelector("img.cm-md-image");
+    if (!image) throw new Error("이미지가 없다");
+    fireEvent.mouseDown(image);
+    const { from, to } = view().state.selection.main;
+    expect(text().slice(from, to)).toBe("![](post-images-public:2026-10-22/a.png)");
+    fireEvent.keyDown(content(), { key: "Backspace", code: "Backspace", keyCode: 8 });
+    expect(text()).toBe("앞\n\n\n\n뒤");
+  });
+
   it("이미지 바로 뒤에서 지우면 이미지 문법 전체를 한 번에 지운다", () => {
     render(<Harness initial="앞 ![](post-images-public:2026-10-22/a.png)" />);
     select(text().length);

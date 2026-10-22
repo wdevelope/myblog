@@ -18,7 +18,7 @@ function preview(source: string) {
     const text = doc.slice(from, to);
     const widget = value.spec.widget;
     let label: string;
-    if (widget?.src) label = `image:${widget.src}`;
+    if (widget?.src) label = `image:${widget.src}${widget.selected ? ":선택" : ""}`;
     else if (from === to) label = `line:${value.spec.class}@${state.doc.lineAt(from).number}`;
     else if (!widget) label = value.spec.class ? `${value.spec.class}:${text}` : `hide:${text}`;
     else if (widget.tex) label = `math:${widget.tex}:${widget.display ? "display" : "inline"}`;
@@ -66,6 +66,11 @@ describe("작성 칸 라이브 프리뷰", () => {
     expect(preview(`![설명](${key})\n‸`)).toEqual([`image:${coverSrcFromImageKey(key)}`]);
     expect(preview("![](https://example.com/a.png)\n‸")).toEqual(["image:https://example.com/a.png"]);
     expect(preview(`앞 ![](${key})‸`)).toEqual([`image:${coverSrcFromImageKey(key)}`]);
+  });
+
+  it("선택 영역이 이미지를 덮으면 이미지를 선택 상태로 그린다", () => {
+    expect(preview("앞 «![](https://example.com/a.png)»")).toEqual(["image:https://example.com/a.png:선택"]);
+    expect(preview("«앞 ![](https://exa»mple.com/a.png)")).toEqual(["image:https://example.com/a.png"]);
   });
 
   it("이미지만 커서가 건너뛰는 한 덩어리로 다루고 다른 장식은 그렇지 않다", () => {
