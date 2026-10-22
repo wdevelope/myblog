@@ -18,7 +18,10 @@ function preview(source: string) {
     const text = doc.slice(from, to);
     const widget = value.spec.widget;
     let label: string;
-    if (widget?.src) label = `image:${widget.src}${widget.selected ? ":선택" : ""}`;
+    if (widget?.src) {
+      const { width, align } = widget.options;
+      label = `image:${widget.src}${width ? `:w${width}` : ""}${align ? `:${align}` : ""}${widget.selected ? ":선택" : ""}`;
+    }
     else if (from === to) label = `line:${value.spec.class}@${state.doc.lineAt(from).number}`;
     else if (!widget) label = value.spec.class ? `${value.spec.class}:${text}` : `hide:${text}`;
     else if (widget.tex) label = `math:${widget.tex}:${widget.display ? "display" : "inline"}`;
@@ -66,6 +69,11 @@ describe("작성 칸 라이브 프리뷰", () => {
     expect(preview(`![설명](${key})\n‸`)).toEqual([`image:${coverSrcFromImageKey(key)}`]);
     expect(preview("![](https://example.com/a.png)\n‸")).toEqual(["image:https://example.com/a.png"]);
     expect(preview(`앞 ![](${key})‸`)).toEqual([`image:${coverSrcFromImageKey(key)}`]);
+  });
+
+  it("이미지 주소 끝 조각의 폭·정렬을 위젯에 넘기고 주소에서 뗀다", () => {
+    const key = "post-images-private:2026-10-22/a.png";
+    expect(preview(`![](${key}#w=60&align=center)\n‸`)).toEqual([`image:${coverSrcFromImageKey(key)}:w60:center`]);
   });
 
   it("선택 영역이 이미지를 덮으면 이미지를 선택 상태로 그린다", () => {

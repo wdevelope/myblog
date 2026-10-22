@@ -130,6 +130,37 @@ describe("마크다운 에디터", () => {
     expect(text()).toBe("앞\n\n\n\n뒤");
   });
 
+  it("선택한 이미지의 정렬 버튼은 주소 끝 조각만 바꾸고 되돌리기 한 번에 돌아간다", () => {
+    const key = "post-images-public:2026-10-22/a.png";
+    render(<Harness initial={`앞\n\n![](${key})`} />);
+    fireEvent.mouseDown(content().querySelector("img.cm-md-image")!);
+    fireEvent.click(screen.getByRole("button", { name: "가운데 정렬" }));
+    expect(text()).toBe(`앞\n\n![](${key}#align=center)`);
+    expect(screen.getByRole("button", { name: "가운데 정렬" }).getAttribute("aria-pressed")).toBe("true");
+    const { from, to } = view().state.selection.main;
+    expect(text().slice(from, to)).toBe(`![](${key}#align=center)`);
+
+    fireEvent.keyDown(content(), { key: "z", code: "KeyZ", keyCode: 90, ctrlKey: true });
+    expect(text()).toBe(`앞\n\n![](${key})`);
+  });
+
+  it("정렬을 바꿔도 이미 정한 폭은 그대로 둔다", () => {
+    const key = "post-images-public:2026-10-22/a.png";
+    render(<Harness initial={`![](${key}#w=60)`} />);
+    const frame = content().querySelector<HTMLElement>(".cm-md-image-frame")!;
+    expect(frame.style.width).toBe("60%");
+    fireEvent.mouseDown(frame.querySelector("img")!);
+    fireEvent.click(screen.getByRole("button", { name: "오른쪽 정렬" }));
+    expect(text()).toBe(`![](${key}#w=60&align=right)`);
+  });
+
+  it("툴바의 삭제 버튼은 이미지를 지운다", () => {
+    render(<Harness initial={"앞\n\n![](post-images-public:2026-10-22/a.png)\n\n뒤"} />);
+    fireEvent.mouseDown(content().querySelector("img.cm-md-image")!);
+    fireEvent.click(screen.getByRole("button", { name: "이미지 삭제" }));
+    expect(text()).toBe("앞\n\n\n\n뒤");
+  });
+
   it("이미지 바로 뒤에서 지우면 이미지 문법 전체를 한 번에 지운다", () => {
     render(<Harness initial="앞 ![](post-images-public:2026-10-22/a.png)" />);
     select(text().length);

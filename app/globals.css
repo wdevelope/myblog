@@ -287,17 +287,118 @@ input[type="reset"]:not(:disabled),
   border-top: 1px solid var(--border);
 }
 
-.markdown-editor .cm-md-image {
+/* 작성 칸 이미지(lib/markdown-image-widget). 정렬은 글 화면의 .img-align-*와 같게 그린다. */
+/* 선택 영역 하이라이트가 이미지와 툴바 글자에 칠해지지 않게 한다(선택 표시는 테두리). */
+.markdown-editor .cm-md-image-frame {
+  position: relative;
   display: inline-block;
   max-width: 100%;
   margin: 0.5rem 0;
-  border-radius: 0.5rem;
   vertical-align: bottom;
+  user-select: none;
 }
 
-.markdown-editor .cm-md-image-selected {
+/* 폭을 정하지 않은 정렬 이미지는 틀을 이미지 폭에 맞춰야 좌우 margin으로 움직인다. */
+.markdown-editor .cm-md-image-frame:is(.img-align-left, .img-align-center, .img-align-right) {
+  display: block;
+  width: fit-content;
+}
+
+.markdown-editor .cm-md-image-frame.img-align-left {
+  margin-right: auto;
+}
+
+.markdown-editor .cm-md-image-frame.img-align-center {
+  margin-inline: auto;
+}
+
+.markdown-editor .cm-md-image-frame.img-align-right {
+  margin-left: auto;
+}
+
+.markdown-editor .cm-md-image {
+  display: block;
+  max-width: 100%;
+  border-radius: 0.5rem;
+}
+
+.markdown-editor .cm-md-image-frame.is-selected .cm-md-image {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+/* 툴바·손잡이가 작성 칸 밖으로 나가면 가로 스크롤이 생기므로, 툴바는 정렬한 쪽 가장자리에 붙이고 손잡이는 모서리 안쪽에 둔다. */
+.markdown-editor .cm-md-image-toolbar {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.5rem;
+  z-index: 1;
+  display: none;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  background: var(--foreground);
+  color: var(--background);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.2);
+  white-space: nowrap;
+}
+
+.markdown-editor .cm-md-image-frame.img-align-center > .cm-md-image-toolbar {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.markdown-editor .cm-md-image-frame.img-align-right > .cm-md-image-toolbar {
+  right: 0.5rem;
+  left: auto;
+}
+
+.markdown-editor .cm-md-image-frame.is-selected > .cm-md-image-toolbar {
+  display: flex;
+}
+
+.markdown-editor .cm-md-image-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border-radius: 0.375rem;
+  color: inherit;
+  font-size: 0.8125rem;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.markdown-editor .cm-md-image-toolbar button:hover,
+.markdown-editor .cm-md-image-toolbar button[aria-pressed="true"] {
+  background: color-mix(in oklab, var(--background) 20%, transparent);
+  opacity: 1;
+}
+
+.markdown-editor .cm-md-image-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--surface);
+  border-radius: 3px;
+  background: var(--primary);
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.markdown-editor .cm-md-image-frame.img-align-right > .cm-md-image-handle {
+  right: auto;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.markdown-editor .cm-md-image-frame.is-selected > .cm-md-image-handle {
+  display: block;
 }
 
 .markdown-editor .cm-md-math-display {
