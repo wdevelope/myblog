@@ -58,6 +58,15 @@ describe("마크다운 에디터", () => {
     expect(screen.getByLabelText("값").textContent).toBe("안녕 **세상**");
   });
 
+  it("툴바로 서식을 넣고 다음 화면 프레임이 지나도 오류가 없다", async () => {
+    render(<Harness initial="안녕" />);
+    select(0, 2);
+    fireEvent.click(screen.getByRole("button", { name: "굵게 (⌘B)" }));
+    // 툴바 동작은 스크롤을 요청하므로, 다음 프레임에 CodeMirror가 작성 칸의 글자 크기를 Range로 잰다.
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(text()).toBe("**안녕**");
+  });
+
   it("툴바로 바꾼 글은 되돌리기 한 번에 원래대로 돌아간다", () => {
     render(<Harness initial="안녕" />);
     select(0, 2);
