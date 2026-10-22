@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { safeRedirectPath } from "@/lib/redirect";
+import { enableAdminMode } from "@/lib/adminMode";
 import { toast } from "sonner";
 
 const REMEMBER_EMAIL_KEY = "myblog:remember_email";
@@ -90,7 +91,11 @@ export default function LoginForm() {
         }
       }
 
-      // 관리자 화면은 켜지 않는다. 관리자가 헤더 토글로 켠다(로드맵 11절).
+      // 관리자면 이동할 화면을 관리자 화면으로 렌더링한다. is_admin은 표시용이고 켜기는 서버가 다시 판정한다.
+      // 켜지 못해도(세션 지연 등) 로그인은 끝났으므로 그대로 이동하고, 헤더 토글로 다시 켤 수 있다.
+      if (result.data.user?.app_metadata?.is_admin === true) {
+        await enableAdminMode();
+      }
       router.replace(from);
       router.refresh();
 
