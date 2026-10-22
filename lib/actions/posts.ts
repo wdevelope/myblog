@@ -5,6 +5,13 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assertAdmin } from "@/lib/server/admin";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 import { toAutoTitle } from "@/lib/markdown";
+import {
+  PRIVATE_IMAGE_BUCKET,
+  PUBLIC_IMAGE_BUCKET,
+  imageBucketFor,
+  imagePathsInBucket,
+  replaceImageBucket,
+} from "@/lib/image";
 
 export type CreatePostInput = {
   id?: string;
@@ -173,19 +180,45 @@ export async function createPost(
     slug = `${baseSlug}-${Math.random().toString(16).slice(2, 8)}`;
   }
 
+  // 이미지 버킷은 올리는 순간 에디터의 공개 범위로 정해진다. 저장하기 전에 글 공개 범위와 다른 버킷의 파일을 옮겨,
+  // 비공개 글 이미지가 공개 주소로 열리거나 공개 글 이미지가 방문자에게 깨지지 않게 한다(로드맵 19절).
+  // 옮긴 뒤 저장해야 공개 → 비공개에서 뒤의 단계가 실패해도 공개 주소가 이미 닫혀 있다.
+  const targetBucket = imageBucketFor(finalVisibility);
+  const otherBucket = targetBucket === PUBLIC_IMAGE_BUCKET ? PRIVATE_IMAGE_BUCKET : PUBLIC_IMAGE_BUCKET;
+  const images = {
+    content: input.content,
+    imageKeys: input.imageKeys ?? [],
+    thumbnailImageKey:
+      input.type === "blog" && input.thumbnailImageKey?.trim()
+        ? input.thumbnailImageKey.trim()
+        : null,
+  };
+  const misplaced = imagePathsInBucket(images, otherBucket);
+  const failedMoves = await moveImages(service, otherBucket, targetBucket, misplaced);
+  if (failedMoves.length) {
+    const stuck = await moveImages(
+      service,
+      targetBucket,
+      otherBucket,
+      misplaced.filter((path) => !failedMoves.includes(path))
+    );
+    return {
+      success: false,
+      error: `이미지를 옮기지 못해 저장하지 않았어요: ${imageKeyList(otherBucket, failedMoves)}${stuckNotice(targetBucket, stuck)}`,
+    };
+  }
+  const placed = replaceImageBucket(images, otherBucket, targetBucket, misplaced);
+
   const payload = {
     id: input.id,
     slug,
     type: input.type,
     visibility: finalVisibility,
     title: finalTitle,
-    content: input.content,
+    content: placed.content,
     category_slug: categorySlug,
-    image_keys: input.imageKeys ?? [],
-    thumbnail_image_key:
-      input.type === "blog" && input.thumbnailImageKey?.trim()
-        ? input.thumbnailImageKey.trim()
-        : null,
+    image_keys: placed.imageKeys,
+    thumbnail_image_key: placed.thumbnailImageKey,
     author_id: user.id,
     ...(createdAtIso ? { created_at: createdAtIso } : null),
   };
@@ -197,7 +230,9 @@ export async function createPost(
     .single();
 
   if (error) {
-    return { success: false, error: `DB Error: ${error.message}` };
+    // 저장하지 못했으므로 파일을 원래 버킷으로 돌려 이전 글의 키와 맞춘다.
+    const stuck = await moveImages(service, targetBucket, otherBucket, misplaced);
+    return { success: false, error: `DB Error: ${error.message}${stuckNotice(targetBucket, stuck)}` };
   }
 
   revalidatePublicPosts({
@@ -222,6 +257,32 @@ export async function createPost(
       thumbnailImageKey: saved.thumbnail_image_key,
     },
   };
+}
+
+// 같은 경로로 버킷만 옮기고, 옮기지 못한 경로를 돌려준다.
+async function moveImages(
+  service: ReturnType<typeof createSupabaseServiceClient>,
+  from: string,
+  to: string,
+  paths: string[]
+) {
+  const failed: string[] = [];
+  for (const path of paths) {
+    const { error } = await service.storage.from(from).move(path, path, { destinationBucket: to });
+    if (error) failed.push(path);
+  }
+  return failed;
+}
+
+function imageKeyList(bucket: string, paths: string[]) {
+  return paths.map((path) => `${bucket}:${path}`).join(", ");
+}
+
+// 되돌리지 못한 파일은 글의 키와 실제 위치가 어긋나 있으니 관리자가 찾을 수 있게 지금 위치를 남긴다.
+function stuckNotice(currentBucket: string, stuckPaths: string[]) {
+  return stuckPaths.length
+    ? ` 원래 버킷으로 되돌리지 못한 이미지: ${imageKeyList(currentBucket, stuckPaths)}`
+    : "";
 }
 
 export type DeletePostResult =

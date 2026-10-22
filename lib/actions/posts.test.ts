@@ -181,3 +181,143 @@ describe("createPost 캐시 무효화", () => {
     expect(paths).toContain("/article/post-abc");
   });
 });
+
+// Storage 이동과 글 저장을 한 기록에 남겨 순서를 본다. failMoves는 실패시킬 `버킷:경로`(옮기기 전 위치)다.
+function imageService(options: { failMoves?: string[]; failSave?: boolean } = {}) {
+  const log: string[] = [];
+  const payloads: Record<string, unknown>[] = [];
+  const service = {
+    from: (table: string) => {
+      const query = {
+        select: () => query,
+        eq: () => query,
+        order: () => query,
+        limit: () => query,
+        insert: () => query,
+        upsert: (payload: Record<string, unknown>) => {
+          payloads.push(payload);
+          log.push("upsert");
+          return query;
+        },
+        maybeSingle: async () => ({ data: table === "categories" ? { slug: "dev" } : null, error: null }),
+        single: async () =>
+          options.failSave
+            ? { data: null, error: { message: "저장 실패" } }
+            : { data: { ...savedRow, ...payloads.at(-1) }, error: null },
+      };
+      return query;
+    },
+    storage: {
+      from: (bucket: string) => ({
+        move: async (fromPath: string, toPath: string, moveOptions: { destinationBucket: string }) => {
+          log.push(`${bucket}:${fromPath} → ${moveOptions.destinationBucket}:${toPath}`);
+          return options.failMoves?.includes(`${bucket}:${fromPath}`)
+            ? { data: null, error: { message: "move failed" } }
+            : { data: { message: "Successfully moved" }, error: null };
+        },
+      }),
+    },
+  };
+  mocks.createServiceClient.mockReturnValue(service);
+  return { log, payloads };
+}
+
+const privateInputWithPublicImages = {
+  ...blogInput,
+  visibility: "private" as const,
+  content: "![](post-images-public:2026-01-03/a.png#w=60)\n![](post-images-private:2026-01-03/b.png)",
+  imageKeys: ["post-images-public:2026-01-03/c.png"],
+  thumbnailImageKey: "post-images-public:2026-01-03/a.png",
+};
+
+describe("createPost 이미지 버킷", () => {
+  beforeEach(() => {
+    signedIn(user({ app: { is_admin: true } }));
+  });
+
+  it("비공개로 저장하면 공개 버킷의 본문·첨부·썸네일 이미지를 먼저 비공개 버킷으로 옮기고 키를 바꿔 저장한다", async () => {
+    const { log, payloads } = imageService();
+
+    const result = await createPost(privateInputWithPublicImages);
+
+    expect(log).toEqual([
+      "post-images-public:2026-01-03/a.png → post-images-private:2026-01-03/a.png",
+      "post-images-public:2026-01-03/c.png → post-images-private:2026-01-03/c.png",
+      "upsert",
+    ]);
+    expect(payloads[0]).toMatchObject({
+      visibility: "private",
+      content: "![](post-images-private:2026-01-03/a.png#w=60)\n![](post-images-private:2026-01-03/b.png)",
+      image_keys: ["post-images-private:2026-01-03/c.png"],
+      thumbnail_image_key: "post-images-private:2026-01-03/a.png",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("피드는 항상 공개라 비공개 버킷 이미지를 공개 버킷으로 옮긴다", async () => {
+    const { log, payloads } = imageService();
+
+    await createPost({ type: "feed", content: "오늘\n![](post-images-private:2026-01-03/a.png)" });
+
+    expect(log).toEqual([
+      "post-images-private:2026-01-03/a.png → post-images-public:2026-01-03/a.png",
+      "upsert",
+    ]);
+    expect(payloads[0]).toMatchObject({
+      visibility: "public",
+      content: "오늘\n![](post-images-public:2026-01-03/a.png)",
+    });
+  });
+
+  it("버킷이 맞는 이미지만 있으면 Storage를 부르지 않는다", async () => {
+    const { log } = imageService();
+
+    await createPost({ ...blogInput, content: "![](post-images-public:2026-01-03/a.png)" });
+
+    expect(log).toEqual(["upsert"]);
+  });
+
+  it("하나라도 못 옮기면 옮긴 이미지를 되돌리고 글을 저장하지 않는다", async () => {
+    const { log } = imageService({ failMoves: ["post-images-public:2026-01-03/c.png"] });
+
+    const result = await createPost(privateInputWithPublicImages);
+
+    expect(log).toEqual([
+      "post-images-public:2026-01-03/a.png → post-images-private:2026-01-03/a.png",
+      "post-images-public:2026-01-03/c.png → post-images-private:2026-01-03/c.png",
+      "post-images-private:2026-01-03/a.png → post-images-public:2026-01-03/a.png",
+    ]);
+    expect(result).toEqual({
+      success: false,
+      error: "이미지를 옮기지 못해 저장하지 않았어요: post-images-public:2026-01-03/c.png",
+    });
+    expect(updateTag).not.toHaveBeenCalled();
+  });
+
+  it("되돌리기까지 실패하면 지금 위치를 오류 문구에 남긴다", async () => {
+    imageService({
+      failMoves: ["post-images-public:2026-01-03/c.png", "post-images-private:2026-01-03/a.png"],
+    });
+
+    const result = await createPost(privateInputWithPublicImages);
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "이미지를 옮기지 못해 저장하지 않았어요: post-images-public:2026-01-03/c.png 원래 버킷으로 되돌리지 못한 이미지: post-images-private:2026-01-03/a.png",
+    });
+  });
+
+  it("글 저장이 실패하면 옮긴 이미지를 원래 버킷으로 되돌린다", async () => {
+    const { log } = imageService({ failSave: true });
+
+    const result = await createPost(privateInputWithPublicImages);
+
+    expect(log.slice(2)).toEqual([
+      "upsert",
+      "post-images-private:2026-01-03/a.png → post-images-public:2026-01-03/a.png",
+      "post-images-private:2026-01-03/c.png → post-images-public:2026-01-03/c.png",
+    ]);
+    expect(result).toEqual({ success: false, error: "DB Error: 저장 실패" });
+  });
+});

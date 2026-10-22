@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { coverKeyOf, coverSrcFromImageKey } from "@/lib/image";
+import {
+  coverKeyOf,
+  coverSrcFromImageKey,
+  imageBucketFor,
+  imagePathsInBucket,
+  replaceImageBucket,
+} from "@/lib/image";
 
 const SUPABASE_URL = "https://project.supabase.co";
 
@@ -49,5 +55,59 @@ describe("coverKeyOf", () => {
 
   it("이미지가 하나도 없으면 null이다", () => {
     expect(coverKeyOf({ thumbnailImageKey: null, imageKeys: [] })).toBeNull();
+  });
+});
+
+describe("글 공개 범위와 이미지 버킷", () => {
+  const post = {
+    content: [
+      "![](post-images-public:2026-01-03/a.png#w=60&align=center)",
+      "![설명](post-images-public:2026-01-03/b.png)",
+      "![](post-images-private:2026-01-03/c.png)",
+      "본문에 적은 글자 post-images-public:2026-01-03/x.png 는 이미지가 아니다.",
+      "![](post-images-public:2026-01-03/a.png)",
+    ].join("\n"),
+    imageKeys: ["post-images-public:2026-01-03/d.png", "post-images-private:2026-01-03/c.png"],
+    thumbnailImageKey: "post-images-public:2026-01-03/a.png",
+  };
+
+  it("비공개 글은 비공개 버킷, 공개 글은 공개 버킷이다", () => {
+    expect(imageBucketFor("private")).toBe("post-images-private");
+    expect(imageBucketFor("public")).toBe("post-images-public");
+  });
+
+  it("본문 이미지 문법·첨부·썸네일에서 그 버킷의 경로를 한 번씩 모은다", () => {
+    expect(imagePathsInBucket(post, "post-images-public")).toEqual([
+      "2026-01-03/a.png",
+      "2026-01-03/b.png",
+      "2026-01-03/d.png",
+    ]);
+    expect(imagePathsInBucket(post, "post-images-private")).toEqual(["2026-01-03/c.png"]);
+  });
+
+  it("옮긴 경로의 키만 버킷 이름을 바꾸고 크기·정렬 조각은 남긴다", () => {
+    const placed = replaceImageBucket(post, "post-images-public", "post-images-private", [
+      "2026-01-03/a.png",
+      "2026-01-03/d.png",
+    ]);
+
+    expect(placed.content.split("\n")).toEqual([
+      "![](post-images-private:2026-01-03/a.png#w=60&align=center)",
+      "![설명](post-images-public:2026-01-03/b.png)",
+      "![](post-images-private:2026-01-03/c.png)",
+      "본문에 적은 글자 post-images-public:2026-01-03/x.png 는 이미지가 아니다.",
+      "![](post-images-private:2026-01-03/a.png)",
+    ]);
+    expect(placed.imageKeys).toEqual([
+      "post-images-private:2026-01-03/d.png",
+      "post-images-private:2026-01-03/c.png",
+    ]);
+    expect(placed.thumbnailImageKey).toBe("post-images-private:2026-01-03/a.png");
+  });
+
+  it("썸네일이 없으면 그대로 null이다", () => {
+    const placed = replaceImageBucket({ ...post, thumbnailImageKey: null }, "post-images-public", "post-images-private", []);
+    expect(placed.thumbnailImageKey).toBeNull();
+    expect(placed.content).toBe(post.content);
   });
 });
