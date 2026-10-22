@@ -35,7 +35,7 @@
 - 2026-10-21 오전에는 `mgyoglaujbxfbuxxlcfj.supabase.co`가 DNS에서 조회되지 않았고(NXDOMAIN), 같은 날 오후에는 REST 엔드포인트가 401로 응답한다(프로젝트 활성). 대시보드에서 상태를 확인한다.
 - `pg_dump`로 스키마·데이터를, Storage 버킷(`post-images-public`·`post-images-private`) 파일을 백업한다. 기본 스키마가 저장소에 없어서 덤프가 유일한 원본이다.
 - 2단계 수정은 로컬 main에만 있고 아직 배포 전이다. 배포 전까지 운영 중인 Vercel 배포는 보안 1~4가 열린 상태다.
-- 도메인: `w-life.store`는 만료됐고(2026-10-21 whois 등록 가능) 나중에 새로 산다. 그때까지 Vercel 기본 주소(`*.vercel.app`)로 운영한다. Vercel 환경변수 `NEXT_PUBLIC_SITE_URL`과 Supabase Auth의 Site URL·Redirect URLs를 그 주소로 맞춘다(sitemap·robots·메타데이터·로그인 리다이렉트 기준). 도메인을 사면 같은 곳과 CLAUDE.md·README 주소를 바꾼다.
+- 도메인: 2026-10-22 `w-owen.com`을 Vercel에서 샀다. `www.w-owen.com`이 운영 주소이고 apex는 308로 www에 보낸다. 옛 `w-life.store`는 만료됐다(2026-10-21 whois 등록 가능). 코드 기본값(`SITE_URL`)·CLAUDE.md·README·`.env.example`은 새 주소로 바꿨다. Vercel 환경변수 `NEXT_PUBLIC_SITE_URL`과 Supabase Auth의 Site URL·Redirect URLs를 `https://www.w-owen.com`으로 맞추고 다시 배포한다(sitemap·robots·메타데이터·로그인 리다이렉트 기준). `NEXT_PUBLIC_`은 빌드 때 박히므로 환경변수만 바꾸고 재배포하지 않으면 반영되지 않는다.
 - 10/30 PostgREST GRANT 변경(2026-10-22 확인, Supabase 문서 "Securing your API"): `public`에 새로 만드는 테이블·함수에 `anon`·`authenticated`·`service_role` 권한을 자동으로 주던 기본 권한(default privileges)을 끄는 변경이다. 이미 있는 객체의 권한은 그대로라 지금 앱이 쓰는 `posts`·`categories`·`comments`·`users`와 함수 `is_admin`·`increment_post_view`·`set_updated_at`는 영향이 없다(모든 테이블 RLS 켜짐). 앞으로 새 테이블·함수를 만드는 마이그레이션에는 `grant`를 직접 쓴다(빠지면 PostgREST가 `42501`). 날짜(10/30)는 외부 자료 기준이다.
 
 ## 2. 관리자 판정 보안 수정과 인증 관문 정리

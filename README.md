@@ -22,7 +22,7 @@ Next.js(App Router) + Tailwind CSS 기반 개인 블로그(w-life). 배포는 Ve
 
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (필수)
 - `SUPABASE_SERVICE_ROLE_KEY` (필수, 서버 전용: 관리자 쓰기·비공개 이미지)
-- `NEXT_PUBLIC_SITE_URL` (선택, 기본 `https://www.w-life.store`: 메타데이터·sitemap·robots 기준 URL)
+- `NEXT_PUBLIC_SITE_URL` (선택, 기본 `https://www.w-owen.com`: 메타데이터·sitemap·robots 기준 URL)
 - `CRON_SECRET` (운영 필수: Vercel Cron `/api/cron/keep-alive` 인증. Supabase 무료 플랜 일시정지 방지)
 
 ### 개발 DB

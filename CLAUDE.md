@@ -1,6 +1,6 @@
 # myblog 개발 규칙
 
-개인 블로그(w-life, https://www.w-life.store). 응답 형식·브리핑·일반 코딩 원칙은 글로벌 `~/.claude/CLAUDE.md`를 따르고, 충돌하면 이 문서가 우선한다. 진행 현황과 알려진 문제는 [로드맵](docs/plans/roadmap.md)에 있다.
+개인 블로그(w-life, https://www.w-owen.com). 응답 형식·브리핑·일반 코딩 원칙은 글로벌 `~/.claude/CLAUDE.md`를 따르고, 충돌하면 이 문서가 우선한다. 진행 현황과 알려진 문제는 [로드맵](docs/plans/roadmap.md)에 있다.
 
 ## 제품 규칙
 

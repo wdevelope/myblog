@@ -1,7 +1,7 @@
 import type { PostType } from "@/lib/types";
 
-// sitemap·robots·메타데이터의 기준 주소. 도메인을 사기 전에는 Vercel 환경변수에 vercel.app 주소를 넣는다.
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.w-life.store";
+// sitemap·robots·메타데이터의 기준 주소.
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.w-owen.com";
 
 // 글 타입 이름과 경로 이름이 다르다(blog → /article).
 const POST_TYPE_PATH: Record<PostType, string> = {
