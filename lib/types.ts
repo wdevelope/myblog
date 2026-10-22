@@ -26,3 +26,11 @@ export type Comment = {
   content: string;
   createdAt: string;
 };
+
+export type MyComment = {
+  id: string;
+  content: string;
+  createdAt: string;
+  isReply: boolean;
+  post: { slug: string; type: PostType; title: string } | null;
+};

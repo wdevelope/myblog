@@ -2,7 +2,7 @@ import Link from "next/link";
 import { draftMode } from "next/headers";
 import MobileNav from "@/app/_components/MobileNav";
 import NavLink from "@/app/_components/NavLink";
-import AuthButton from "@/app/_components/AuthButton";
+import AccountButton from "@/app/_components/AccountButton";
 import AdminModeToggle from "@/app/_components/AdminModeToggle";
 import AdminNavProgress from "@/app/_components/AdminNavProgress";
 import { Suspense } from "react";
@@ -70,13 +70,10 @@ export default async function SiteHeader() {
 
           <ThemeToggle />
 
-          {/* 클라이언트에서 인증 상태 확인 후 로그인/로그아웃 표시 */}
+          {/* 클라이언트에서 인증 상태 확인 후 로그인 버튼 또는 마이페이지 아바타 표시 */}
           <div className="hidden shrink-0 items-center gap-2 sm:flex">
             <AdminModeToggle enabled={adminMode} className="flex h-10 px-4" />
-            <AuthButton
-              loginClassName="h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 flex"
-              logoutClassName="h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-surface-2 flex"
-            />
+            <AccountButton loginClassName="h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 flex" />
           </div>
           <MobileNav adminMode={adminMode} />
         </div>

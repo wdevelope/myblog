@@ -108,9 +108,17 @@ export default function MobileNav({ adminMode }: { adminMode: boolean }) {
           <div className="space-y-2 border-t border-border p-4">
             <AdminModeToggle enabled={adminMode} className="flex h-11 w-full" />
             {loggedIn ? (
-              <LogoutButton className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-surface text-sm font-bold text-foreground transition hover:bg-surface-2">
-                로그아웃
-              </LogoutButton>
+              <>
+                <Link
+                  href="/mypage"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-surface text-sm font-bold text-foreground transition hover:bg-surface-2"
+                >
+                  마이페이지
+                </Link>
+                <LogoutButton className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-surface text-sm font-bold text-foreground transition hover:bg-surface-2">
+                  로그아웃
+                </LogoutButton>
+              </>
             ) : (
               <Link
                 href="/login"
