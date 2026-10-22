@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { getCategories } from "@/lib/actions/categories";
 import { createPost } from "@/lib/actions/posts";
 import MarkdownEditor from "@/app/_components/MarkdownEditor";
+import { useHydrated } from "@/app/_components/useHydrated";
 
 type DraftPayloadV1 = {
   version: 1;
@@ -96,24 +97,19 @@ export default function PostEditor({
     () => `post-editor-thumbnail-${componentId}`,
     [componentId]
   );
-  const [pendingDraft, setPendingDraft] = useState<DraftPayloadV1 | null>(null);
   // const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [, setDraftSavedAt] = useState<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
-
-  // Guard to ensure we check for drafts only once per session
-  const hasCheckedDraft = useRef(false);
-  const lastCheckedKey = useRef<string | null>(null);
+  const hydrated = useHydrated();
 
   // Layout state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // --- LOGIC SECTION (Copied & Adapted) ---
 
-  const draftKey = useMemo(() => {
-    if (initial?.id) return `draft:post:edit:${initial.id}`;
-    return `draft:post:new:${type}`;
-  }, [initial?.id, type]);
+  const draftKey = initial?.id
+    ? `draft:post:edit:${initial.id}`
+    : `draft:post:new:${type}`;
 
   const removeImageKey = useCallback(
     (key: string) => {
@@ -164,6 +160,35 @@ export default function PostEditor({
     return false;
   }, []);
 
+  // 처음 그릴 때 한 번, 지금 내용과 다른 임시저장 글이 있으면 불러오기 알림을 띄운다.
+  // localStorage는 브라우저에만 있어, 알림은 hydration 뒤(hydrated)에만 그린다.
+  const [pendingDraft, setPendingDraft] = useState<DraftPayloadV1 | null>(() => {
+    if (typeof window === "undefined") return null;
+
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as DraftPayloadV1;
+      if (!parsed || parsed.version !== 1) return null;
+      if (parsed.type !== type) return null;
+      if (!hasMeaningfulDraft(parsed)) return null;
+
+      const current = buildDraftPayload();
+      const differs =
+        parsed.title !== current.title ||
+        parsed.content !== current.content ||
+        parsed.visibility !== current.visibility ||
+        parsed.categorySlug !== current.categorySlug ||
+        parsed.thumbnailImageKey !== current.thumbnailImageKey ||
+        parsed.createdAtYmd !== current.createdAtYmd ||
+        JSON.stringify(parsed.imageKeys) !== JSON.stringify(current.imageKeys);
+
+      return differs ? parsed : null;
+    } catch {
+      return null;
+    }
+  });
+
   const clearDraft = useCallback(() => {
     try {
       localStorage.removeItem(draftKey);
@@ -208,11 +233,6 @@ export default function PostEditor({
     void refreshCategories();
   }, [refreshCategories]);
 
-  useEffect(() => {
-    if (type !== "feed") return;
-    if (visibility !== "public") setVisibility("public");
-  }, [type, visibility]);
-
   // Removed auto-clear thumbnail logic to allow independent thumbnails
   // useEffect(() => {
   //   if (type !== "blog") return;
@@ -220,59 +240,6 @@ export default function PostEditor({
   //   if (imageKeys.includes(thumbnailImageKey)) return;
   //   setThumbnailImageKey("");
   // }, [type, imageKeys, thumbnailImageKey]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    // Reset check status if key changes
-    if (lastCheckedKey.current !== draftKey) {
-      hasCheckedDraft.current = false;
-      lastCheckedKey.current = draftKey;
-    }
-
-    if (hasCheckedDraft.current) return;
-
-    try {
-      const raw = localStorage.getItem(draftKey);
-      if (!raw) {
-        hasCheckedDraft.current = true;
-        return;
-      }
-      const parsed = JSON.parse(raw) as DraftPayloadV1;
-      if (!parsed || parsed.version !== 1) {
-        hasCheckedDraft.current = true;
-        return;
-      }
-      if (parsed.type !== type) {
-        hasCheckedDraft.current = true;
-        return;
-      }
-      if (!hasMeaningfulDraft(parsed)) {
-        hasCheckedDraft.current = true;
-        return;
-      }
-
-      const current = buildDraftPayload();
-      const differs =
-        parsed.title !== current.title ||
-        parsed.content !== current.content ||
-        parsed.visibility !== current.visibility ||
-        parsed.categorySlug !== current.categorySlug ||
-        parsed.thumbnailImageKey !== current.thumbnailImageKey ||
-        parsed.createdAtYmd !== current.createdAtYmd ||
-        JSON.stringify(parsed.imageKeys) !== JSON.stringify(current.imageKeys);
-
-      hasCheckedDraft.current = true;
-
-      if (!differs) return;
-
-      setPendingDraft(parsed);
-      setDraftSavedAt(parsed.updatedAt);
-    } catch {
-      // ignore
-      hasCheckedDraft.current = true;
-    }
-  }, [buildDraftPayload, draftKey, hasMeaningfulDraft, type]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -422,7 +389,7 @@ export default function PostEditor({
       {/* ... (Editor Content remains same) */}
       <div className="flex-1 flex overflow-hidden bg-background">
         <div className="flex-1 flex flex-col min-w-0 overflow-visible relative">
-          {pendingDraft ? (
+          {hydrated && pendingDraft ? (
             <div className="fixed bottom-6 right-6 z-50 w-[calc(100%-3rem)] max-w-sm p-4 rounded-xl bg-surface border border-border shadow-2xl flex flex-col gap-3 animate-in slide-in-from-bottom-2 fade-in duration-300">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">

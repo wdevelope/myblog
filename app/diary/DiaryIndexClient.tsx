@@ -5,6 +5,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import { FiLock } from "react-icons/fi";
 import PostActionMenu from "@/app/_components/PostActionMenu";
+import { useHydrated } from "@/app/_components/useHydrated";
 
 type DiaryPost = {
   id: string;
@@ -143,9 +144,13 @@ export default function DiaryIndexClient({
   const [viewMode, setViewMode] = useState<"day" | "month">("day");
   const [selectedYmd, setSelectedYmd] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const hydrated = useHydrated();
 
-  // Initialize state from URL or localStorage
-  useEffect(() => {
+  // sessionStorage는 브라우저에만 있어 서버 HTML과 맞추려고 hydration 뒤의 첫 렌더에서 한 번만 읽는다.
+  // effect에서 읽으면 렌더가 한 번 더 연쇄되므로 렌더 중에 state를 맞춘다.
+  if (hydrated && !isInitialized) {
+    setIsInitialized(true);
+
     // 1. Check URL Params
     const urlYear = searchParams.get("year");
     const urlMonth = searchParams.get("month");
@@ -179,9 +184,7 @@ export default function DiaryIndexClient({
         // Ignore errors
       }
     }
-    setIsInitialized(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once on mount
+  }
 
   // Sync state to URL and LocalStorage
   useEffect(() => {

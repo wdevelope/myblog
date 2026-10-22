@@ -1,24 +1,12 @@
 "use client";
 
-import * as React from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 export function ThemeToggle() {
   const { setTheme, theme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
 
-  // Avoid hydration mismatch by only rendering after mounting
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div className="w-10 h-10 rounded-full border border-border/40 bg-surface/50 opacity-0" />
-    );
-  }
-
+  // 아이콘은 dark: 클래스로 바뀌고 theme는 클릭할 때만 읽어, 서버 HTML과 어긋나지 않아 마운트를 기다리지 않는다.
   return (
     <button
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
