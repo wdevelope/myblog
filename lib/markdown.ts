@@ -4,6 +4,7 @@ import markdownItCjkFriendly from "markdown-it-cjk-friendly";
 import markdownItIns from "markdown-it-ins";
 import markdownItMark from "markdown-it-mark";
 import { PRIVATE_IMAGE_BUCKET, PUBLIC_IMAGE_BUCKET, coverSrcFromImageKey } from "@/lib/image";
+import { parseImageUrl } from "@/lib/image-options";
 
 // html: false라 본문에 쓴 태그는 글자로 나간다. 그래서 별도 정화기 없이 렌더링 결과를 그대로 넣어도 된다.
 // cjk-friendly는 `**"중요"**는`처럼 문장부호로 끝난 강조 뒤에 조사가 붙으면 굵게가 풀리는 CommonMark 규칙을 고친다.
@@ -22,10 +23,13 @@ const renderLinkOpen = md.renderer.rules.link_open ?? renderToken;
 const renderTableOpen = md.renderer.rules.table_open ?? renderToken;
 const renderTableClose = md.renderer.rules.table_close ?? renderToken;
 
+// 크기·정렬은 주소 끝 조각에 있다(lib/image-options). 검증한 값만 스타일·클래스로 옮겨 본문 HTML을 열지 않는다.
 md.renderer.rules.image = (tokens, idx, options, env, self) => {
   const token = tokens[idx];
-  const src = token.attrGet("src") ?? "";
-  if (IMAGE_KEY.test(src)) token.attrSet("src", coverSrcFromImageKey(src));
+  const { src, options: image } = parseImageUrl(token.attrGet("src") ?? "");
+  token.attrSet("src", IMAGE_KEY.test(src) ? coverSrcFromImageKey(src) : src);
+  if (image.width) token.attrSet("style", `width:${image.width}%`);
+  if (image.align) token.attrSet("class", `img-align-${image.align}`);
   token.attrSet("loading", "lazy");
   return renderImage(tokens, idx, options, env, self);
 };

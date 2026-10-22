@@ -143,6 +143,23 @@ input[type="reset"]:not(:disabled),
   content: none;
 }
 
+/* 본문 이미지 정렬(lib/image-options). 정렬한 이미지는 한 줄을 차지한다. */
+.markdown-body img:is(.img-align-left, .img-align-center, .img-align-right) {
+  display: block;
+}
+
+.markdown-body img.img-align-left {
+  margin-right: auto;
+}
+
+.markdown-body img.img-align-center {
+  margin-inline: auto;
+}
+
+.markdown-body img.img-align-right {
+  margin-left: auto;
+}
+
 .markdown-body .katex-display {
   overflow-x: auto;
   overflow-y: hidden;

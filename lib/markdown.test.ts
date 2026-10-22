@@ -60,6 +60,25 @@ describe("마크다운 렌더링", () => {
     expect(html).toContain('loading="lazy"');
   });
 
+  it("이미지 주소 끝 조각의 폭·정렬을 스타일과 클래스로 바꾸고 조각은 주소에서 뗀다", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", SUPABASE_URL);
+    const html = renderMarkdown("![](post-images-public:2026-10-22/a.png#w=60&align=center)");
+    expect(html).toContain(`src="${SUPABASE_URL}/storage/v1/object/public/post-images-public/2026-10-22/a.png"`);
+    expect(html).toContain('style="width:60%"');
+    expect(html).toContain('class="img-align-center"');
+    expect(html).not.toContain("#w=60");
+  });
+
+  it("잘못된 폭·정렬 값은 무시하고 옵션이 아닌 조각은 주소에 남긴다", () => {
+    const invalid = renderMarkdown("![](https://example.com/a.png#w=500&align=top)");
+    expect(invalid).toContain('src="https://example.com/a.png"');
+    expect(invalid).not.toContain("style=");
+    expect(invalid).not.toContain("class=");
+    expect(renderMarkdown("![](https://example.com/a.png#section)")).toContain(
+      'src="https://example.com/a.png#section"',
+    );
+  });
+
   it("인라인 수식과 블록 수식을 KaTeX로 그린다", () => {
     expect(renderMarkdown("넓이는 $\\pi r^2$ 이다")).toContain('class="katex"');
     expect(renderMarkdown("$$\n\\sum_{i=1}^n i\n$$")).toContain("katex-display");
