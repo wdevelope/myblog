@@ -322,9 +322,10 @@ input[type="reset"]:not(:disabled),
   border-radius: 0.5rem;
 }
 
+/* 바깥에 그리면 작성 칸 왼쪽 끝에 붙은 이미지에서 CodeMirror 스크롤 영역이 테두리를 자르므로 안쪽에 그린다. */
 .markdown-editor .cm-md-image-frame.is-selected .cm-md-image {
   outline: 2px solid var(--primary);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 /* 툴바·손잡이가 작성 칸 밖으로 나가면 가로 스크롤이 생기므로, 툴바는 정렬한 쪽 가장자리에 붙이고 손잡이는 모서리 안쪽에 둔다. */
