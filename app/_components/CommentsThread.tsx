@@ -8,6 +8,7 @@ import { useSessionUser } from "@/app/_components/useSessionUser";
 import UserAvatar from "@/app/_components/UserAvatar";
 import { formatPostDate, userDisplayName } from "@/lib/utils";
 import { avatarSrc } from "@/lib/avatar";
+import { resetUserProfile } from "@/lib/actions/profile";
 import {
   createComment as createCommentAction,
   deleteComment as deleteCommentAction,
@@ -128,6 +129,43 @@ export default function CommentsThread({
     router.refresh();
   }
 
+  // 관리자 화면에서 부적절한 닉네임·사진을 내린다(18절). 관리자 댓글은 원래 로고·Owen이라 대상이 아니다.
+  function canResetProfile(comment: Comment) {
+    return Boolean(
+      isAdmin &&
+        !comment.authorIsAdmin &&
+        comment.authorId &&
+        (comment.authorNickname || comment.authorAvatarPath),
+    );
+  }
+
+  async function handleResetProfile(comment: Comment) {
+    if (!confirm(`${displayName(comment)}의 닉네임과 프로필 사진을 기본값으로 되돌릴까요?`)) {
+      return;
+    }
+
+    const result = await resetUserProfile(comment.authorId);
+    if (!result.success) {
+      alert(result.error ?? "프로필을 되돌리지 못했어요.");
+      return;
+    }
+
+    router.refresh();
+  }
+
+  function resetProfileButton(comment: Comment) {
+    if (!canResetProfile(comment)) return null;
+    return (
+      <button
+        type="button"
+        onClick={() => handleResetProfile(comment)}
+        className="inline-flex items-center gap-2 font-semibold hover:text-foreground transition"
+      >
+        프로필 초기화
+      </button>
+    );
+  }
+
   return (
     <section className="space-y-5">
       <div className="flex items-end justify-between gap-4">
@@ -199,6 +237,8 @@ export default function CommentsThread({
                           삭제
                         </button>
                       )}
+
+                      {resetProfileButton(c)}
                     </div>
                   </div>
                 </div>
@@ -240,6 +280,7 @@ export default function CommentsThread({
                               >
                                 삭제
                               </button>
+                              {resetProfileButton(r)}
                             </div>
                           )}
                         </div>

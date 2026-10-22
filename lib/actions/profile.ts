@@ -1,9 +1,10 @@
 "use server";
 
 import { z } from "zod";
-import { getViewer } from "@/lib/server/admin";
+import { assertAdmin, getViewer } from "@/lib/server/admin";
 import { getCommentedPosts, listAvatarPaths, revalidateCommentedPosts } from "@/lib/server/account";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { NICKNAME_MESSAGES, nicknameSchema } from "@/lib/nickname";
 import { AVATAR_BUCKET, isOwnAvatarPath } from "@/lib/avatar";
 
@@ -118,5 +119,35 @@ export async function removeAvatar(): Promise<ProfileResult> {
   }
 
   await refreshCommentedPosts(user.id);
+  return { success: true };
+}
+
+// 부적절한 닉네임·사진을 관리자가 댓글에서 바로 내린다(18절 결정 3). 남의 행·폴더라 관리자 판정 뒤 service role로 고친다.
+export async function resetUserProfile(userId: unknown): Promise<ProfileResult> {
+  if (!(await assertAdmin())) {
+    return { success: false, error: "forbidden" };
+  }
+  const parsed = z.uuid().safeParse(userId);
+  if (!parsed.success) {
+    return { success: false, error: "잘못된 사용자예요." };
+  }
+
+  const service = createSupabaseServiceClient();
+  const { error } = await service
+    .from("profiles")
+    .update({ nickname: null, avatar_path: null })
+    .eq("id", parsed.data);
+  if (error) {
+    return { success: false, error: `DB Error: ${error.message}` };
+  }
+
+  try {
+    const paths = await listAvatarPaths(service, parsed.data);
+    if (paths.length) await service.storage.from(AVATAR_BUCKET).remove(paths);
+  } catch {
+    // 경로는 이미 비워 화면에는 나오지 않는다.
+  }
+
+  await refreshCommentedPosts(parsed.data);
   return { success: true };
 }

@@ -17,6 +17,10 @@ vi.mock("@/lib/supabase/client", () => ({
   }),
 }));
 
+vi.mock("@/lib/actions/profile", () => ({
+  resetUserProfile: vi.fn(),
+}));
+
 vi.mock("@/lib/actions/comments", () => ({
   createComment: vi.fn(),
   deleteComment: vi.fn(),
@@ -89,5 +93,20 @@ describe("댓글 영역(정적 페이지 안의 클라이언트 말단)", () => 
 
     expect(screen.getByText("테스트회원")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "테스트회원" })).toBeInTheDocument();
+  });
+
+  it("관리자 화면에서만 닉네임·사진이 있는 일반 사용자 댓글에 프로필 초기화 버튼이 보인다", async () => {
+    const withProfiles: Comment[] = [
+      { ...comments[0], authorNickname: "닉네임" },
+      { ...comments[1] },
+      { id: "c3", postId: "p1", parentId: null, authorId: "admin-1", authorIsAdmin: true, authorNickname: "x", content: "관리자", createdAt: "2026-01-03T00:00:00Z" },
+    ];
+
+    render(<CommentsThread postSlug="hello" comments={withProfiles} isAdmin={false} />);
+    expect(screen.queryByRole("button", { name: "프로필 초기화" })).not.toBeInTheDocument();
+    cleanup();
+
+    render(<CommentsThread postSlug="hello" comments={withProfiles} isAdmin />);
+    expect(screen.getAllByRole("button", { name: "프로필 초기화" })).toHaveLength(1);
   });
 });

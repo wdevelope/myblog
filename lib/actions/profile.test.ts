@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { removeAvatar, updateAvatar, updateNickname } from "@/lib/actions/profile";
+import { removeAvatar, resetUserProfile, updateAvatar, updateNickname } from "@/lib/actions/profile";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 
 type Result = { data: unknown; error: { code?: string; message: string } | null };
@@ -10,6 +10,28 @@ const mocks = vi.hoisted(() => ({
   results: {} as Record<string, Result>,
   storageFiles: [] as { name: string }[],
   removed: [] as string[][],
+  serviceCalls: [] as unknown[][],
+}));
+
+// 관리자 되돌리기는 남의 행·폴더를 고치므로 service role을 쓴다.
+vi.mock("@/lib/supabase/service", () => ({
+  createSupabaseServiceClient: () => {
+    const query = {
+      update: (...args: unknown[]) => (mocks.serviceCalls.push(["update", ...args]), query),
+      eq: async (...args: unknown[]) => (mocks.serviceCalls.push(["eq", ...args]), { error: null }),
+    };
+    return {
+      from: (table: string) => (mocks.serviceCalls.push(["from", table]), query),
+      storage: {
+        from: () => ({
+          list: async (folder: string) => (
+            mocks.serviceCalls.push(["list", folder]), { data: mocks.storageFiles, error: null }
+          ),
+          remove: async (paths: string[]) => (mocks.removed.push(paths), { data: [], error: null }),
+        }),
+      },
+    };
+  },
 }));
 
 vi.mock("@/lib/server/publicPosts", () => ({
@@ -49,6 +71,7 @@ beforeEach(() => {
   mocks.results = {};
   mocks.storageFiles = [];
   mocks.removed.length = 0;
+  mocks.serviceCalls.length = 0;
   mocks.getUser.mockResolvedValue({ data: { user: member }, error: null });
 });
 
@@ -151,5 +174,42 @@ describe("프로필 사진 지우기", () => {
 
     expect(mocks.calls).toContainEqual(["profiles", "update", { avatar_path: null }]);
     expect(mocks.removed).toEqual([[`${OWN}/${OLD_FILE}`]]);
+  });
+});
+
+const TARGET = "8353737f-5798-4b26-83b8-64cb7ab94240";
+
+describe("관리자 되돌리기", () => {
+  it("관리자가 아니면 아무것도 바꾸지 않는다", async () => {
+    expect(await resetUserProfile(TARGET)).toEqual({ success: false, error: "forbidden" });
+    expect(mocks.serviceCalls).toEqual([]);
+  });
+
+  it("관리자는 그 사용자의 닉네임·사진을 비우고 사진 파일을 지운 뒤 댓글 단 글을 무효화한다", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: { ...member, app_metadata: { is_admin: true } } },
+      error: null,
+    });
+    mocks.storageFiles = [{ name: OLD_FILE }];
+    mocks.results.comments = { data: [{ posts: { slug: "hello", type: "blog" } }], error: null };
+
+    expect(await resetUserProfile(TARGET)).toEqual({ success: true });
+
+    expect(mocks.serviceCalls).toContainEqual(["from", "profiles"]);
+    expect(mocks.serviceCalls).toContainEqual(["update", { nickname: null, avatar_path: null }]);
+    expect(mocks.serviceCalls).toContainEqual(["eq", "id", TARGET]);
+    expect(mocks.removed).toEqual([[`${TARGET}/${OLD_FILE}`]]);
+    expect(mocks.calls).toContainEqual(["comments", "eq", "author_id", TARGET]);
+    expect(revalidatePublicPosts).toHaveBeenCalledWith({ type: "blog", slugs: ["hello"] });
+  });
+
+  it("사용자 id가 uuid가 아니면 바꾸지 않는다", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: { ...member, app_metadata: { is_admin: true } } },
+      error: null,
+    });
+
+    expect(await resetUserProfile("../etc")).toMatchObject({ success: false });
+    expect(mocks.serviceCalls).toEqual([]);
   });
 });
