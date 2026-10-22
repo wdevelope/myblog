@@ -68,6 +68,12 @@ begin
     raise notice '테스트 계정(관리자·일반)이 없어 댓글을 건너뛴다';
     return;
   end if;
+
+  -- 닉네임이 없는 일반 계정에 닉네임 하나(18절). 다른 계정이 이미 쓰면 건너뛴다.
+  update public.profiles set nickname = '테스트회원'
+  where id = member_id and nickname is null
+    and not exists (select 1 from public.profiles where lower(nickname) = lower('테스트회원'));
+
   if exists (select 1 from public.comments where post_id = target_post) then
     return;
   end if;
