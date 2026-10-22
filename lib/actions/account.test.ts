@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   deleteUser: vi.fn(),
   calls: [] as unknown[][],
   comments: [] as unknown[],
+  avatarFiles: [] as { name: string }[],
+  removed: [] as string[][],
 }));
 
 vi.mock("@/lib/server/publicPosts", () => ({
@@ -31,6 +33,12 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/supabase/service", () => ({
   createSupabaseServiceClient: () => ({
     auth: { admin: { deleteUser: mocks.deleteUser } },
+    storage: {
+      from: () => ({
+        list: async () => ({ data: mocks.avatarFiles, error: null }),
+        remove: async (paths: string[]) => (mocks.removed.push(paths), { data: [], error: null }),
+      }),
+    },
   }),
 }));
 
@@ -40,6 +48,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.calls.length = 0;
   mocks.comments = [];
+  mocks.avatarFiles = [];
+  mocks.removed.length = 0;
   mocks.deleteUser.mockResolvedValue({ data: {}, error: null });
 });
 
@@ -89,6 +99,15 @@ describe("회원 탈퇴", () => {
     expect(revalidatePublicPosts).toHaveBeenCalledTimes(2);
   });
 
+  it("계정을 지운 뒤 그 사용자의 프로필 사진 파일도 지운다(Storage는 계정과 함께 지워지지 않는다)", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: member }, error: null });
+    mocks.avatarFiles = [{ name: "a.jpg" }];
+
+    expect(await deleteAccount()).toEqual({ success: true });
+
+    expect(mocks.removed).toEqual([["user-1/a.jpg"]]);
+  });
+
   it("계정 삭제가 실패하면 캐시를 무효화하지 않고 실패를 돌려준다", async () => {
     mocks.getUser.mockResolvedValue({ data: { user: member }, error: null });
     mocks.comments = [{ posts: { slug: "a", type: "blog" } }];
@@ -96,5 +115,6 @@ describe("회원 탈퇴", () => {
 
     expect(await deleteAccount()).toMatchObject({ success: false });
     expect(revalidatePublicPosts).not.toHaveBeenCalled();
+    expect(mocks.removed).toEqual([]);
   });
 });

@@ -4,11 +4,13 @@ import UserAvatar from "@/app/_components/UserAvatar";
 import LogoutButton from "@/app/_components/LogoutButton";
 import MyCommentList from "@/app/mypage/MyCommentList";
 import NicknameForm from "@/app/mypage/NicknameForm";
+import AvatarForm from "@/app/mypage/AvatarForm";
 import PasswordChangeForm from "@/app/mypage/PasswordChangeForm";
 import DeleteAccountButton from "@/app/mypage/DeleteAccountButton";
 import { getViewer, requireLogin } from "@/lib/server/admin";
 import { getMyComments, getMyProfile } from "@/lib/server/account";
 import { formatPostDate, userDisplayName } from "@/lib/utils";
+import { avatarSrc } from "@/lib/avatar";
 
 export const metadata: Metadata = {
   title: "마이페이지",
@@ -29,7 +31,7 @@ export default async function MyPage() {
 
       <Card>
         <CardBody className="flex flex-wrap items-center gap-4">
-          <UserAvatar isAdmin={isAdmin} label={name} className="size-16" />
+          <UserAvatar isAdmin={isAdmin} label={name} src={avatarSrc(profile.avatarPath)} className="size-16" />
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex items-center gap-2">
               <span className="text-lg font-bold text-foreground">{name}</span>
@@ -47,6 +49,7 @@ export default async function MyPage() {
         <Card>
           <CardBody className="space-y-4">
             <h2 className="text-sm font-black tracking-tight text-foreground">프로필</h2>
+            <AvatarForm userId={user.id} hasAvatar={Boolean(profile.avatarPath)} />
             <NicknameForm current={profile.nickname} />
           </CardBody>
         </Card>

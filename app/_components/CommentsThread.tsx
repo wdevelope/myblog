@@ -7,6 +7,7 @@ import type { Comment } from "@/lib/types";
 import { useSessionUser } from "@/app/_components/useSessionUser";
 import UserAvatar from "@/app/_components/UserAvatar";
 import { formatPostDate, userDisplayName } from "@/lib/utils";
+import { avatarSrc } from "@/lib/avatar";
 import {
   createComment as createCommentAction,
   deleteComment as deleteCommentAction,
@@ -161,7 +162,7 @@ export default function CommentsThread({
             return (
               <div key={c.id} className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <UserAvatar isAdmin={c.authorIsAdmin} label={displayName(c)} />
+                  <UserAvatar isAdmin={c.authorIsAdmin} label={displayName(c)} src={avatarSrc(c.authorAvatarPath)} />
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       <span className="font-bold text-foreground">
@@ -216,7 +217,7 @@ export default function CommentsThread({
                   <div className="ml-14 space-y-4 border-l-2 border-border pl-5">
                     {replies.map((r) => (
                       <div key={r.id} className="flex items-start gap-4">
-                        <UserAvatar isAdmin={r.authorIsAdmin} label={displayName(r)} />
+                        <UserAvatar isAdmin={r.authorIsAdmin} label={displayName(r)} src={avatarSrc(r.authorAvatarPath)} />
                         <div className="min-w-0 flex-1 space-y-2">
                           <div className="flex flex-wrap items-center gap-2 text-xs">
                             <span className="font-bold text-foreground">

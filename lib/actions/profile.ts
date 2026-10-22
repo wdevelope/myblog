@@ -1,9 +1,11 @@
 "use server";
 
+import { z } from "zod";
 import { getViewer } from "@/lib/server/admin";
-import { getCommentedPosts, revalidateCommentedPosts } from "@/lib/server/account";
+import { getCommentedPosts, listAvatarPaths, revalidateCommentedPosts } from "@/lib/server/account";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { NICKNAME_MESSAGES, nicknameSchema } from "@/lib/nickname";
+import { AVATAR_BUCKET, isOwnAvatarPath } from "@/lib/avatar";
 
 export type ProfileResult = { success: true } | { success: false; error: string };
 
@@ -42,6 +44,77 @@ export async function updateNickname(input: unknown): Promise<ProfileResult> {
     if (error.code === "23505") return { success: false, error: NICKNAME_MESSAGES.taken };
     if (error.code === "23514") return { success: false, error: NICKNAME_MESSAGES.invalid };
     return { success: false, error: `DB Error: ${error.message}` };
+  }
+
+  await refreshCommentedPosts(user.id);
+  return { success: true };
+}
+
+// 브라우저가 본인 폴더에 새 이름으로 올린 뒤 그 경로를 넘긴다. 경로 모양과 파일이 실제로 있는지 보고 저장한다.
+export async function updateAvatar(path: unknown): Promise<ProfileResult> {
+  const { user, isAdmin } = await getViewer();
+  if (!user) {
+    return { success: false, error: "unauthorized" };
+  }
+  if (isAdmin) {
+    return { success: false, error: ADMIN_PROFILE_FIXED };
+  }
+
+  const parsed = z.string().safeParse(path);
+  if (!parsed.success || !isOwnAvatarPath(user.id, parsed.data)) {
+    return { success: false, error: "잘못된 사진 경로예요." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  let paths: string[];
+  try {
+    paths = await listAvatarPaths(supabase, user.id);
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Storage Error" };
+  }
+  if (!paths.includes(parsed.data)) {
+    return { success: false, error: "올린 사진을 찾지 못했어요. 다시 올려 주세요." };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ avatar_path: parsed.data })
+    .eq("id", user.id);
+  if (error) {
+    return { success: false, error: `DB Error: ${error.message}` };
+  }
+
+  // 이전 사진(과 저장하지 못하고 남은 파일)을 지운다. 실패해도 사진 바꾸기는 끝났다.
+  const stale = paths.filter((p) => p !== parsed.data);
+  if (stale.length) await supabase.storage.from(AVATAR_BUCKET).remove(stale);
+
+  await refreshCommentedPosts(user.id);
+  return { success: true };
+}
+
+export async function removeAvatar(): Promise<ProfileResult> {
+  const { user, isAdmin } = await getViewer();
+  if (!user) {
+    return { success: false, error: "unauthorized" };
+  }
+  if (isAdmin) {
+    return { success: false, error: ADMIN_PROFILE_FIXED };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ avatar_path: null })
+    .eq("id", user.id);
+  if (error) {
+    return { success: false, error: `DB Error: ${error.message}` };
+  }
+
+  try {
+    const paths = await listAvatarPaths(supabase, user.id);
+    if (paths.length) await supabase.storage.from(AVATAR_BUCKET).remove(paths);
+  } catch {
+    // 경로는 이미 비웠다. 남은 파일은 본인 폴더에만 있고 다음에 올릴 때 지운다.
   }
 
   await refreshCommentedPosts(user.id);

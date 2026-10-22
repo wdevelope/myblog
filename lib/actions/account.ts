@@ -1,8 +1,9 @@
 "use server";
 
 import { getViewer } from "@/lib/server/admin";
-import { getCommentedPosts, revalidateCommentedPosts } from "@/lib/server/account";
+import { getCommentedPosts, listAvatarPaths, revalidateCommentedPosts } from "@/lib/server/account";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { AVATAR_BUCKET } from "@/lib/avatar";
 
 export type DeleteAccountResult =
   | { success: true }
@@ -26,10 +27,18 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
     return { success: false, error: e instanceof Error ? e.message : "DB Error" };
   }
 
-  const { error } = await createSupabaseServiceClient().auth.admin.deleteUser(user.id);
+  const service = createSupabaseServiceClient();
+  const { error } = await service.auth.admin.deleteUser(user.id);
   if (error) {
     return { success: false, error: "탈퇴에 실패했어요." };
   }
+
+  // Storage 파일은 계정과 함께 지워지지 않는다. 계정을 지운 뒤에 지워야, 탈퇴가 실패했을 때 사진만 사라지지 않는다.
+  // 실패해도 탈퇴는 끝났다(남은 파일은 어느 화면에서도 가리키지 않는다).
+  try {
+    const paths = await listAvatarPaths(service, user.id);
+    if (paths.length) await service.storage.from(AVATAR_BUCKET).remove(paths);
+  } catch {}
 
   revalidateCommentedPosts(commentedPosts);
 

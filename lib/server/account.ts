@@ -1,5 +1,7 @@
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { AVATAR_BUCKET } from "@/lib/avatar";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 import type { MyComment, MyProfile, PostType } from "@/lib/types";
 
@@ -65,4 +67,15 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
 
   if (error) throw new Error(`DB Error: ${error.message}`);
   return { nickname: data?.nickname ?? null, avatarPath: data?.avatar_path ?? null };
+}
+
+// 사진은 덮어쓰지 않고 매번 새 이름으로 올리므로, 바꾸거나 지울 때 폴더(<id>/)를 읽어 이전 파일을 찾는다.
+// 사용자 클라이언트는 Storage 정책상 본인 폴더만, service role은 아무 폴더나 읽는다.
+export async function listAvatarPaths(
+  client: Pick<SupabaseClient, "storage">,
+  userId: string,
+): Promise<string[]> {
+  const { data, error } = await client.storage.from(AVATAR_BUCKET).list(userId, { limit: 100 });
+  if (error) throw new Error(`Storage Error: ${error.message}`);
+  return (data ?? []).map((file) => `${userId}/${file.name}`);
 }

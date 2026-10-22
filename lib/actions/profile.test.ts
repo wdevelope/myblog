@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { updateNickname } from "@/lib/actions/profile";
+import { removeAvatar, updateAvatar, updateNickname } from "@/lib/actions/profile";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 
 type Result = { data: unknown; error: { code?: string; message: string } | null };
@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   calls: [] as unknown[][],
   results: {} as Record<string, Result>,
+  storageFiles: [] as { name: string }[],
+  removed: [] as string[][],
 }));
 
 vi.mock("@/lib/server/publicPosts", () => ({
@@ -18,6 +20,14 @@ vi.mock("@/lib/server/publicPosts", () => ({
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: async () => ({
     auth: { getUser: mocks.getUser },
+    storage: {
+      from: (bucket: string) => ({
+        list: async (folder: string) => (
+          mocks.calls.push([bucket, "list", folder]), { data: mocks.storageFiles, error: null }
+        ),
+        remove: async (paths: string[]) => (mocks.removed.push(paths), { data: [], error: null }),
+      }),
+    },
     from: (table: string) => {
       const result = mocks.results[table] ?? { data: null, error: null };
       const query = {
@@ -37,6 +47,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.calls.length = 0;
   mocks.results = {};
+  mocks.storageFiles = [];
+  mocks.removed.length = 0;
   mocks.getUser.mockResolvedValue({ data: { user: member }, error: null });
 });
 
@@ -86,5 +98,58 @@ describe("닉네임 바꾸기", () => {
       error: "이미 쓰는 닉네임이에요.",
     });
     expect(revalidatePublicPosts).not.toHaveBeenCalled();
+  });
+});
+
+const OWN = "user-1";
+const NEW_FILE = "11111111-2222-3333-4444-555555555555.jpg";
+const OLD_FILE = "99999999-8888-7777-6666-555555555555.jpg";
+
+describe("프로필 사진 바꾸기", () => {
+  it("본인 폴더의 uuid JPEG가 아니면 저장하지 않는다", async () => {
+    expect(await updateAvatar(`someone/${NEW_FILE}`)).toMatchObject({ success: false });
+    expect(await updateAvatar(`${OWN}/evil.svg`)).toMatchObject({ success: false });
+    expect(mocks.calls.filter((c) => c[1] === "update")).toEqual([]);
+  });
+
+  it("올린 파일이 폴더에 없으면 저장하지 않는다", async () => {
+    mocks.storageFiles = [{ name: OLD_FILE }];
+
+    expect(await updateAvatar(`${OWN}/${NEW_FILE}`)).toMatchObject({ success: false });
+    expect(mocks.calls.filter((c) => c[1] === "update")).toEqual([]);
+  });
+
+  it("경로를 저장하고 폴더의 이전 파일을 지운 뒤 댓글 단 글을 무효화한다", async () => {
+    mocks.storageFiles = [{ name: OLD_FILE }, { name: NEW_FILE }];
+    mocks.results.comments = { data: [{ posts: { slug: "hello", type: "blog" } }], error: null };
+
+    expect(await updateAvatar(`${OWN}/${NEW_FILE}`)).toEqual({ success: true });
+
+    expect(mocks.calls).toContainEqual(["avatars", "list", OWN]);
+    expect(mocks.calls).toContainEqual(["profiles", "update", { avatar_path: `${OWN}/${NEW_FILE}` }]);
+    expect(mocks.removed).toEqual([[`${OWN}/${OLD_FILE}`]]);
+    expect(revalidatePublicPosts).toHaveBeenCalledWith({ type: "blog", slugs: ["hello"] });
+  });
+
+  it("관리자는 로고로 고정이라 바꾸지 않는다", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: { ...member, app_metadata: { is_admin: true } } },
+      error: null,
+    });
+
+    expect(await updateAvatar(`${OWN}/${NEW_FILE}`)).toMatchObject({ success: false });
+    expect(await removeAvatar()).toMatchObject({ success: false });
+    expect(mocks.calls).toEqual([]);
+  });
+});
+
+describe("프로필 사진 지우기", () => {
+  it("경로를 비우고 폴더의 파일을 모두 지운다", async () => {
+    mocks.storageFiles = [{ name: OLD_FILE }];
+
+    expect(await removeAvatar()).toEqual({ success: true });
+
+    expect(mocks.calls).toContainEqual(["profiles", "update", { avatar_path: null }]);
+    expect(mocks.removed).toEqual([[`${OWN}/${OLD_FILE}`]]);
   });
 });
