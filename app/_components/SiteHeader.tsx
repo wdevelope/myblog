@@ -15,7 +15,7 @@ function Brand() {
       href="/"
       className="group flex items-center gap-3 text-foreground transition-opacity hover:opacity-90"
     >
-      <span className="flex size-9 items-center justify-center overflow-hidden rounded-xl bg-primary/15 ring-1 ring-primary/20">
+      <span className="flex size-9 items-center justify-center overflow-hidden rounded-xl bg-primary/15">
         <Image
           src="/site-logo.png"
           alt="Logo"
