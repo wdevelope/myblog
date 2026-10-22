@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useEffect, useTransition } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useMemo, useState, useEffect } from "react";
+import { useSearchParams, usePathname } from "next/navigation";
 import { FiLock } from "react-icons/fi";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 
@@ -136,11 +136,9 @@ export default function DiaryIndexClient({
   posts: DiaryPost[];
   isAdmin: boolean;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [isPending, startTransition] = useTransition();
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [viewMode, setViewMode] = useState<"day" | "month">("day");
   const [selectedYmd, setSelectedYmd] = useState<string | null>(null);
@@ -219,11 +217,11 @@ export default function DiaryIndexClient({
       } else {
         params.delete("date");
       }
-      startTransition(() => {
-        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-      });
+      // router.replace는 같은 페이지라도 서버에 다시 요청한다(관리자면 다이어리 전체를 다시 읽는다).
+      // 주소만 바꾸면 되므로 history를 직접 쓴다. Next가 useSearchParams와 동기화한다.
+      window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
     }
-  }, [month, selectedYmd, isInitialized, pathname, router, searchParams, startTransition]);
+  }, [month, selectedYmd, isInitialized, pathname, searchParams]);
 
   const entryDays = useMemo(() => {
     const set = new Set<string>();
@@ -298,10 +296,7 @@ export default function DiaryIndexClient({
             {isAdmin ? (
               <Link
                 href={buildWriteHref(selectedYmd)}
-                className={[
-                  "inline-flex h-9 items-center justify-center rounded-xl bg-primary px-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110",
-                  isPending ? "opacity-50" : ""
-                ].join(" ")}
+                className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
               >
                 다이어리 쓰기
               </Link>
