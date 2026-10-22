@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag, updateTag } from "next/cache";
 import {
   getPublicCategories,
   getPublicComments,
@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
+  updateTag: vi.fn(),
   unstable_cache: (fn: () => unknown) => fn,
 }));
 
@@ -265,27 +266,42 @@ describe("카테고리별 공개 글 수", () => {
 });
 
 describe("revalidatePublicPosts", () => {
-  it("피드는 상세 화면이 없어 목록 경로와 피드 태그만 무효화한다", () => {
+  beforeEach(() => {
     vi.mocked(revalidatePath).mockClear();
     vi.mocked(revalidateTag).mockClear();
+    vi.mocked(updateTag).mockClear();
+  });
 
+  // revalidateTag(tag, profile)는 낡음 표시라 쓴 직후 첫 방문자가 이전 목록을 받는다(로드맵 16절).
+  it("태그를 바로 만료해 쓴 직후 첫 방문자도 새 목록을 받게 한다", () => {
+    revalidatePublicPosts({ type: "blog" });
+
+    expect(vi.mocked(updateTag).mock.calls).toEqual([["posts:public:blog"]]);
+    expect(revalidateTag).not.toHaveBeenCalled();
+  });
+
+  // 목록 페이지는 (home)·(list) route group 안에 있어 type을 주면 파일 경로 태그와 맞지 않는다.
+  it("목록 경로는 type 없이 주소로 무효화한다", () => {
+    revalidatePublicPosts({ type: "diary", slugs: ["d1"] });
+
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([["/"], ["/diary"], ["/diary/d1"]]);
+  });
+
+  it("피드는 상세 화면이 없어 목록 경로와 피드 태그만 무효화한다", () => {
     revalidatePublicPosts({ type: "feed", slugs: ["photo"], categories: ["dev"] });
 
-    expect(vi.mocked(revalidatePath).mock.calls.map(([path]) => path)).toEqual(["/", "/feed"]);
-    expect(vi.mocked(revalidateTag).mock.calls).toEqual([["posts:public:feed", "default"]]);
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([["/"], ["/feed"]]);
+    expect(vi.mocked(updateTag).mock.calls).toEqual([["posts:public:feed"]]);
   });
 
   it("같은 카테고리·slug는 한 번만, 비어 있는 값은 건너뛴다", () => {
-    vi.mocked(revalidatePath).mockClear();
-    vi.mocked(revalidateTag).mockClear();
-
     revalidatePublicPosts({ type: "blog", slugs: ["a", "a", null], categories: ["dev", "dev", undefined] });
 
-    expect(vi.mocked(revalidateTag).mock.calls).toEqual([
-      ["posts:public:blog", "default"],
-      ["posts:public:blog:category:dev", "default"],
+    expect(vi.mocked(updateTag).mock.calls).toEqual([
+      ["posts:public:blog"],
+      ["posts:public:blog:category:dev"],
     ]);
-    expect(vi.mocked(revalidatePath).mock.calls.map(([path]) => path)).toEqual(["/", "/article", "/article/a"]);
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([["/"], ["/article"], ["/article/a"]]);
   });
 });
 

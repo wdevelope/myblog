@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createComment, deleteComment } from "@/lib/actions/comments";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
+  updateTag: vi.fn(),
   unstable_cache: (fn: () => unknown) => fn,
 }));
 
@@ -112,7 +113,7 @@ describe("댓글 공개 캐시 무효화", () => {
 
     expect(result.success).toBe(true);
     expect(revalidatePath).toHaveBeenCalledWith("/article/hello");
-    expect(revalidateTag).toHaveBeenCalledWith("posts:public:blog", "default");
+    expect(updateTag).toHaveBeenCalledWith("posts:public:blog");
   });
 
   it("댓글을 지우면 그 글의 상세 경로를 무효화한다", async () => {

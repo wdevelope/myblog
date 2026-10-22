@@ -1,6 +1,6 @@
 import "server-only";
 
-import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
+import { revalidatePath, unstable_cache, updateTag } from "next/cache";
 import type { Comment, Post, PostType } from "@/lib/types";
 import { postHref } from "@/lib/constants";
 import { getSupabaseEnv } from "@/lib/supabase/env";
@@ -48,20 +48,23 @@ export function publicBlogCategoryTag(categorySlug: string) {
 
 // 쓰기 액션이 공개 캐시를 무효화하는 유일한 길. 글을 고치면 slug·카테고리가 바뀔 수 있어
 // 바뀌기 전·후 값을 모두 받는다.
+// updateTag는 서버 액션에서만 부를 수 있다. revalidateTag(tag, profile)는 낡음 표시라
+// 쓴 직후 첫 방문자가 이전 목록을 받는다(로드맵 16절).
 export function revalidatePublicPosts(params: {
   type: PostType;
   slugs?: (string | null | undefined)[];
   categories?: (string | null | undefined)[];
 }) {
-  revalidateTag(publicPostsTag(params.type), "default");
+  updateTag(publicPostsTag(params.type));
   if (params.type === "blog") {
     for (const category of new Set(params.categories)) {
-      if (category) revalidateTag(publicBlogCategoryTag(category), "default");
+      if (category) updateTag(publicBlogCategoryTag(category));
     }
   }
 
-  revalidatePath("/", "page");
-  revalidatePath(postHref(params.type), "page");
+  // 목록 페이지는 (home)·(list) route group 안에 있어 type을 주면 태그가 맞지 않는다. 주소로 무효화한다.
+  revalidatePath("/");
+  revalidatePath(postHref(params.type));
   if (params.type === "feed") return;
   for (const slug of new Set(params.slugs)) {
     if (slug) revalidatePath(postHref(params.type, slug));

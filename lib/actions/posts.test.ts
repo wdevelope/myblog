@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createPost, deletePost } from "@/lib/actions/posts";
 
 type QueryResult = { data: unknown; error: null };
@@ -59,6 +59,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
+  updateTag: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -164,8 +165,8 @@ describe("createPost 캐시 무효화", () => {
     const result = await createPost({ ...blogInput, id: "post-1", slug: "post-abc" });
 
     expect(result.success).toBe(true);
-    expect(revalidateTag).toHaveBeenCalledWith("posts:public:blog:category:old", "default");
-    expect(revalidateTag).toHaveBeenCalledWith("posts:public:blog:category:dev", "default");
+    expect(updateTag).toHaveBeenCalledWith("posts:public:blog:category:old");
+    expect(updateTag).toHaveBeenCalledWith("posts:public:blog:category:dev");
   });
 
   it("아티클은 없는 /blog 경로가 아니라 /article 목록과 상세를 무효화한다", async () => {
