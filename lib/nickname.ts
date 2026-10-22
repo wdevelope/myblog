@@ -1,7 +1,5 @@
-import { z } from "zod";
-
 // DB의 nickname_problem(20261022070000)과 같은 규칙이다. 최종 판정은 저장할 때 DB 제약이 하고, 여기는 바로 보이는 안내와
-// 서버 액션 입력 검증용이다. 한쪽을 바꾸면 다른 쪽도 같이 바꾼다.
+// 서버 액션 입력 검증용이다. 한쪽을 바꾸면 다른 쪽도 같이 바꾼다. 가입 폼이 import하므로 zod를 두지 않는다(공개 번들).
 const NICKNAME_PATTERN = /^[가-힣A-Za-z0-9_]{2,12}$/;
 const RESERVED_PATTERN = /(owen|오웬|관리자|운영자|admin)/i;
 
@@ -19,11 +17,3 @@ export function nicknameProblem(name: string): "invalid" | "reserved" | null {
   if (RESERVED_PATTERN.test(name)) return "reserved";
   return null;
 }
-
-export const nicknameSchema = z
-  .string()
-  .trim()
-  .superRefine((name, ctx) => {
-    const problem = nicknameProblem(name);
-    if (problem) ctx.addIssue({ code: "custom", message: NICKNAME_MESSAGES[problem] });
-  });

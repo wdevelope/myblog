@@ -5,12 +5,20 @@ import { assertAdmin, getViewer } from "@/lib/server/admin";
 import { getCommentedPosts, listAvatarPaths, revalidateCommentedPosts } from "@/lib/server/account";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { NICKNAME_MESSAGES, nicknameSchema } from "@/lib/nickname";
+import { NICKNAME_MESSAGES, nicknameProblem } from "@/lib/nickname";
 import { AVATAR_BUCKET, isOwnAvatarPath } from "@/lib/avatar";
 
 export type ProfileResult = { success: true } | { success: false; error: string };
 
 const ADMIN_PROFILE_FIXED = "관리자는 Owen과 로고로 고정이에요.";
+
+const nicknameSchema = z
+  .string()
+  .trim()
+  .superRefine((name, ctx) => {
+    const problem = nicknameProblem(name);
+    if (problem) ctx.addIssue({ code: "custom", message: NICKNAME_MESSAGES[problem] });
+  });
 
 // 이름·사진은 그 사람이 댓글을 단 정적 글에 들어 있다. 저장은 이미 끝났으므로 무효화를 위한 조회가 실패해도
 // 실패로 돌려주지 않는다(그 글들은 ISR 주기 안에 다시 만들어진다).

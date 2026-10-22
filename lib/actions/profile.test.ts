@@ -99,6 +99,7 @@ describe("닉네임 바꾸기", () => {
       error: "운영자로 보일 수 있는 이름은 쓸 수 없어요.",
     });
     expect(await updateNickname("a")).toMatchObject({ success: false });
+    expect(await updateNickname(3)).toMatchObject({ success: false });
     expect(mocks.calls).toEqual([]);
   });
 

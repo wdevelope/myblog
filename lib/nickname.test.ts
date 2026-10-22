@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nicknameProblem, nicknameSchema } from "@/lib/nickname";
+import { nicknameProblem } from "@/lib/nickname";
 
 describe("닉네임 규칙", () => {
   it("한글·영문·숫자·_로 2~12자만 받는다", () => {
@@ -20,11 +20,5 @@ describe("닉네임 규칙", () => {
     expect(nicknameProblem("관리자님")).toBe("reserved");
     expect(nicknameProblem("운영자")).toBe("reserved");
     expect(nicknameProblem("ADMIN2")).toBe("reserved");
-  });
-
-  it("스키마는 앞뒤 공백을 잘라 검사하고 잘린 값을 돌려준다", () => {
-    expect(nicknameSchema.safeParse("  테스트  ")).toMatchObject({ success: true, data: "테스트" });
-    expect(nicknameSchema.safeParse("Owen").success).toBe(false);
-    expect(nicknameSchema.safeParse(3).success).toBe(false);
   });
 });
