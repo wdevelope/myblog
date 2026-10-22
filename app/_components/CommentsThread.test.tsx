@@ -79,4 +79,15 @@ describe("댓글 영역(정적 페이지 안의 클라이언트 말단)", () => 
     expect(memberAvatar.querySelector("img")).toBeNull();
     expect(memberAvatar.querySelector("svg")).not.toBeNull();
   });
+
+  it("닉네임이 있는 사용자는 닉네임으로 보인다", () => {
+    const withNickname: Comment[] = [
+      { ...comments[1], authorNickname: "테스트회원" },
+    ];
+
+    render(<CommentsThread postSlug="hello" comments={withNickname} isAdmin={false} />);
+
+    expect(screen.getByText("테스트회원")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "테스트회원" })).toBeInTheDocument();
+  });
 });

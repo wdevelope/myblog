@@ -3,10 +3,11 @@ import { Badge, Card, CardBody } from "@/app/_components/ui";
 import UserAvatar from "@/app/_components/UserAvatar";
 import LogoutButton from "@/app/_components/LogoutButton";
 import MyCommentList from "@/app/mypage/MyCommentList";
+import NicknameForm from "@/app/mypage/NicknameForm";
 import PasswordChangeForm from "@/app/mypage/PasswordChangeForm";
 import DeleteAccountButton from "@/app/mypage/DeleteAccountButton";
 import { getViewer, requireLogin } from "@/lib/server/admin";
-import { getMyComments } from "@/lib/server/account";
+import { getMyComments, getMyProfile } from "@/lib/server/account";
 import { formatPostDate, userDisplayName } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -19,8 +20,8 @@ export const dynamic = "force-dynamic";
 export default async function MyPage() {
   const user = await requireLogin("/mypage");
   const { isAdmin } = await getViewer();
-  const comments = await getMyComments(user.id);
-  const name = userDisplayName(user.id, isAdmin);
+  const [comments, profile] = await Promise.all([getMyComments(user.id), getMyProfile(user.id)]);
+  const name = userDisplayName(user.id, isAdmin, profile.nickname);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 py-2 sm:py-6">
@@ -40,6 +41,16 @@ export default async function MyPage() {
           <LogoutButton className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-surface-2" />
         </CardBody>
       </Card>
+
+      {/* 관리자는 로고·Owen으로 고정이다(18절 결정 2). */}
+      {isAdmin ? null : (
+        <Card>
+          <CardBody className="space-y-4">
+            <h2 className="text-sm font-black tracking-tight text-foreground">프로필</h2>
+            <NicknameForm current={profile.nickname} />
+          </CardBody>
+        </Card>
+      )}
 
       <Card>
         <CardBody className="space-y-4">

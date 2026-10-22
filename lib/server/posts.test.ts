@@ -172,6 +172,8 @@ describe("getCommentsDirectly", () => {
     author_is_admin: true,
     content: "댓글",
     created_at: "2026-01-02T00:00:00Z",
+    // Database 타입이 없어 supabase-js가 다대일 임베드도 배열로 추론한다. 배열로 와도 첫 행을 쓴다.
+    author: [{ nickname: "닉네임", avatar_path: null }],
   };
 
   it("넘겨받은 글로 판정하고 글을 다시 읽지 않은 채 댓글만 한 번 조회한다", async () => {
@@ -192,6 +194,8 @@ describe("getCommentsDirectly", () => {
         parentId: null,
         authorId: "user-1",
         authorIsAdmin: true,
+        authorNickname: "닉네임",
+        authorAvatarPath: null,
         content: "댓글",
         createdAt: "2026-01-02T00:00:00Z",
       },

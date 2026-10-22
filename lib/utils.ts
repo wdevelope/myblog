@@ -13,8 +13,13 @@ export function formatPostDate(iso: string, style: "iso" | "ko" = "iso") {
   return date.toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 }
 
-// 닉네임이 없어 관리자는 Owen, 다른 사용자는 id 앞 6자로 부른다. 댓글과 마이페이지가 같은 이름을 쓴다.
-export function userDisplayName(userId: string | null | undefined, isAdmin: boolean) {
+// 관리자는 닉네임과 상관없이 Owen이다. 다른 사용자는 닉네임, 없으면 id 앞 6자로 부른다. 댓글·마이페이지·헤더가 같은 이름을 쓴다.
+export function userDisplayName(
+  userId: string | null | undefined,
+  isAdmin: boolean,
+  nickname?: string | null,
+) {
   if (isAdmin) return "Owen";
+  if (nickname) return nickname;
   return userId ? `사용자 ${userId.slice(0, 6)}` : "사용자";
 }

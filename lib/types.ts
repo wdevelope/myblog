@@ -23,6 +23,8 @@ export type Comment = {
   parentId?: string | null;
   authorId?: string | null;
   authorIsAdmin: boolean;
+  authorNickname?: string | null;
+  authorAvatarPath?: string | null;
   content: string;
   createdAt: string;
 };
@@ -33,4 +35,9 @@ export type MyComment = {
   createdAt: string;
   isReply: boolean;
   post: { slug: string; type: PostType; title: string } | null;
+};
+
+export type MyProfile = {
+  nickname: string | null;
+  avatarPath: string | null;
 };

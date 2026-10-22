@@ -177,7 +177,10 @@ export async function getPublicComments(
   postId: string
 ): Promise<Comment[]> {
   const search = new URLSearchParams();
-  search.set("select", "id,post_id,parent_id,author_id,author_is_admin,content,created_at");
+  search.set(
+    "select",
+    "id,post_id,parent_id,author_id,author_is_admin,content,created_at,author:profiles(nickname,avatar_path)",
+  );
   search.set("post_id", `eq.${postId}`);
   search.set("order", "created_at.asc");
 
@@ -194,6 +197,7 @@ export async function getPublicComments(
     author_is_admin: boolean;
     content: string;
     created_at: string;
+    author: { nickname: string | null; avatar_path: string | null } | null;
   }[];
   return rows.map((row) => ({
     id: row.id,
@@ -201,6 +205,8 @@ export async function getPublicComments(
     parentId: row.parent_id,
     authorId: row.author_id,
     authorIsAdmin: row.author_is_admin,
+    authorNickname: row.author?.nickname ?? null,
+    authorAvatarPath: row.author?.avatar_path ?? null,
     content: row.content,
     createdAt: row.created_at,
   }));

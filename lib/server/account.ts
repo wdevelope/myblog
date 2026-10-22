@@ -1,7 +1,7 @@
 import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
-import type { MyComment, PostType } from "@/lib/types";
+import type { MyComment, MyProfile, PostType } from "@/lib/types";
 
 // 댓글 목록은 정적 HTML이라 작성자가 탈퇴하거나 이름·사진을 바꾸면 그 사람이 댓글을 단 글을 다시 만들어야 한다.
 // 탈퇴는 댓글이 cascade로 지워지므로 지우기 전에 읽어 둔다.
@@ -53,4 +53,16 @@ export async function getMyComments(userId: string): Promise<MyComment[]> {
       post: post ?? null,
     };
   });
+}
+
+export async function getMyProfile(userId: string): Promise<MyProfile> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("nickname,avatar_path")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) throw new Error(`DB Error: ${error.message}`);
+  return { nickname: data?.nickname ?? null, avatarPath: data?.avatar_path ?? null };
 }

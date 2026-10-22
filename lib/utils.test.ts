@@ -18,4 +18,9 @@ describe("userDisplayName", () => {
     expect(userDisplayName("8353737f-5798", false)).toBe("사용자 835373");
     expect(userDisplayName(null, false)).toBe("사용자");
   });
+
+  it("닉네임이 있으면 닉네임으로 부르지만 관리자는 Owen 그대로다", () => {
+    expect(userDisplayName("8353737f-5798", false, "테스트회원")).toBe("테스트회원");
+    expect(userDisplayName("d45e30c8-a9f3", true, "다른이름")).toBe("Owen");
+  });
 });

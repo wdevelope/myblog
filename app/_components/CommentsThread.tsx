@@ -13,7 +13,7 @@ import {
 } from "@/lib/actions/comments";
 
 function displayName(comment: Comment) {
-  return userDisplayName(comment.authorId, comment.authorIsAdmin);
+  return userDisplayName(comment.authorId, comment.authorIsAdmin, comment.authorNickname);
 }
 
 function CommentComposer({

@@ -60,19 +60,25 @@ export async function getCommentsDirectly(post: Pick<Post, "id" | "type" | "visi
     const supabase = await createSupabaseServerClient();
     const { data: comments, error } = await supabase
         .from("comments")
-        .select("id,post_id,parent_id,author_id,author_is_admin,content,created_at")
+        .select("id,post_id,parent_id,author_id,author_is_admin,content,created_at,author:profiles(nickname,avatar_path)")
         .eq("post_id", post.id)
         .order("created_at", { ascending: true });
 
     if (error) throw new Error(`DB Error: ${error.message}`);
 
-    return (comments ?? []).map((c) => ({
-        id: c.id,
-        postId: c.post_id,
-        parentId: c.parent_id,
-        authorId: c.author_id,
-        authorIsAdmin: c.author_is_admin,
-        content: c.content,
-        createdAt: c.created_at,
-    }));
+    return (comments ?? []).map((c) => {
+        // Database 타입이 없어(6단계) 다대일 관계도 배열로 추론되므로 두 모양을 모두 받는다.
+        const author = Array.isArray(c.author) ? c.author[0] : c.author;
+        return {
+            id: c.id,
+            postId: c.post_id,
+            parentId: c.parent_id,
+            authorId: c.author_id,
+            authorIsAdmin: c.author_is_admin,
+            authorNickname: author?.nickname ?? null,
+            authorAvatarPath: author?.avatar_path ?? null,
+            content: c.content,
+            createdAt: c.created_at,
+        };
+    });
 }
