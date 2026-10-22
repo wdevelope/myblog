@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   description: "개발자 오웬의 인생이야기",
   // 브라우저·RSS 리더·검색 엔진이 피드 주소를 찾게 모든 페이지 head에 알린다.
   alternates: {
+    // "./"는 Next가 페이지마다 그 경로로 풀어 준다. `?utm=…`처럼 쿼리가 붙어 들어와도 대표 주소는 경로 하나다.
+    canonical: "./",
     types: { "application/rss+xml": [{ url: "/rss.xml", title: "개발자 오웬" }] },
   },
   openGraph: {
@@ -25,6 +27,7 @@ export const metadata: Metadata = {
     description: "개발자 오웬의 인생이야기",
     type: "website",
     locale: "ko_KR",
+    url: "./",
   },
   verification: {
     google: "ayNa-MzflCN8eeUwrEeXN9-8QD1ZWwxaHPpUFFCgWrw",

@@ -16,6 +16,8 @@ import { formatPostDate } from "@/lib/utils";
 import { toExcerpt } from "@/lib/markdown";
 import { articleListHref } from "@/lib/constants";
 import ViewCount from "@/app/article/[slug]/ViewCount";
+import { coverKeyOf, coverSrcFromImageKey } from "@/lib/image";
+import { blogPostingJsonLd } from "@/lib/structured-data";
 
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
@@ -34,12 +36,19 @@ export async function generateMetadata(
   const post = await getPublicPost("blog", slug);
   if (!post) return {};
   const description = toExcerpt(post.content, 160);
-  // openGraph를 새로 정하면 상위 값을 통째로 덮어 app/opengraph-image의 기본 이미지가 빠지므로 이어 받는다.
+  const cover = coverKeyOf(post);
+  // openGraph를 새로 정하면 상위 값을 통째로 덮는다. url은 다시 넣고, 표지가 없으면 app/opengraph-image의 기본 이미지를 이어 받는다.
   const { openGraph } = await parent;
   return {
     title: post.title,
     description,
-    openGraph: { title: post.title, description, type: "article", images: openGraph?.images },
+    openGraph: {
+      title: post.title,
+      description,
+      type: "article",
+      url: "./",
+      images: cover ? coverSrcFromImageKey(cover) : openGraph?.images,
+    },
   };
 }
 
@@ -57,6 +66,7 @@ export default async function BlogPostPage({ params }: Props) {
 
   return (
     <article className="mx-auto max-w-4xl space-y-5">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: blogPostingJsonLd(post) }} />
       <div className="flex items-center justify-between gap-4">
         <ArticleListBackButton
           className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-transparent px-3 text-sm font-bold text-foreground transition hover:border-primary/30"
