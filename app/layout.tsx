@@ -24,9 +24,9 @@ export const metadata: Metadata = {
   },
   openGraph: { ...SITE_OPEN_GRAPH, url: "./" },
   verification: {
-    google: "ayNa-MzflCN8eeUwrEeXN9-8QD1ZWwxaHPpUFFCgWrw",
+    google: ["ayNa-MzflCN8eeUwrEeXN9-8QD1ZWwxaHPpUFFCgWrw", "83o3PcZbmvtl-qxraMwwJc9VEo1qf8o_VRwmNH3XExk"],
     other: {
-      "naver-site-verification": "ea84e759a9cda554cc0ac35815db52860299f16b",
+      "naver-site-verification": "77241de112ead33da453b09ccd5eb30bc4be66a2",
     },
   },
 };
