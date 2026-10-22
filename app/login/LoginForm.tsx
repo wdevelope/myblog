@@ -4,7 +4,6 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { safeRedirectPath } from "@/lib/redirect";
-import { enableAdminMode } from "@/lib/adminMode";
 import { toast } from "sonner";
 
 const REMEMBER_EMAIL_KEY = "myblog:remember_email";
@@ -91,8 +90,7 @@ export default function LoginForm() {
         }
       }
 
-      // 관리자면 이동할 화면을 비공개 글·관리 버튼이 섞인 관리자 화면으로 렌더링한다.
-      await enableAdminMode();
+      // 관리자 화면은 켜지 않는다. 관리자가 헤더 토글로 켠다(로드맵 11절).
       router.replace(from);
       router.refresh();
 

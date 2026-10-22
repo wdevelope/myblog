@@ -1,30 +1,12 @@
-// 관리자 화면(draft mode) 쿠키는 브라우저 세션 쿠키라, 브라우저를 다시 열면 Supabase 로그인은 남아도 사라진다.
-// 그래서 탭 세션마다 한 번 서버에 켜 달라고 요청한다. 관리자가 아니면 서버가 401로 거절한다.
-const CHECKED_KEY = "myblog:admin-mode-checked";
-
+// 관리자 화면(draft mode)은 관리자가 헤더 토글로 직접 켜고 끈다. 켜 두면 공개 페이지가 CDN 캐시를 건너뛰고
+// 요청마다 렌더링되므로 로그인만으로는 켜지 않는다. 상태의 원본은 서버의 draft 쿠키(httpOnly)이고,
+// 헤더가 그 값을 읽어 토글에 넘긴다. 관리자가 아니면 서버가 켜기를 401로 거절한다.
 export async function enableAdminMode(): Promise<boolean> {
-  markChecked(true);
   const response = await fetch("/api/admin-mode", { method: "POST" }).catch(() => null);
   return response?.status === 204;
 }
 
-export async function disableAdminMode() {
-  markChecked(false);
-  await fetch("/api/admin-mode", { method: "DELETE" }).catch(() => null);
-}
-
-export function isAdminModeChecked() {
-  try {
-    return window.sessionStorage.getItem(CHECKED_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function markChecked(checked: boolean) {
-  // 저장소를 쓸 수 없는 브라우저(사생활 보호 모드 등)에서는 페이지마다 다시 확인한다.
-  try {
-    if (checked) window.sessionStorage.setItem(CHECKED_KEY, "1");
-    else window.sessionStorage.removeItem(CHECKED_KEY);
-  } catch {}
+export async function disableAdminMode(): Promise<boolean> {
+  const response = await fetch("/api/admin-mode", { method: "DELETE" }).catch(() => null);
+  return response?.status === 204;
 }

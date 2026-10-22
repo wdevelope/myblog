@@ -5,9 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FiMenu, FiX, FiSearch } from "react-icons/fi";
 import LogoutButton from "@/app/_components/LogoutButton";
+import AdminModeToggle from "@/app/_components/AdminModeToggle";
 import { useSessionUser } from "@/app/_components/useSessionUser";
 
-export default function MobileNav() {
+export default function MobileNav({ adminMode }: { adminMode: boolean }) {
   const pathname = usePathname();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const { user, loading } = useSessionUser();
@@ -40,10 +41,13 @@ export default function MobileNav() {
       <button
         type="button"
         onClick={open}
-        className="inline-flex size-10 items-center justify-center rounded-xl border border-border bg-surface text-foreground md:hidden"
-        aria-label="메뉴 열기"
+        className="relative inline-flex size-10 items-center justify-center rounded-xl border border-border bg-surface text-foreground md:hidden"
+        aria-label={adminMode ? "메뉴 열기(관리자 화면 켜짐)" : "메뉴 열기"}
       >
         <FiMenu className="size-5" aria-hidden />
+        {adminMode ? (
+          <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary" aria-hidden />
+        ) : null}
       </button>
 
       <dialog
@@ -101,7 +105,8 @@ export default function MobileNav() {
             </nav>
           </div>
 
-          <div className="border-t border-border p-4">
+          <div className="space-y-2 border-t border-border p-4">
+            <AdminModeToggle enabled={adminMode} className="flex h-11 w-full" />
             {loggedIn ? (
               <LogoutButton className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-surface text-sm font-bold text-foreground transition hover:bg-surface-2">
                 로그아웃

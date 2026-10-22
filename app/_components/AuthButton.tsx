@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { disableAdminMode, enableAdminMode, isAdminModeChecked } from "@/lib/adminMode";
+import { disableAdminMode } from "@/lib/adminMode";
+import { useSessionUser } from "@/app/_components/useSessionUser";
 import { toast } from "sonner";
-
-type User = { id: string; email?: string | null } | null;
 
 interface AuthButtonProps {
     loginClassName?: string;
@@ -19,33 +17,7 @@ export default function AuthButton({
     logoutClassName = "h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-surface-2",
 }: AuthButtonProps) {
     const router = useRouter();
-    const [user, setUser] = useState<User>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const supabase = createSupabaseBrowserClient();
-
-        // 초기 세션 확인
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-            setLoading(false);
-            // 브라우저를 다시 열어 관리자 화면 쿠키만 사라졌으면 다시 켜고 화면을 새로 받는다.
-            if (session && !isAdminModeChecked()) {
-                void enableAdminMode().then((enabled) => {
-                    if (enabled) router.refresh();
-                });
-            }
-        });
-
-        // 인증 상태 변경 구독
-        const {
-            data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-        });
-
-        return () => subscription.unsubscribe();
-    }, [router]);
+    const { user, loading } = useSessionUser();
 
     async function onLogout() {
         const promise = (async () => {
