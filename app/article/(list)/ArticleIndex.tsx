@@ -1,7 +1,7 @@
 import Link from "next/link";
-import Image from "next/image";
-import { FiLock, FiGlobe } from "react-icons/fi";
+import { FiLock } from "react-icons/fi";
 import CategorySettingsModal from "@/app/article/CategorySettingsModal";
+import ArticleListItem from "@/app/article/ArticleListItem";
 import type { Post } from "@/lib/types";
 import {
   getPublicCategories,
@@ -11,42 +11,13 @@ import {
 import { getPreviewViewer } from "@/lib/server/admin";
 import { getPostsDirectly } from "@/lib/server/posts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { toExcerpt } from "@/lib/markdown";
-import { coverKeyOf, coverSrcFromImageKey } from "@/lib/image";
 import { articleListHref } from "@/lib/constants";
-import { formatPostDate } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import CategorySelect from "@/app/article/CategorySelect";
 
 const LIMIT = 12;
 
 type Category = { slug: string; visibility: "public" | "private"; sortOrder: number };
-
-function LockIcon({ className }: { className?: string }) {
-  return <FiLock className={className ?? "size-5"} />;
-}
-
-function PublishedIcon({ className }: { className?: string }) {
-  return <FiGlobe className={className ?? "size-5"} />;
-}
-
-function CommentIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className ?? "size-4"}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-      />
-    </svg>
-  );
-}
 
 // /article, /article/page/[page], /article/category/[slug](/page/[page])가 함께 쓰는 목록 화면.
 // 방문자는 쿠키 없는 공개 캐시만 읽어 정적으로 남고, 관리자는 draft mode에서 비공개 글·카테고리까지 본다.
@@ -219,86 +190,11 @@ export default async function ArticleIndex({
 
         {posts.length ? (
           <>
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {posts.map((post, index) => {
-                const dateLabel = formatPostDate(post.createdAt);
-                const coverKey = coverKeyOf(post);
-                const coverSrc = coverKey
-                  ? coverSrcFromImageKey(coverKey)
-                  : null;
-
-                return (
-                  <div key={post.id} className="group h-full">
-                    <Link
-                      href={`/article/${post.slug}`}
-                      className="block h-full"
-                      prefetch={false}
-                    >
-                      <article className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 h-full flex flex-col">
-                        <div className="p-5 flex flex-col h-full">
-                          <div className="flex items-center justify-between">
-                            <span className="truncate text-xs font-bold text-muted transition-colors group-hover:text-primary">
-                              {post.categorySlug || "전체"}
-                            </span>
-                            <div className="shrink-0">
-                              {post.visibility === "private" ? (
-                                <div className="text-amber-500">
-                                  <LockIcon className="size-4" />
-                                </div>
-                              ) : (
-                                <div className="text-emerald-500">
-                                  <PublishedIcon className="size-4" />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface-2 relative h-44 w-full">
-                            {coverSrc ? (
-                              <Image
-                                src={coverSrc}
-                                alt=""
-                                fill
-                                sizes="(min-width: 1280px) 30vw, (min-width: 640px) 50vw, 100vw"
-                                className="object-cover transition duration-300 group-hover:scale-[1.02]"
-                                priority={index === 0}
-                              />
-                            ) : (
-                              <div className="absolute inset-0 bg-[radial-gradient(70%_70%_at_50%_35%,rgba(19,91,236,0.35)_0%,rgba(147,51,234,0.18)_50%,rgba(16,22,34,0)_100%)]" />
-                            )}
-                          </div>
-
-                          <div className="mt-4 space-y-2 flex-1">
-                            <h2 className="text-xl font-black leading-snug text-foreground transition group-hover:text-primary">
-                              {post.title}
-                            </h2>
-                            <p className="line-clamp-3 text-sm leading-6 text-muted">
-                              {toExcerpt(post.content)}
-                            </p>
-                          </div>
-
-                          <div className="mt-5 flex items-center justify-between gap-3 text-xs text-muted">
-                            <div className="flex items-center gap-3">
-                              {(post.commentCount ?? 0) > 0 && (
-                                <span className="flex items-center gap-1 text-primary/80">
-                                  <CommentIcon className="size-3.5" />
-                                  <span className="font-bold">{post.commentCount}</span>
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="font-medium text-muted/60">
-                                {dateLabel}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </article>
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
+            <ul className="divide-y divide-border border-y border-border">
+              {posts.map((post, index) => (
+                <ArticleListItem key={post.id} post={post} priority={index === 0} />
+              ))}
+            </ul>
 
             {/* Pagination Controls */}
             {totalPages > 1 ? (

@@ -1,4 +1,5 @@
 import { Skeleton } from "@/app/_components/ui";
+import { ArticleListItemSkeleton } from "@/app/article/ArticleListItem";
 
 export default function ArticleLoading() {
     return (
@@ -17,24 +18,9 @@ export default function ArticleLoading() {
 
             {/* Main Content Skeleton */}
             <main className="lg:col-span-10 lg:col-start-3">
-                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="divide-y divide-border border-y border-border">
                     {[...Array(6)].map((_, i) => (
-                        <div key={i} className="rounded-3xl border border-border bg-surface p-5 space-y-4">
-                            <div className="flex justify-between">
-                                <Skeleton className="h-6 w-24" />
-                                <Skeleton className="h-5 w-5" />
-                            </div>
-                            <Skeleton className="aspect-video w-full rounded-2xl" />
-                            <div className="space-y-2">
-                                <Skeleton className="h-7 w-full" />
-                                <Skeleton className="h-4 w-full" />
-                                <Skeleton className="h-4 w-2/3" />
-                            </div>
-                            <div className="flex justify-between pt-2">
-                                <Skeleton className="h-4 w-16" />
-                                <Skeleton className="h-4 w-12" />
-                            </div>
-                        </div>
+                        <ArticleListItemSkeleton key={i} />
                     ))}
                 </div>
             </main>

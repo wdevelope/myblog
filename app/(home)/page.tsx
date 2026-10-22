@@ -1,11 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getPublicPosts } from "@/lib/server/publicPosts";
-import { Badge, ButtonLink, Card, CardBody } from "@/app/_components/ui";
-import { toExcerpt } from "@/lib/markdown";
-import { coverKeyOf, coverSrcFromImageKey } from "@/lib/image";
-import { formatPostDate } from "@/lib/utils";
+import { ButtonLink, Card, CardBody } from "@/app/_components/ui";
 import AuthButton from "@/app/_components/AuthButton";
+import ArticleListItem from "@/app/article/ArticleListItem";
 
 import { Suspense } from "react";
 import LatestArticlesSkeleton from "@/app/(home)/LatestArticlesSkeleton";
@@ -80,63 +78,19 @@ async function LatestArticlesSection() {
         </Link>
       </div>
 
-      <div className="space-y-4">
-        {latestArticles.map((post, index) => {
-          const coverKey = coverKeyOf(post);
-          return (
-            <Card
-              key={post.id}
-              className="overflow-hidden transition hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-            >
-              <CardBody className="flex flex-col gap-4 md:flex-row md:items-start">
-                <div className="flex flex-1 flex-col justify-between gap-3">
-                  <div className="flex items-center gap-2 text-xs text-muted">
-                    <Badge variant="primary">아티클</Badge>
-                    <span>•</span>
-                    <span className="font-medium text-muted/80">{post.categorySlug || "전체"}</span>
-                    <span className="flex-1" />
-                    <span>{formatPostDate(post.createdAt)}</span>
-                  </div>
-                  <div className="space-y-2">
-                    <Link
-                      href={`/article/${post.slug}`}
-                      className="text-xl font-bold leading-tight text-foreground hover:text-primary"
-                      prefetch={false}
-                    >
-                      {post.title}
-                    </Link>
-                    <p className="line-clamp-2 text-sm leading-relaxed text-muted">
-                      {toExcerpt(post.content)}
-                    </p>
-                  </div>
-                </div>
-
-                {coverKey ? (
-                  <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-2xl ring-1 ring-border md:h-48 md:w-64">
-                    <Image
-                      src={coverSrcFromImageKey(coverKey)}
-                      alt={post.title}
-                      fill
-                      sizes="(min-width: 768px) 256px, 100vw"
-                      className="object-cover"
-                      priority={index === 0}
-                    />
-                  </div>
-                ) : (
-                  <div className="h-28 w-full shrink-0 rounded-2xl bg-surface-2 ring-1 ring-border md:h-48 md:w-64" />
-                )}
-              </CardBody>
-            </Card>
-          );
-        })}
-        {latestArticles.length === 0 ? (
-          <Card>
-            <CardBody>
-              <p className="text-sm text-muted">아직 아티클이 없어요.</p>
-            </CardBody>
-          </Card>
-        ) : null}
-      </div>
+      {latestArticles.length ? (
+        <ul className="divide-y divide-border border-y border-border">
+          {latestArticles.map((post, index) => (
+            <ArticleListItem key={post.id} post={post} priority={index === 0} />
+          ))}
+        </ul>
+      ) : (
+        <Card>
+          <CardBody>
+            <p className="text-sm text-muted">아직 아티클이 없어요.</p>
+          </CardBody>
+        </Card>
+      )}
     </section>
   );
 }
