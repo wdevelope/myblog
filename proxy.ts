@@ -1,5 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
-import type { NextRequest } from "next/server";
+import type { NextRequest, ProxyConfig } from "next/server";
 import { NextResponse } from "next/server";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { articleListHref } from "@/lib/constants";
@@ -55,8 +55,16 @@ function legacyArticleListRedirect(request: NextRequest) {
   return NextResponse.redirect(new URL(target, request.url), 308);
 }
 
-export const config = {
+// Vercel은 proxy를 CDN 캐시보다 먼저 함수로 실행해, 캐시된 정적 페이지 요청에도 약 80ms(콜드 스타트면 더)가 붙는다.
+// 그래서 세션 쿠키(sb-<ref>-auth-token, 크면 .0·.1로 쪼개짐)가 있는 요청과 옛 /article 쿼리 주소에서만 돌린다.
+// matcher는 빌드 때 정적으로 읽으므로 경로 패턴을 변수로 빼지 않는다.
+export const config: ProxyConfig = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    {
+      source: "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+      has: [{ type: "header", key: "cookie", value: "(.*;\\s*)?sb-[^=;\\s]+-auth-token(\\.\\d+)?=.*" }],
+    },
+    { source: "/article", has: [{ type: "query", key: "category" }] },
+    { source: "/article", has: [{ type: "query", key: "page" }] },
   ],
 };

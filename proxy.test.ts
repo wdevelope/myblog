@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { proxy } from "@/proxy";
+import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
+import { config, proxy } from "@/proxy";
 
 type CookieToSet = { name: string; value: string; options?: object };
 type CookieMethods = { setAll: (cookies: CookieToSet[]) => void };
@@ -104,5 +105,41 @@ describe("옛 /article 쿼리 주소 리다이렉트", () => {
     const response = await legacy("");
 
     expect(response.headers.get("location")).toBeNull();
+  });
+});
+
+describe("proxy 실행 범위(matcher)", () => {
+  function runs(url: string, cookies: Record<string, string> = {}) {
+    return unstable_doesMiddlewareMatch({ config, url: `http://localhost:2025${url}`, cookies });
+  }
+  const session = { "sb-project-auth-token": "token" };
+
+  it("세션 쿠키가 없는 방문자의 페이지·화면 전환 요청에는 돌지 않는다", () => {
+    expect(runs("/feed")).toBe(false);
+    expect(runs("/feed?_rsc=abc")).toBe(false);
+    expect(runs("/article/post-1", { theme: "dark" })).toBe(false);
+  });
+
+  it("세션 쿠키가 있으면 페이지 요청에서 돈다", () => {
+    expect(runs("/feed", session)).toBe(true);
+    expect(runs("/feed", { theme: "dark", ...session })).toBe(true);
+  });
+
+  it("쪼개진 세션 쿠키(.0)만 있어도 돈다", () => {
+    expect(runs("/article", { "sb-project-auth-token.0": "part" })).toBe(true);
+  });
+
+  it("세션이 아닌 PKCE 쿠키만 있으면 돌지 않는다", () => {
+    expect(runs("/feed", { "sb-project-auth-token-code-verifier": "v" })).toBe(false);
+  });
+
+  it("옛 /article 쿼리 주소는 세션 쿠키가 없어도 돈다", () => {
+    expect(runs(`/article?category=${encodeURIComponent("개발")}`)).toBe(true);
+    expect(runs("/article?page=2")).toBe(true);
+  });
+
+  it("정적 파일 요청에는 세션 쿠키가 있어도 돌지 않는다", () => {
+    expect(runs("/_next/static/chunks/main.js", session)).toBe(false);
+    expect(runs("/site-logo.png", session)).toBe(false);
   });
 });
