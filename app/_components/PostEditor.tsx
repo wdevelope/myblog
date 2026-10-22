@@ -16,6 +16,7 @@ import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
 import { coverSrcFromImageKey } from "@/lib/image";
 import { postHref } from "@/lib/constants";
+import { enableAdminMode } from "@/lib/adminMode";
 // import PostImages from "@/app/_components/PostImages";
 import DeletePostButton from "@/app/_components/DeletePostButton";
 import { cn } from "@/lib/utils";
@@ -365,6 +366,9 @@ export default function PostEditor({
     }
 
     clearDraft();
+    // 관리자 화면이 꺼진 채 비공개 글을 저장하면 상세가 404(다이어리는 안내 화면)라, 켜고 이동한다.
+    // 켜기에 실패해도 저장은 끝났으므로 그대로 이동한다.
+    await enableAdminMode();
     startTransition(() => {
       router.push(postHref(result.data.type, result.data.slug));
       router.refresh();
