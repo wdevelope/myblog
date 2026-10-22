@@ -9,20 +9,13 @@ export type Viewer = { user: User | null; isAdmin: boolean };
 
 // 요청 헤더와 user_metadata는 클라이언트·사용자 본인이 바꿀 수 있어 판정에 쓰지 않는다.
 // auth.getUser()는 Auth 서버에서 세션을 검증하고, app_metadata는 service role만 바꿀 수 있다.
+// RLS의 is_admin()과 같은 근거(app_metadata.is_admin === true)만 봐야 앱과 DB의 판정이 갈리지 않는다.
 export const getViewer = cache(async (): Promise<Viewer> => {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
   const user = data.user;
   if (!user) return { user: null, isAdmin: false };
-  if (user.app_metadata?.is_admin) return { user, isAdmin: true };
-
-  const { data: row, error } = await supabase
-    .from("users")
-    .select("is_admin")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  return { user, isAdmin: !error && Boolean(row?.is_admin) };
+  return { user, isAdmin: user.app_metadata?.is_admin === true };
 });
 
 // 공개 페이지용. 관리자가 로그인하면 켜지는 draft mode 요청에서만 세션을 읽는다.

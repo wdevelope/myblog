@@ -21,13 +21,6 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: async () => ({
     auth: { getUser: mocks.getUser },
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          maybeSingle: async () => ({ data: { is_admin: false }, error: null }),
-        }),
-      }),
-    }),
   }),
 }));
 

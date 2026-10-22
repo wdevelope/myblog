@@ -52,13 +52,7 @@ vi.mock("next/cache", () => ({
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: async () => ({
     auth: { getUser: mocks.getUser },
-    from: (table: string) =>
-      new FakeQuery(
-        table === "users"
-          ? { data: { is_admin: false }, error: null }
-          : { data: categoryRows, error: null },
-        mocks.writes,
-      ),
+    from: () => new FakeQuery({ data: categoryRows, error: null }, mocks.writes),
   }),
 }));
 

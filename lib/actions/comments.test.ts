@@ -58,7 +58,7 @@ beforeEach(() => {
   for (const key of [...mocks.requestHeaders.keys()]) {
     mocks.requestHeaders.delete(key);
   }
-  mocks.tables = { users: { is_admin: false } };
+  mocks.tables = {};
   mocks.getUser.mockResolvedValue({ data: { user: userMetadataAdmin }, error: null });
 });
 

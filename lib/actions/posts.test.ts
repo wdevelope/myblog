@@ -64,7 +64,6 @@ vi.mock("next/cache", () => ({
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: async () => ({
     auth: { getUser: mocks.getUser },
-    from: () => new FakeQuery({ data: { is_admin: false }, error: null }, []),
   }),
 }));
 

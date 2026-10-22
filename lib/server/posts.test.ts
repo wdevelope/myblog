@@ -67,7 +67,6 @@ beforeEach(() => {
   for (const key of [...mocks.requestHeaders.keys()]) {
     mocks.requestHeaders.delete(key);
   }
-  mocks.tables.users = createQuery({ data: { is_admin: false }, error: null });
 });
 
 describe("관리자 판정에 따른 글 조회", () => {

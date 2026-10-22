@@ -83,12 +83,20 @@ describe("getViewer", () => {
     expect(await getViewer()).toEqual({ user, isAdmin: true });
   });
 
-  it("users 테이블의 is_admin이 true인 사용자는 관리자다", async () => {
+  it("public.users.is_admin만 true인 사용자는 관리자가 아니고 그 테이블을 읽지도 않는다", async () => {
     const user = makeUser();
     signedIn(user);
     usersTableIsAdmin(true);
 
-    expect(await getViewer()).toEqual({ user, isAdmin: true });
+    expect(await getViewer()).toEqual({ user, isAdmin: false });
+    expect(mocks.usersRow).not.toHaveBeenCalled();
+  });
+
+  it("app_metadata.is_admin이 문자열 \"true\"이면 RLS is_admin()과 같이 관리자가 아니다", async () => {
+    const user = makeUser({ app_metadata: { is_admin: "true" } });
+    signedIn(user);
+
+    expect(await getViewer()).toEqual({ user, isAdmin: false });
   });
 });
 
