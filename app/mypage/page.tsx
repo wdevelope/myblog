@@ -76,7 +76,7 @@ export default async function MyPage() {
           <CardBody className="flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-1">
               <h2 className="text-sm font-black tracking-tight text-foreground">회원 탈퇴</h2>
-              <p className="text-xs text-muted">계정과 작성한 댓글이 모두 삭제되며 되돌릴 수 없어요.</p>
+              <p className="text-xs text-muted">계정과 작성한 댓글·방명록이 모두 삭제되며 되돌릴 수 없어요.</p>
             </div>
             <DeleteAccountButton />
           </CardBody>

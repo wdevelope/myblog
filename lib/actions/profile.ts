@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { assertAdmin, getViewer } from "@/lib/server/admin";
 import { getCommentedPosts, listAvatarPaths, revalidateCommentedPosts } from "@/lib/server/account";
+import { revalidateGuestbook } from "@/lib/server/guestbook";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { NICKNAME_MESSAGES, nicknameProblem } from "@/lib/nickname";
@@ -20,9 +21,11 @@ const nicknameSchema = z
     if (problem) ctx.addIssue({ code: "custom", message: NICKNAME_MESSAGES[problem] });
   });
 
-// 이름·사진은 그 사람이 댓글을 단 정적 글에 들어 있다. 저장은 이미 끝났으므로 무효화를 위한 조회가 실패해도
+// 이름·사진은 그 사람이 댓글을 단 정적 글과 방명록에 들어 있다. 저장은 이미 끝났으므로 무효화를 위한 조회가 실패해도
 // 실패로 돌려주지 않는다(그 글들은 ISR 주기 안에 다시 만들어진다).
 async function refreshCommentedPosts(userId: string) {
+  // 방명록은 한 쪽뿐이라 쓴 글이 있는지 읽지 않고 늘 다시 만든다.
+  revalidateGuestbook();
   try {
     revalidateCommentedPosts(await getCommentedPosts(userId));
   } catch {}

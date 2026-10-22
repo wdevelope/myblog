@@ -11,7 +11,7 @@ export default function DeleteAccountButton() {
   const [pending, startTransition] = useTransition();
 
   function onClick() {
-    if (!confirm("정말 탈퇴하시겠습니까?\n계정과 작성한 댓글이 모두 삭제되며 되돌릴 수 없습니다.")) {
+    if (!confirm("정말 탈퇴하시겠습니까?\n계정과 작성한 댓글·방명록이 모두 삭제되며 되돌릴 수 없습니다.")) {
       return;
     }
 

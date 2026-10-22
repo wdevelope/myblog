@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { deleteAccount } from "@/lib/actions/account";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
+import { revalidateGuestbook } from "@/lib/server/guestbook";
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
@@ -13,6 +14,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/server/publicPosts", () => ({
   revalidatePublicPosts: vi.fn(),
+}));
+
+vi.mock("@/lib/server/guestbook", () => ({
+  revalidateGuestbook: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -81,7 +86,7 @@ describe("회원 탈퇴", () => {
     expect(mocks.deleteUser).toHaveBeenCalledWith("user-1");
   });
 
-  it("세션의 본인 계정을 지우고, 댓글이 달려 있던 공개 글을 타입별로 무효화한다", async () => {
+  it("세션의 본인 계정을 지우고, 댓글이 달려 있던 공개 글을 타입별로, 방명록도 무효화한다", async () => {
     mocks.getUser.mockResolvedValue({ data: { user: member }, error: null });
     mocks.comments = [
       { posts: { slug: "a", type: "blog" } },
@@ -97,6 +102,7 @@ describe("회원 탈퇴", () => {
     expect(revalidatePublicPosts).toHaveBeenCalledWith({ type: "blog", slugs: ["a", "b"] });
     expect(revalidatePublicPosts).toHaveBeenCalledWith({ type: "feed", slugs: ["f"] });
     expect(revalidatePublicPosts).toHaveBeenCalledTimes(2);
+    expect(revalidateGuestbook).toHaveBeenCalled();
   });
 
   it("계정을 지운 뒤 그 사용자의 프로필 사진 파일도 지운다(Storage는 계정과 함께 지워지지 않는다)", async () => {
@@ -115,6 +121,7 @@ describe("회원 탈퇴", () => {
 
     expect(await deleteAccount()).toMatchObject({ success: false });
     expect(revalidatePublicPosts).not.toHaveBeenCalled();
+    expect(revalidateGuestbook).not.toHaveBeenCalled();
     expect(mocks.removed).toEqual([]);
   });
 });

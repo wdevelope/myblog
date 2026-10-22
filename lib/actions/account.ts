@@ -2,6 +2,7 @@
 
 import { getViewer } from "@/lib/server/admin";
 import { getCommentedPosts, listAvatarPaths, revalidateCommentedPosts } from "@/lib/server/account";
+import { revalidateGuestbook } from "@/lib/server/guestbook";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { AVATAR_BUCKET } from "@/lib/avatar";
 
@@ -41,6 +42,8 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
   } catch {}
 
   revalidateCommentedPosts(commentedPosts);
+  // 방명록 글은 계정과 함께 cascade로 지워진다. 한 쪽뿐이라 쓴 글이 있는지 읽지 않고 다시 만든다.
+  revalidateGuestbook();
 
   return { success: true };
 }

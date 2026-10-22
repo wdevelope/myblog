@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { removeAvatar, resetUserProfile, updateAvatar, updateNickname } from "@/lib/actions/profile";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
+import { revalidateGuestbook } from "@/lib/server/guestbook";
 
 type Result = { data: unknown; error: { code?: string; message: string } | null };
 
@@ -36,6 +37,10 @@ vi.mock("@/lib/supabase/service", () => ({
 
 vi.mock("@/lib/server/publicPosts", () => ({
   revalidatePublicPosts: vi.fn(),
+}));
+
+vi.mock("@/lib/server/guestbook", () => ({
+  revalidateGuestbook: vi.fn(),
 }));
 
 // PostgREST 쿼리 체인을 흉내 내고 표·메서드 호출을 기록한다.
@@ -103,7 +108,7 @@ describe("닉네임 바꾸기", () => {
     expect(mocks.calls).toEqual([]);
   });
 
-  it("본인 행에 앞뒤 공백을 자른 닉네임을 저장하고, 댓글 단 글을 무효화한다", async () => {
+  it("본인 행에 앞뒤 공백을 자른 닉네임을 저장하고, 댓글 단 글과 방명록을 무효화한다", async () => {
     mocks.results.comments = { data: [{ posts: { slug: "hello", type: "blog" } }], error: null };
 
     expect(await updateNickname("  테스트회원 ")).toEqual({ success: true });
@@ -112,6 +117,7 @@ describe("닉네임 바꾸기", () => {
     expect(mocks.calls).toContainEqual(["profiles", "eq", "id", "user-1"]);
     expect(mocks.calls).toContainEqual(["comments", "eq", "author_id", "user-1"]);
     expect(revalidatePublicPosts).toHaveBeenCalledWith({ type: "blog", slugs: ["hello"] });
+    expect(revalidateGuestbook).toHaveBeenCalled();
   });
 
   it("이미 쓰는 닉네임(unique 위반)은 안내 문구로 바꾸고 무효화하지 않는다", async () => {
@@ -122,6 +128,7 @@ describe("닉네임 바꾸기", () => {
       error: "이미 쓰는 닉네임이에요.",
     });
     expect(revalidatePublicPosts).not.toHaveBeenCalled();
+    expect(revalidateGuestbook).not.toHaveBeenCalled();
   });
 });
 
@@ -186,7 +193,7 @@ describe("관리자 되돌리기", () => {
     expect(mocks.serviceCalls).toEqual([]);
   });
 
-  it("관리자는 그 사용자의 닉네임·사진을 비우고 사진 파일을 지운 뒤 댓글 단 글을 무효화한다", async () => {
+  it("관리자는 그 사용자의 닉네임·사진을 비우고 사진 파일을 지운 뒤 댓글 단 글과 방명록을 무효화한다", async () => {
     mocks.getUser.mockResolvedValue({
       data: { user: { ...member, app_metadata: { is_admin: true } } },
       error: null,
@@ -202,6 +209,7 @@ describe("관리자 되돌리기", () => {
     expect(mocks.removed).toEqual([[`${TARGET}/${OLD_FILE}`]]);
     expect(mocks.calls).toContainEqual(["comments", "eq", "author_id", TARGET]);
     expect(revalidatePublicPosts).toHaveBeenCalledWith({ type: "blog", slugs: ["hello"] });
+    expect(revalidateGuestbook).toHaveBeenCalled();
   });
 
   it("사용자 id가 uuid가 아니면 바꾸지 않는다", async () => {
