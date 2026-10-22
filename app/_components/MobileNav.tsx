@@ -7,6 +7,7 @@ import { FiMenu, FiX, FiSearch } from "react-icons/fi";
 import LogoutButton from "@/app/_components/LogoutButton";
 import AdminModeToggle from "@/app/_components/AdminModeToggle";
 import { useSessionUser } from "@/app/_components/useSessionUser";
+import { SEARCH_QUERY_MAX_LENGTH } from "@/lib/search";
 
 export default function MobileNav({ adminMode }: { adminMode: boolean }) {
   const pathname = usePathname();
@@ -71,19 +72,24 @@ export default function MobileNav({ adminMode }: { adminMode: boolean }) {
           </div>
 
           <div className="flex-1 space-y-6 overflow-auto p-4">
-            <label className="block">
-              <span className="sr-only">검색</span>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted">
-                  <FiSearch className="size-4" aria-hidden />
+            <form action="/search" method="get" role="search">
+              <label className="block">
+                <span className="sr-only">검색</span>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted">
+                    <FiSearch className="size-4" aria-hidden />
+                  </div>
+                  <input
+                    type="search"
+                    name="q"
+                    maxLength={SEARCH_QUERY_MAX_LENGTH}
+                    enterKeyHint="search"
+                    placeholder="아티클 검색…"
+                    className="h-11 w-full rounded-xl border border-border bg-surface-2 pl-9 pr-3 text-base text-foreground placeholder:text-muted outline-none transition focus:border-primary/60 sm:text-sm"
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="게시글 검색…"
-                  className="h-11 w-full rounded-xl border border-border bg-surface-2 pl-9 pr-3 text-base text-foreground placeholder:text-muted outline-none transition focus:border-primary/60 sm:text-sm"
-                />
-              </div>
-            </label>
+              </label>
+            </form>
 
             <nav className="space-y-1">
               {links.map((link) => {

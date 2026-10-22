@@ -8,6 +8,7 @@ import AdminNavProgress from "@/app/_components/AdminNavProgress";
 import { Suspense } from "react";
 import Image from "next/image";
 import { ThemeToggle } from "@/app/_components/ThemeToggle";
+import { SEARCH_QUERY_MAX_LENGTH } from "@/lib/search";
 
 function Brand() {
   return (
@@ -54,19 +55,30 @@ export default async function SiteHeader() {
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-3">
-          <label className="hidden w-full max-w-sm md:block lg:max-w-xs">
-            <span className="sr-only">검색</span>
-            <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted">
-                <span className="text-sm">⌕</span>
+          {/* 클라이언트 JS 없이 GET으로 제출해 정적 헤더를 그대로 둔다. */}
+          <form
+            action="/search"
+            method="get"
+            role="search"
+            className="hidden w-full max-w-sm md:block lg:max-w-xs"
+          >
+            <label className="block">
+              <span className="sr-only">검색</span>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted">
+                  <span className="text-sm">⌕</span>
+                </div>
+                <input
+                  type="search"
+                  name="q"
+                  maxLength={SEARCH_QUERY_MAX_LENGTH}
+                  enterKeyHint="search"
+                  placeholder="아티클 검색…"
+                  className="h-10 w-full rounded-xl border border-border bg-surface/70 pl-9 pr-3 text-sm text-foreground placeholder:text-muted outline-none ring-0 transition focus:border-primary/60 focus:bg-surface"
+                />
               </div>
-              <input
-                type="text"
-                placeholder="게시글 검색…"
-                className="h-10 w-full rounded-xl border border-border bg-surface/70 pl-9 pr-3 text-sm text-foreground placeholder:text-muted outline-none ring-0 transition focus:border-primary/60 focus:bg-surface"
-              />
-            </div>
-          </label>
+            </label>
+          </form>
 
           <ThemeToggle />
 
