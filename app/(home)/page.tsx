@@ -39,7 +39,6 @@ export default function Home() {
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-linear-to-tr from-background/70 via-black/10 to-surface/40" />
           </div>
         </Card>
       </section>
