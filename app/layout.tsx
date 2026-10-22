@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+// 한글 글리프가 커서 통파일 대신 유니코드 범위별 조각을 쓴다(쓰인 글자 조각만 받는다).
+import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 import SiteHeader from "@/app/_components/SiteHeader";
 import SiteFooter from "@/app/_components/SiteFooter";
