@@ -37,6 +37,10 @@ describe("작성 칸 라이브 프리뷰", () => {
     expect(preview("**굵‸게**")).toEqual(["cm-md-strong:**굵게**", "cm-md-syntax:**", "cm-md-syntax:**"]);
   });
 
+  it("문장부호로 끝난 굵게 뒤에 조사가 붙어도 커서 밖에서는 기호를 숨긴다", () => {
+    expect(preview('**"중요"**는\n‸')).toEqual(['cm-md-strong:**"중요"**', "hide:**", "hide:**"]);
+  });
+
   it("선택이 여러 줄에 걸치면 그 줄 모두 기호를 드러낸다", () => {
     expect(preview("«==가==\n++나++»\n~~다~~")).toEqual([
       "cm-md-highlight:==가==",

@@ -1,47 +1,91 @@
+import { eastAsianWidthType } from "get-east-asian-width";
 import {
   GFM,
+  InlineContext,
   parser as commonmarkParser,
   type BlockContext,
-  type InlineContext,
+  type InlineParser,
   type Line,
   type MarkdownConfig,
 } from "@lezer/markdown";
 
 // 에디터 작성 칸이 쓰는 마크다운 파서. 글 화면(markdown-it)에 붙인 플러그인 문법을 같은 규칙으로 읽는다.
-// 형광펜 `==`·밑줄 `++`는 markdown-it-mark·markdown-it-ins, 수식 `$`·`$$`는 @vscode/markdown-it-katex를 따른다.
+// 형광펜 `==`·밑줄 `++`는 markdown-it-mark·markdown-it-ins, 수식 `$`·`$$`는 @vscode/markdown-it-katex,
+// `*`·`==`·`++`·`~~`를 여닫는 기준은 markdown-it-cjk-friendly를 따른다.
 
 const DOLLAR = 36;
 const BACKSLASH = 92;
+const ASTERISK = 42;
 const PUNCTUATION = /[\p{S}\p{P}]/u;
 const WHITESPACE = /\s|^$/;
 
+// 한글·한자·가나·전각 문자. markdown-it-cjk-friendly와 같은 표로 가른다(이체자 선택자 같은 드문 경우는 뺐다).
+function isCjk(char: string) {
+  const code = char.codePointAt(0);
+  if (code === undefined || code < 0x1100) return false;
+  switch (eastAsianWidthType(code)) {
+    case "fullwidth":
+    case "halfwidth":
+      return true;
+    case "wide":
+      return !/^\p{Emoji_Presentation}/u.test(char);
+    case "neutral":
+      return /^\p{sc=Hangul}/u.test(char);
+    default:
+      return false;
+  }
+}
+
+// 문단 앞쪽을 넘어 자르면 slice가 음수 위치로 글 끝을 가리키므로 문단 시작에서 멈춘다.
+function charBefore(cx: InlineContext, pos: number) {
+  return [...cx.slice(Math.max(cx.offset, pos - 2), pos)].at(-1) ?? "";
+}
+
+function charAfter(cx: InlineContext, pos: number) {
+  return [...cx.slice(pos, pos + 2)][0] ?? "";
+}
+
+// CommonMark 기준에 cjk-friendly 규칙을 더한다. `**"중요"**는`처럼 문장부호와 한글 사이의 구분자도 CJK 쪽이면 여닫는다.
+function flanking(cx: InlineContext, from: number, to: number) {
+  const before = charBefore(cx, from);
+  const after = charAfter(cx, to);
+  const spaceBefore = WHITESPACE.test(before);
+  const spaceAfter = WHITESPACE.test(after);
+  if (spaceBefore || spaceAfter) return { open: !spaceAfter, close: !spaceBefore };
+  const punctBefore = PUNCTUATION.test(before);
+  const punctAfter = PUNCTUATION.test(after);
+  const cjk = isCjk(before) || isCjk(after);
+  return { open: punctBefore || cjk || !punctAfter, close: punctAfter || cjk || !punctBefore };
+}
+
+// `_`는 cjk-friendly도 CommonMark 그대로라 기본 Emphasis 파서에 맡긴다.
+const CjkEmphasis: MarkdownConfig = {
+  parseInline: [
+    {
+      name: "CjkEmphasis",
+      parse(cx, next, start) {
+        if (next !== ASTERISK) return -1;
+        let pos = start + 1;
+        while (cx.char(pos) === ASTERISK) pos++;
+        const { open, close } = flanking(cx, start, pos);
+        return cx.addDelimiter(InlineContext.emphasisAsterisk, start, pos, open, close);
+      },
+      before: "Emphasis",
+    },
+  ],
+};
+
 // GFM 취소선(`~~`)과 같은 구분자 규칙이다. `===`처럼 세 개 이상이면 서식으로 보지 않는다.
-function pairedDelimiter(name: string, char: number): MarkdownConfig {
+function pairedDelimiter(name: string, char: number): InlineParser {
   const delimiter = { resolve: name, mark: `${name}Mark` };
   return {
-    defineNodes: [name, `${name}Mark`],
-    parseInline: [
-      {
-        name,
-        parse(cx, next, pos) {
-          if (next !== char || cx.char(pos + 1) !== char || cx.char(pos + 2) === char) return -1;
-          const before = cx.slice(pos - 1, pos);
-          const after = cx.slice(pos + 2, pos + 3);
-          const spaceBefore = WHITESPACE.test(before);
-          const spaceAfter = WHITESPACE.test(after);
-          const punctBefore = PUNCTUATION.test(before);
-          const punctAfter = PUNCTUATION.test(after);
-          return cx.addDelimiter(
-            delimiter,
-            pos,
-            pos + 2,
-            !spaceAfter && (!punctAfter || spaceBefore || punctBefore),
-            !spaceBefore && (!punctBefore || spaceAfter || punctAfter)
-          );
-        },
-        after: "Emphasis",
-      },
-    ],
+    name,
+    parse(cx, next, pos) {
+      if (next !== char || cx.char(pos + 1) !== char || cx.char(pos + 2) === char) return -1;
+      const { open, close } = flanking(cx, pos, pos + 2);
+      return cx.addDelimiter(delimiter, pos, pos + 2, open, close);
+    },
+    after: "Emphasis",
   };
 }
 
@@ -136,8 +180,16 @@ function parseBlockMath(cx: BlockContext, line: Line) {
   return true;
 }
 
-const Highlight = pairedDelimiter("Highlight", "=".charCodeAt(0));
-const Underline = pairedDelimiter("Underline", "+".charCodeAt(0));
+const Highlight: MarkdownConfig = {
+  defineNodes: ["Highlight", "HighlightMark"],
+  parseInline: [pairedDelimiter("Highlight", "=".charCodeAt(0))],
+};
+const Underline: MarkdownConfig = {
+  defineNodes: ["Underline", "UnderlineMark"],
+  parseInline: [pairedDelimiter("Underline", "+".charCodeAt(0))],
+};
+// 같은 이름이라 GFM 취소선 파서를 갈아 끼운다. 노드는 GFM이 이미 정의했다.
+const CjkStrikethrough: MarkdownConfig = { parseInline: [pairedDelimiter("Strikethrough", "~".charCodeAt(0))] };
 
 const MathSyntax: MarkdownConfig = {
   defineNodes: [
@@ -158,4 +210,11 @@ const MathSyntax: MarkdownConfig = {
   ],
 };
 
-export const blogMarkdownParser = commonmarkParser.configure([GFM, Highlight, Underline, MathSyntax]);
+export const blogMarkdownParser = commonmarkParser.configure([
+  GFM,
+  CjkEmphasis,
+  CjkStrikethrough,
+  Highlight,
+  Underline,
+  MathSyntax,
+]);

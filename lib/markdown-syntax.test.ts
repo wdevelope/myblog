@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { renderMarkdown } from "@/lib/markdown";
 import { blogMarkdownParser } from "@/lib/markdown-syntax";
 
 // 노드 이름과 그 노드가 덮는 글자를 순서대로 모은다.
@@ -75,5 +76,43 @@ describe("작성 칸 마크다운 파서", () => {
   it("GFM 취소선과 표를 읽는다", () => {
     expect(nodes("~~취소~~", ["Strikethrough"])).toEqual(["Strikethrough:~~취소~~"]);
     expect(nodes("| a |\n| - |\n| b |", ["Table"])).toHaveLength(1);
+  });
+
+  it("문장부호로 끝난 굵게 뒤에 조사가 붙어도 굵게로 읽는다", () => {
+    expect(nodes('**"중요"**는', ["StrongEmphasis"])).toEqual(['StrongEmphasis:**"중요"**']);
+    expect(nodes("**Controller(Presentation)**와", ["StrongEmphasis"])).toEqual([
+      "StrongEmphasis:**Controller(Presentation)**",
+    ]);
+  });
+
+  it("서식을 여닫는 위치가 글 화면 렌더러와 같다", () => {
+    const tags: Record<string, string> = {
+      StrongEmphasis: "strong",
+      Emphasis: "em",
+      Highlight: "mark",
+      Underline: "ins",
+      Strikethrough: "s",
+    };
+    const sources = [
+      '**"중요"**는',
+      "**Controller(Presentation)**와",
+      '한글**"인용"**',
+      '*"기울임"*은',
+      '=="형광"==은',
+      '++"밑줄"++은',
+      '~~"취소"~~는',
+      'a**"b"**c',
+      'x=="y"==z',
+      '__"밑줄 강조"__는',
+      "가**나**다",
+      "**굵게** 뒤",
+      "a * b * c",
+      "snake_case_name",
+    ];
+    for (const source of sources) {
+      const editor = nodes(source, Object.keys(tags)).map((node) => tags[node.split(":")[0]]);
+      const view = [...renderMarkdown(source).matchAll(/<(strong|em|mark|ins|s)>/g)].map((match) => match[1]);
+      expect(editor, source).toEqual(view);
+    }
   });
 });
