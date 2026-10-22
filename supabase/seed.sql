@@ -76,8 +76,8 @@ begin
   values (target_post, member_id, '일반 계정이 쓴 첫 댓글입니다.', now() - interval '20 hours')
   returning id into first_comment;
 
-  insert into public.comments (post_id, author_id, parent_id, content, created_at)
-  values (target_post, admin_id, first_comment, '관리자의 대댓글입니다.', now() - interval '19 hours');
+  insert into public.comments (post_id, author_id, parent_id, content, created_at, author_is_admin)
+  values (target_post, admin_id, first_comment, '관리자의 대댓글입니다.', now() - interval '19 hours', true);
 
   insert into public.comments (post_id, author_id, content, created_at)
   values (target_post, member_id, '두 번째 댓글입니다.', now() - interval '10 hours');
