@@ -84,7 +84,7 @@ describe("공개 글 목록 조회", () => {
     const { url, init } = requestAt();
     expect(`${url.origin}${url.pathname}`).toBe("https://project.supabase.co/rest/v1/posts");
     expect(url.searchParams.get("select")).toBe(
-      "id,slug,type,visibility,title,content,category_slug,created_at,updated_at,image_keys,thumbnail_image_key,comments(count)",
+      "id,slug,type,visibility,title,content,category_slug,created_at,updated_at,image_keys,thumbnail_image_key,view_count,comments(count)",
     );
     expect(url.searchParams.get("type")).toBe("eq.feed");
     expect(url.searchParams.get("visibility")).toBe("eq.public");
@@ -307,7 +307,7 @@ describe("revalidatePublicPosts", () => {
 
 describe("공개 글 단건 조회", () => {
   it("경로의 글 타입과 slug로 공개 글 하나를 하루 캐시·타입 태그로 요청한다", async () => {
-    fetchMock.mockResolvedValue(jsonResponse([row]));
+    fetchMock.mockResolvedValue(jsonResponse([{ ...row, view_count: 12 }]));
 
     const post = await getPublicPost("blog", "hello");
 
@@ -318,7 +318,7 @@ describe("공개 글 단건 조회", () => {
     expect(url.searchParams.get("visibility")).toBe("eq.public");
     expect(url.searchParams.get("limit")).toBe("1");
     expect(init).toMatchObject({ next: { revalidate: 86400, tags: ["posts:public:blog"] } });
-    expect(post).toMatchObject({ slug: "hello", commentCount: 3 });
+    expect(post).toMatchObject({ slug: "hello", commentCount: 3, viewCount: 12 });
   });
 
   it("없거나 RLS가 가린 글이면 null을 돌려준다", async () => {

@@ -15,7 +15,7 @@ type NextRequestInit = RequestInit & {
 const PUBLIC_REVALIDATE_SECONDS = 86400;
 
 const POST_COLUMNS =
-  "id,slug,type,visibility,title,content,category_slug,created_at,updated_at,image_keys,thumbnail_image_key,comments(count)";
+  "id,slug,type,visibility,title,content,category_slug,created_at,updated_at,image_keys,thumbnail_image_key,view_count,comments(count)";
 
 // anon 키로 읽으므로 비공개 글·비공개 카테고리·다이어리는 RLS가 걸러 준다.
 function fetchPublicRest(

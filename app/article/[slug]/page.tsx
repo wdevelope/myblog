@@ -15,6 +15,7 @@ import MarkdownContent from "@/app/_components/MarkdownContent";
 import { formatPostDate } from "@/lib/utils";
 import { toExcerpt } from "@/lib/markdown";
 import { articleListHref } from "@/lib/constants";
+import ViewCount from "@/app/article/[slug]/ViewCount";
 
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
@@ -113,7 +114,9 @@ export default async function BlogPostPage({ params }: Props) {
                   {formatPostDate(post.createdAt, "ko")}
                 </span>
                 <span>·</span>
-                <span>조회수 {(post.viewCount ?? 0).toLocaleString()}회</span>
+                <span>
+                  <ViewCount slug={post.slug} initialCount={post.viewCount ?? 0} />
+                </span>
                 <span>·</span>
                 <span className="flex items-center gap-1.5 font-medium group">
                   {post.visibility === "private" ? (
