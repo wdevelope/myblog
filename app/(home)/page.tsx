@@ -32,7 +32,7 @@ export default function Home() {
         <Card className="overflow-hidden">
           <div className="relative aspect-16/10 overflow-hidden">
             <Image
-              src="/logo.png"
+              src="/hero.jpg"
               alt=""
               fill
               sizes="(min-width: 768px) 50vw, 100vw"
