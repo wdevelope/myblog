@@ -18,9 +18,9 @@ function preview(source: string) {
     const text = doc.slice(from, to);
     const widget = value.spec.widget;
     let label: string;
-    if (from === to) label = `line:${value.spec.class}@${state.doc.lineAt(from).number}`;
+    if (widget?.src) label = `image:${widget.src}${from === to ? "@뒤" : ""}`;
+    else if (from === to) label = `line:${value.spec.class}@${state.doc.lineAt(from).number}`;
     else if (!widget) label = value.spec.class ? `${value.spec.class}:${text}` : `hide:${text}`;
-    else if (widget.src) label = `image:${widget.src}`;
     else if (widget.tex) label = `math:${widget.tex}:${widget.display ? "display" : "inline"}`;
     else label = `${widget.className}:${text}`;
     found.push({ from, to, label });
@@ -61,11 +61,11 @@ describe("작성 칸 라이브 프리뷰", () => {
     expect(preview("> 인용\n\n‸")).toEqual(["hide:> ", "line:cm-md-quote@1"]);
   });
 
-  it("이미지 키는 이미지 주소로 바꿔 그리고, 커서 줄에서는 원문을 보인다", () => {
+  it("이미지 키는 이미지 주소로 바꿔 그리고, 커서 줄에서는 원문 뒤에 이미지를 함께 보인다", () => {
     const key = "post-images-private:2026-10-22/a.png";
     expect(preview(`![설명](${key})\n‸`)).toEqual([`image:${coverSrcFromImageKey(key)}`]);
     expect(preview("![](https://example.com/a.png)\n‸")).toEqual(["image:https://example.com/a.png"]);
-    expect(preview(`‸![](${key})`)).toEqual([]);
+    expect(preview(`‸![](${key})`)).toEqual([`image:${coverSrcFromImageKey(key)}@뒤`]);
   });
 
   it("커서가 `$$` 블록 안이면 블록 전체가 원문이고, 밖이면 수식 하나로 그린다", () => {

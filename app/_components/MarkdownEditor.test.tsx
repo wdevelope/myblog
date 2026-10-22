@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import MarkdownEditor from "@/app/_components/MarkdownEditor";
+import { coverSrcFromImageKey } from "@/lib/image";
 
 afterEach(() => {
   cleanup();
@@ -95,6 +96,26 @@ describe("마크다운 에디터", () => {
     await waitFor(() => expect(text()).toBe("앞 ![](post-images-public:2026-10-22/a.png)"));
     expect(upload).toHaveBeenCalledWith([file]);
     expect(screen.getByLabelText("값").textContent).toBe("앞 ![](post-images-public:2026-10-22/a.png)");
+  });
+
+  it("업로드가 끝나면 커서를 넣은 이미지 문법 뒤에 둔다", async () => {
+    const key = "post-images-public:2026-10-22/a.png";
+    render(<Harness initial="앞 뒤" upload={async () => [key]} />);
+    select(2);
+    const file = new File(["x"], "a.png", { type: "image/png" });
+    fireEvent.paste(content(), { clipboardData: { files: [file] } });
+
+    await waitFor(() => expect(text()).toBe(`앞 ![](${key})뒤`));
+    expect(view().state.selection.main.head).toBe(`앞 ![](${key})`.length);
+  });
+
+  it("커서가 있는 줄의 이미지도 원문과 함께 작성 칸에 보인다", () => {
+    const key = "post-images-private:2026-10-22/a.png";
+    render(<Harness initial={`> 입니다.![](${key})`} />);
+    select(text().length);
+    const image = content().querySelector("img.cm-md-image");
+    expect(image?.getAttribute("src")).toBe(coverSrcFromImageKey(key));
+    expect(content().textContent).toContain(`![](${key})`);
   });
 
   it("업로드에 실패하면 자리표시자를 지운다", async () => {

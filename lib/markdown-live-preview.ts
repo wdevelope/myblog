@@ -207,12 +207,17 @@ function buildDecorations(state: EditorState): DecorationSet {
           return;
         case "Image": {
           const url = node.getChild("URL");
-          if (!url || isActive(from, to)) return false;
+          if (!url) return false;
           const key = doc.sliceString(url.from, url.to);
           const [open, close] = node.getChildren("LinkMark");
           const alt = open && close ? doc.sliceString(open.to, close.from) : "";
-          const src = IMAGE_KEY.test(key) ? coverSrcFromImageKey(key) : key;
-          ranges.push(Decoration.replace({ widget: new ImageWidget(src, alt) }).range(from, to));
+          const widget = new ImageWidget(IMAGE_KEY.test(key) ? coverSrcFromImageKey(key) : key, alt);
+          // 커서 줄에서도 방금 올린 이미지가 보여야 하므로 원문은 두고 그 뒤에 이미지를 붙인다.
+          ranges.push(
+            isActive(from, to)
+              ? Decoration.widget({ widget, side: 1 }).range(to)
+              : Decoration.replace({ widget }).range(from, to)
+          );
           return false;
         }
         case "InlineMath":
