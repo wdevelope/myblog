@@ -7,7 +7,7 @@ import SiteFooter from "@/app/_components/SiteFooter";
 import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "@/app/_components/ThemeProvider";
-import { SITE_URL } from "@/lib/constants";
+import { RSS_ALTERNATE_TYPES, SITE_OPEN_GRAPH, SITE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -20,15 +20,9 @@ export const metadata: Metadata = {
   alternates: {
     // "./"는 Next가 페이지마다 그 경로로 풀어 준다. `?utm=…`처럼 쿼리가 붙어 들어와도 대표 주소는 경로 하나다.
     canonical: "./",
-    types: { "application/rss+xml": [{ url: "/rss.xml", title: "개발자 오웬" }] },
+    types: RSS_ALTERNATE_TYPES,
   },
-  openGraph: {
-    title: "개발자 오웬",
-    description: "개발자 오웬의 인생이야기",
-    type: "website",
-    locale: "ko_KR",
-    url: "./",
-  },
+  openGraph: { ...SITE_OPEN_GRAPH, url: "./" },
   verification: {
     google: "ayNa-MzflCN8eeUwrEeXN9-8QD1ZWwxaHPpUFFCgWrw",
     other: {

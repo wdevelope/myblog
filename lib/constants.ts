@@ -1,7 +1,19 @@
+import type { Metadata } from "next";
 import type { PostType } from "@/lib/types";
 
 // sitemap·robots·메타데이터의 기준 주소.
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.w-owen.com";
+
+// 루트 레이아웃과 홈이 같이 쓴다. 하위 페이지가 alternates·openGraph를 정하면 상위 값이 통째로 덮여 홈이 다시 넣는다.
+export const RSS_ALTERNATE_TYPES = {
+  "application/rss+xml": [{ url: "/rss.xml", title: "개발자 오웬" }],
+};
+export const SITE_OPEN_GRAPH = {
+  title: "개발자 오웬",
+  description: "개발자 오웬의 인생이야기",
+  type: "website",
+  locale: "ko_KR",
+} satisfies Metadata["openGraph"];
 
 // 글 타입 이름과 경로 이름이 다르다(blog → /article).
 const POST_TYPE_PATH: Record<PostType, string> = {

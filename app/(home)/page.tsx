@@ -7,6 +7,18 @@ import ArticleListItem from "@/app/article/ArticleListItem";
 
 import { Suspense } from "react";
 import LatestArticlesSkeleton from "@/app/(home)/LatestArticlesSkeleton";
+import type { Metadata, ResolvingMetadata } from "next";
+import { RSS_ALTERNATE_TYPES, SITE_OPEN_GRAPH } from "@/lib/constants";
+
+// 빌드가 홈을 /index 경로로 미리 그려 루트 레이아웃의 "./"가 /index로 풀린다. 홈만 대표 주소를 직접 정하고,
+// alternates·openGraph를 통째로 덮으므로 RSS 링크와 app/opengraph-image의 기본 이미지를 다시 넣는다.
+export async function generateMetadata(_: unknown, parent: ResolvingMetadata): Promise<Metadata> {
+  const { openGraph } = await parent;
+  return {
+    alternates: { canonical: "/", types: RSS_ALTERNATE_TYPES },
+    openGraph: { ...SITE_OPEN_GRAPH, url: "/", images: openGraph?.images },
+  };
+}
 
 export default function Home() {
   return (
