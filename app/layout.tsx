@@ -16,6 +16,10 @@ export const metadata: Metadata = {
     template: "%s | 개발자 오웬",
   },
   description: "개발자 오웬의 인생이야기",
+  // 브라우저·RSS 리더·검색 엔진이 피드 주소를 찾게 모든 페이지 head에 알린다.
+  alternates: {
+    types: { "application/rss+xml": [{ url: "/rss.xml", title: "개발자 오웬" }] },
+  },
   openGraph: {
     title: "개발자 오웬",
     description: "개발자 오웬의 인생이야기",
