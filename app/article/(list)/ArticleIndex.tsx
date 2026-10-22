@@ -14,6 +14,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { articleListHref } from "@/lib/constants";
 import { notFound } from "next/navigation";
 import CategorySelect from "@/app/article/CategorySelect";
+import { RememberArticleList } from "@/app/article/ArticleListMemory";
 
 const LIMIT = 12;
 
@@ -98,6 +99,7 @@ export default async function ArticleIndex({
 
   return (
     <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
+      <RememberArticleList href={articleListHref(selectedCategory, page)} />
       {/* Left sidebar - Categories */}
       <aside className="hidden lg:block lg:col-span-2 lg:col-start-1 lg:sticky lg:top-24 xl:col-span-2 xl:col-start-1">
         <div className="space-y-6">

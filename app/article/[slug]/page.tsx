@@ -2,7 +2,7 @@ import type { Metadata, ResolvingMetadata } from "next";
 import { getPostForRoute, getCommentsDirectly } from "@/lib/server/posts";
 import { getPublicComments, getPublicPost, getPublicPosts } from "@/lib/server/publicPosts";
 import PostImages from "@/app/_components/PostImages";
-import BackButton from "@/app/_components/BackButton";
+import { ArticleListBackButton } from "@/app/article/ArticleListMemory";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 import CommentsThread from "@/app/_components/CommentsThread";
 import { notFound } from "next/navigation";
@@ -58,12 +58,11 @@ export default async function BlogPostPage({ params }: Props) {
   return (
     <article className="mx-auto max-w-4xl space-y-5">
       <div className="flex items-center justify-between gap-4">
-        <BackButton
-          fallbackHref="/article"
+        <ArticleListBackButton
           className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-transparent px-3 text-sm font-bold text-foreground transition hover:border-primary/30"
         >
           ← 목록으로
-        </BackButton>
+        </ArticleListBackButton>
       </div>
 
       <header className="space-y-6">
