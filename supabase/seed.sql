@@ -90,3 +90,45 @@ begin
 
   update public.posts set author_id = admin_id where slug like 'post-dev%' and author_id is null;
 end $$;
+
+-- 방명록: 일반 계정의 공개글·비밀글과 관리자 답글(20261022093000). 비밀글 내용은 비밀 표에 따로 넣는다.
+-- SQL Editor(postgres)로 넣으므로 트리거가 author_is_admin을 넣은 값 그대로 둔다.
+do $$
+declare
+  admin_id uuid;
+  member_id uuid;
+  public_entry uuid;
+  secret_entry uuid;
+  secret_reply uuid;
+begin
+  select id into admin_id from auth.users where raw_app_meta_data -> 'is_admin' = 'true'::jsonb order by created_at limit 1;
+  select id into member_id from auth.users
+    where coalesce(raw_app_meta_data -> 'is_admin', 'false'::jsonb) <> 'true'::jsonb order by created_at limit 1;
+
+  if admin_id is null or member_id is null then
+    raise notice '테스트 계정(관리자·일반)이 없어 방명록을 건너뛴다';
+    return;
+  end if;
+  if exists (select 1 from public.guestbook_entries) then
+    return;
+  end if;
+
+  insert into public.guestbook_entries (author_id, content, created_at)
+  values (member_id, E'블로그 잘 보고 있어요!\n자주 들를게요.', now() - interval '2 days')
+  returning id into public_entry;
+
+  insert into public.guestbook_entries (author_id, parent_id, content, created_at, author_is_admin)
+  values (admin_id, public_entry, '들러 주셔서 고마워요.', now() - interval '47 hours', true);
+
+  insert into public.guestbook_entries (author_id, is_secret, created_at)
+  values (member_id, true, now() - interval '1 day')
+  returning id into secret_entry;
+  insert into public.guestbook_secret_contents (entry_id, content)
+  values (secret_entry, '관리자님만 보세요. 비밀글입니다.');
+
+  insert into public.guestbook_entries (author_id, parent_id, is_secret, created_at, author_is_admin)
+  values (admin_id, secret_entry, true, now() - interval '23 hours', true)
+  returning id into secret_reply;
+  insert into public.guestbook_secret_contents (entry_id, content)
+  values (secret_reply, '비밀글에 단 답글이라 작성자와 관리자만 봐요.');
+end $$;
