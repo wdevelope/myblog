@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import { getPostForRoute, getCommentsDirectly } from "@/lib/server/posts";
 import { getPublicComments, getPublicPost, getPublicPosts } from "@/lib/server/publicPosts";
 import PostImages from "@/app/_components/PostImages";
@@ -25,15 +25,20 @@ export async function generateStaticParams() {
   return data.map((post) => ({ slug: post.slug }));
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(
+  { params }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPublicPost("blog", slug);
   if (!post) return {};
   const description = toExcerpt(post.content, 160);
+  // openGraph를 새로 정하면 상위 값을 통째로 덮어 app/opengraph-image의 기본 이미지가 빠지므로 이어 받는다.
+  const { openGraph } = await parent;
   return {
     title: post.title,
     description,
-    openGraph: { title: post.title, description, type: "article" },
+    openGraph: { title: post.title, description, type: "article", images: openGraph?.images },
   };
 }
 
