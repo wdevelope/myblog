@@ -19,6 +19,7 @@ export default function MobileNav({ adminMode }: { adminMode: boolean }) {
       { href: "/feed", label: "피드" },
       { href: "/article", label: "아티클" },
       { href: "/diary", label: "다이어리" },
+      { href: "/guestbook", label: "방명록" },
     ],
     [],
   );

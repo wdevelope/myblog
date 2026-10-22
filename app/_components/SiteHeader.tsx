@@ -51,6 +51,7 @@ export default async function SiteHeader() {
             <NavLink href="/feed">피드</NavLink>
             <NavLink href="/article">아티클</NavLink>
             <NavLink href="/diary">다이어리</NavLink>
+            <NavLink href="/guestbook">방명록</NavLink>
           </nav>
         </div>
 

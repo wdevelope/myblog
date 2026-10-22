@@ -18,15 +18,23 @@ export type NewCommentNotice = {
   isReply: boolean;
 };
 
-// 댓글은 사용자 입력이라 HTML 본문에 넣지 않고 text로만 보낸다.
-export function buildCommentEmail(notice: NewCommentNotice) {
-  const kind = notice.isReply ? "새 답글" : "새 댓글";
-  // 코드 포인트로 잘라 이모지 같은 서로게이트 쌍이 반으로 갈리지 않게 한다.
-  const chars = Array.from(notice.content);
-  const excerpt =
-    chars.length > EXCERPT_LENGTH ? `${chars.slice(0, EXCERPT_LENGTH).join("")}…` : notice.content;
-  // 서버(Vercel)는 UTC라 시간대를 정해 준다.
-  const createdAt = new Date(notice.createdAt).toLocaleString("sv-SE", {
+export type NewGuestbookNotice = {
+  authorId: string;
+  nickname: string | null;
+  content: string;
+  createdAt: string;
+  isSecret: boolean;
+};
+
+// 코드 포인트로 잘라 이모지 같은 서로게이트 쌍이 반으로 갈리지 않게 한다.
+function excerptOf(content: string) {
+  const chars = Array.from(content);
+  return chars.length > EXCERPT_LENGTH ? `${chars.slice(0, EXCERPT_LENGTH).join("")}…` : content;
+}
+
+// 서버(Vercel)는 UTC라 시간대를 정해 준다.
+function kstTime(iso: string) {
+  return new Date(iso).toLocaleString("sv-SE", {
     timeZone: "Asia/Seoul",
     year: "numeric",
     month: "2-digit",
@@ -34,7 +42,11 @@ export function buildCommentEmail(notice: NewCommentNotice) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
 
+// 댓글·방명록은 사용자 입력이라 HTML 본문에 넣지 않고 text로만 보낸다.
+export function buildCommentEmail(notice: NewCommentNotice) {
+  const kind = notice.isReply ? "새 답글" : "새 댓글";
   return {
     subject: `[w-life] ${kind}: ${notice.post.title}`,
     text: [
@@ -43,9 +55,27 @@ export function buildCommentEmail(notice: NewCommentNotice) {
       `글: ${notice.post.title}`,
       `주소: ${SITE_URL}${postHref(notice.post.type, notice.post.slug)}`,
       `작성자: ${userDisplayName(notice.authorId, false, notice.nickname)}`,
-      `시각: ${createdAt} (KST)`,
+      `시각: ${kstTime(notice.createdAt)} (KST)`,
       "",
-      excerpt,
+      excerptOf(notice.content),
+    ].join("\n"),
+  };
+}
+
+// 비밀글 내용은 메일에 싣지 않는다. 메일은 Resend 발송 기록과 메일함에 남아 DB 밖으로 나가기 때문이다.
+export function buildGuestbookEmail(notice: NewGuestbookNotice) {
+  return {
+    subject: notice.isSecret ? "[w-life] 새 방명록(비밀글)" : "[w-life] 새 방명록",
+    text: [
+      notice.isSecret ? "새 비밀 방명록이 남겨졌어요." : "새 방명록이 남겨졌어요.",
+      "",
+      `주소: ${SITE_URL}/guestbook`,
+      `작성자: ${userDisplayName(notice.authorId, false, notice.nickname)}`,
+      `시각: ${kstTime(notice.createdAt)} (KST)`,
+      "",
+      notice.isSecret
+        ? "비밀글이라 내용은 메일에 싣지 않았어요. 관리자 화면에서 확인해 주세요."
+        : excerptOf(notice.content),
     ].join("\n"),
   };
 }
@@ -58,8 +88,12 @@ function readMailConfig() {
   return { apiKey, to, from: process.env.COMMENT_NOTIFY_FROM || DEFAULT_FROM };
 }
 
-// 댓글 저장이 끝난 뒤 after()에서 부른다. 알림은 부가 기능이라 실패해도 throw하지 않고 기록만 남긴다.
-export async function notifyNewComment(notice: Omit<NewCommentNotice, "nickname">) {
+// 저장이 끝난 뒤 after()에서 부른다. 알림은 부가 기능이라 실패해도 throw하지 않고 기록만 남긴다.
+async function sendAdminMail(
+  label: string,
+  authorId: string,
+  build: (nickname: string | null) => { subject: string; text: string }
+) {
   const config = readMailConfig();
   if (!config) return;
 
@@ -69,9 +103,9 @@ export async function notifyNewComment(notice: Omit<NewCommentNotice, "nickname"
     const { data: profile } = await supabase
       .from("profiles")
       .select("nickname")
-      .eq("id", notice.authorId)
+      .eq("id", authorId)
       .maybeSingle();
-    const { subject, text } = buildCommentEmail({ ...notice, nickname: profile?.nickname ?? null });
+    const { subject, text } = build(profile?.nickname ?? null);
 
     const response = await fetch(RESEND_ENDPOINT, {
       method: "POST",
@@ -84,9 +118,17 @@ export async function notifyNewComment(notice: Omit<NewCommentNotice, "nickname"
       signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) {
-      console.error(`[notify] 댓글 알림 메일 실패: ${response.status} ${await response.text()}`);
+      console.error(`[notify] ${label} 알림 메일 실패: ${response.status} ${await response.text()}`);
     }
   } catch (e) {
-    console.error("[notify] 댓글 알림 메일 실패", e);
+    console.error(`[notify] ${label} 알림 메일 실패`, e);
   }
+}
+
+export function notifyNewComment(notice: Omit<NewCommentNotice, "nickname">) {
+  return sendAdminMail("댓글", notice.authorId, (nickname) => buildCommentEmail({ ...notice, nickname }));
+}
+
+export function notifyNewGuestbookEntry(notice: Omit<NewGuestbookNotice, "nickname">) {
+  return sendAdminMail("방명록", notice.authorId, (nickname) => buildGuestbookEmail({ ...notice, nickname }));
 }

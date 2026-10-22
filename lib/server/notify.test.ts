@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SITE_URL } from "@/lib/constants";
-import { buildCommentEmail, notifyNewComment, type NewCommentNotice } from "@/lib/server/notify";
+import {
+  buildCommentEmail,
+  buildGuestbookEmail,
+  notifyNewComment,
+  notifyNewGuestbookEntry,
+  type NewCommentNotice,
+} from "@/lib/server/notify";
 
 const mocks = vi.hoisted(() => ({
   profile: null as { nickname: string | null } | null,
@@ -142,5 +148,66 @@ describe("notifyNewComment", () => {
 
     await expect(notifyNewComment(input)).resolves.toBeUndefined();
     expect(consoleError).toHaveBeenCalled();
+  });
+});
+
+describe("방명록 알림 메일", () => {
+  const guestbook = {
+    authorId: "8353737f-5798-4a1b-9c2d-000000000000",
+    nickname: "테스트회원",
+    content: "다녀갑니다",
+    createdAt: "2026-01-01T15:30:00Z",
+    isSecret: false,
+  };
+
+  it("공개 방명록은 주소·작성자·한국 시각·내용을 넣는다", () => {
+    const { subject, text } = buildGuestbookEmail(guestbook);
+
+    expect(subject).toBe("[w-life] 새 방명록");
+    expect(text).toContain(`주소: ${SITE_URL}/guestbook`);
+    expect(text).toContain("작성자: 테스트회원");
+    expect(text).toContain("시각: 2026-01-02 00:30 (KST)");
+    expect(text).toContain("다녀갑니다");
+  });
+
+  it("비밀 방명록은 내용을 메일에 싣지 않는다", () => {
+    const { subject, text } = buildGuestbookEmail({ ...guestbook, isSecret: true, content: "비밀 이야기" });
+
+    expect(subject).toBe("[w-life] 새 방명록(비밀글)");
+    expect(text).not.toContain("비밀 이야기");
+    expect(text).toContain("관리자 화면에서 확인해 주세요.");
+  });
+
+  describe("notifyNewGuestbookEntry", () => {
+    beforeEach(() => {
+      mocks.profile = { nickname: "테스트회원" };
+      mocks.fetch.mockReset();
+      mocks.fetch.mockResolvedValue(new Response("{}", { status: 200 }));
+      vi.stubGlobal("fetch", mocks.fetch);
+      vi.stubEnv("RESEND_API_KEY", "re_test_key");
+      vi.stubEnv("COMMENT_NOTIFY_EMAIL", "owner@example.com");
+      vi.stubEnv("COMMENT_NOTIFY_FROM", "");
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    });
+
+    it("키가 없으면 보내지 않는다", async () => {
+      vi.stubEnv("RESEND_API_KEY", "");
+      await notifyNewGuestbookEntry({ ...guestbook });
+      expect(mocks.fetch).not.toHaveBeenCalled();
+    });
+
+    it("비밀 방명록도 내용 없이 text로만 보낸다", async () => {
+      await notifyNewGuestbookEntry({ ...guestbook, isSecret: true, content: "비밀 이야기" });
+
+      const [, init] = mocks.fetch.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(init.body as string);
+      expect(body.subject).toBe("[w-life] 새 방명록(비밀글)");
+      expect(body.text).not.toContain("비밀 이야기");
+      expect(body).not.toHaveProperty("html");
+    });
   });
 });

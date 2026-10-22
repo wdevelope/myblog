@@ -20,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.8,
     }));
 
-    const routes = ["", "/article", "/feed"].map((route) => ({
+    const routes = ["", "/article", "/feed", "/guestbook"].map((route) => ({
         url: `${baseUrl}${route}`,
         lastModified: new Date(),
         changeFrequency: "daily" as const,
