@@ -6,6 +6,7 @@ import { PRIVATE_IMAGE_BUCKET, PUBLIC_IMAGE_BUCKET, coverSrcFromImageKey } from 
 import { blogMarkdownParser } from "@/lib/markdown-syntax";
 
 // 작성 칸 라이브 프리뷰. 커서(선택 영역)가 걸친 줄은 기호를 흐리게 드러내고, 나머지 줄은 기호를 숨기거나 위젯으로 바꾼다.
+// 이미지는 커서 줄에서도 경로 대신 이미지만 보인다.
 // 서식(굵게·제목 크기 등)은 커서 줄에도 입힌다. 한글 조합은 늘 커서 줄에서 일어나므로 조합 중에 기호가 숨었다 나타나지 않는다.
 
 const IMAGE_KEY = new RegExp(`^(?:${PUBLIC_IMAGE_BUCKET}|${PRIVATE_IMAGE_BUCKET}):`);
@@ -110,9 +111,12 @@ function lineDecoration(className: string) {
   return decoration;
 }
 
-function buildDecorations(state: EditorState): DecorationSet {
+type LivePreview = { decorations: DecorationSet; atomic: DecorationSet };
+
+function buildDecorations(state: EditorState): LivePreview {
   const { doc } = state;
   const ranges: Range<Decoration>[] = [];
+  const atomic: Range<Decoration>[] = [];
   const activeLines = state.selection.ranges.map((range) => ({
     from: doc.lineAt(range.from).from,
     to: doc.lineAt(range.to).to,
@@ -212,12 +216,10 @@ function buildDecorations(state: EditorState): DecorationSet {
           const [open, close] = node.getChildren("LinkMark");
           const alt = open && close ? doc.sliceString(open.to, close.from) : "";
           const widget = new ImageWidget(IMAGE_KEY.test(key) ? coverSrcFromImageKey(key) : key, alt);
-          // 커서 줄에서도 방금 올린 이미지가 보여야 하므로 원문은 두고 그 뒤에 이미지를 붙인다.
-          ranges.push(
-            isActive(from, to)
-              ? Decoration.widget({ widget, side: 1 }).range(to)
-              : Decoration.replace({ widget }).range(from, to)
-          );
+          // 경로를 늘 숨기므로 커서가 문법 안으로 들어가지 못하게 한 덩어리로 둔다. 지우면 문법 전체가 지워진다.
+          const image = Decoration.replace({ widget }).range(from, to);
+          ranges.push(image);
+          atomic.push(image);
           return false;
         }
         case "InlineMath":
@@ -235,19 +237,22 @@ function buildDecorations(state: EditorState): DecorationSet {
     },
   });
 
-  return Decoration.set(ranges, true);
+  return { decorations: Decoration.set(ranges, true), atomic: Decoration.set(atomic, true) };
 }
 
-export const livePreviewField = StateField.define<DecorationSet>({
+export const livePreviewField = StateField.define<LivePreview>({
   create: buildDecorations,
-  update(decorations, tr) {
+  update(value, tr) {
     // 긴 글은 파싱이 나눠서 끝나므로 구문 트리가 늘어날 때도 다시 만든다.
     if (tr.docChanged || tr.selection || syntaxTree(tr.state) !== syntaxTree(tr.startState)) {
       return buildDecorations(tr.state);
     }
-    return decorations;
+    return value;
   },
-  provide: (field) => EditorView.decorations.from(field),
+  provide: (field) => [
+    EditorView.decorations.from(field, (value) => value.decorations),
+    EditorView.atomicRanges.of((view) => view.state.field(field).atomic),
+  ],
 });
 
 const blogMarkdownLanguage = new Language(defineLanguageFacet(), blogMarkdownParser, [], "markdown");
