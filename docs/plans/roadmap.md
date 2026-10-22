@@ -17,7 +17,7 @@
 - [ ] 7. UI 통일과 큰 컴포넌트 분할
 - [x] 8. 에디터 교체와 본문 보안 (CKEditor → 마크다운) — 마크다운 렌더러·원문 편집 에디터, 기존 글 135개 변환, 비공개 이미지 `private, no-store`·SVG 차단, CKEditor 제거(2026-10-22)
 - [x] 9. 요청 왕복 줄이기 — `proxy.ts`를 `getClaims()`로(로그인 요청의 proxy 27~49ms → 1.5~3ms), 상세 댓글 조회의 글 재조회 제거. 아티클 목록 병렬화는 5단계로 넘김(2026-10-22, 9절)
-- [ ] 10. 관리자 판정 단일화와 `public.users` 정리 — 1·2번 완료(RLS `is_admin()`·`getViewer` 모두 `app_metadata.is_admin`, 운영 DB 적용, 2026-10-22). 3번 `public.users` 삭제는 배포 확인과 1단계 백업 뒤(10절)
+- [x] 10. 관리자 판정 단일화와 `public.users` 정리 — RLS `is_admin()`·`getViewer` 모두 `app_metadata.is_admin`, `public.users` 삭제(운영 DB 적용, 2026-10-22, 10절)
 - [ ] 11. 관리자 화면을 직접 켜고 끄기 — 1~4 구현(2026-10-22). 관리자 로그인 상태의 브라우저 확인과 배포 뒤 측정이 남았다(11절)
 
 ## 진행 원칙 (2~8단계)
@@ -225,7 +225,8 @@
 > **결과** (2026-10-22): 결정 1은 (a) 삭제. 1·2번 완료, 3번 남음.
 > - 1번 `f1aef34`: `20261022030000_is_admin_from_jwt.sql`을 운영 DB에 적용했다(이력 이름 `is_admin_from_jwt`). 본문은 계획의 `->> … = 'true'` 대신 `(… -> 'is_admin') = 'true'::jsonb`로 JSON `true`만 관리자로 보게 했다(문자열 `"true"`는 아님, 앱과 같은 기준). 적용 전 관리자 계정의 두 값이 모두 boolean `true`임을 확인했고, 적용 뒤 `SECURITY DEFINER` 해제·정책 10개·anon/authenticated 실행 권한을 확인했다. 판정은 관리자 `true`(비공개 글 전부·비공개 카테고리 3), 일반 계정(`user_metadata.is_admin` 위조 포함)·anon `false`(비공개 0)로 적용 전과 같았다. 비공개 글 수가 104 → 119인 것은 그 사이 다이어리가 80 → 95개로 늘어서다.
 > - 2번 `4c7f705`: `getViewer`가 `app_metadata.is_admin === true`만 본다. 실패하는 테스트 2개(테이블만 관리자, 문자열 `"true"`)를 먼저 쓰고 고쳤다. 다른 테스트 5곳의 `users` mock을 지우고 CLAUDE.md를 고쳤다. HEAD에 이 변경만 얹어 typecheck·lint·테스트를 통과시켰다.
-> - 남은 일(3번): 2번을 배포하고 관리자 화면에서 비공개 글이 보이는지 확인한 뒤, 1단계 백업에 `public.users`가 들어간 것을 보고 삭제 마이그레이션을 쓴다. 브라우저 확인은 아직 못 했다.
+> - 3번: `20261022040000_drop_public_users.sql`(`drop table … restrict`)을 운영 DB에 적용했다(이력 이름 `drop_public_users`). 계획과 다르게 2번 배포 전에 지웠다. 이미 배포된 `c163ed6`(Vercel 상태 "Deployment has completed")의 `getViewer`도 관리자는 `app_metadata`로 먼저 판정하고, 테이블은 일반 사용자일 때만 읽어 오류면 비관리자로 떨어지기 때문이다. 1단계 전체 백업 대신 이 테이블만 정의·정책·트리거·권한·데이터(관리자 1행)를 SQL로 떠 로컬 `tmp/backup/public_users-20261022.sql`(git 제외)에 두었다. 지우기 전 DB 안에서 이 테이블을 읽는 함수·뷰가 없음을 확인했고, 지운 뒤 관리자·일반 계정 판정과 anon 공개 조회(REST 200), `users` 요청의 `PGRST205`를 확인했다.
+> - 확인하지 못한 것: 운영 관리자 화면에서 비공개 글이 보이는지(관리자 로그인이 필요하다).
 
 ## 11. 관리자 화면을 직접 켜고 끄기
 
@@ -376,7 +377,7 @@
 9. (해결: 2단계) 로그아웃이 GET `/logout`이라 다른 사이트가 링크·이미지로 로그아웃시킬 수 있다. 브라우저에서 `signOut`한 뒤 GET을 또 불러 두 번 처리한다.
 10. (해결: 4단계 일부) `server-only`가 `lib/server/publicPosts.ts`에만 있어 service role 클라이언트 모듈이 클라이언트 번들로 import되는 것을 빌드가 막지 못한다.
 11. (해결: 2026-10-22 마이그레이션 `20261022010000_lock_users_admin_flag.sql`, 운영 DB 적용) **`users.is_admin` 자가 승격.** `users`의 INSERT·UPDATE 정책이 자기 행인지(`id = auth.uid()`)만 보고 열을 막지 않아, 로그인 사용자가 PostgREST로 자기 행의 `is_admin`을 `true`로 넣거나 바꿀 수 있었다. `is_admin()`(RLS: 글·카테고리 쓰기, 비공개 조회)과 앱의 관리자 판정이 모두 이 값을 본다. 자기 행 쓰기 정책을 지우고 anon·authenticated의 INSERT·UPDATE·DELETE를 회수했다. Supabase 기본 TRUNCATE 권한은 PostgREST로 실행할 수 없어 남겼다.
-12. (판정은 해결: 10단계 1·2번, 테이블 삭제는 3번) 관리자 판정 근거가 두 곳이다. 앱은 `app_metadata.is_admin` 또는 `public.users.is_admin`, RLS `is_admin()`은 `public.users`만 본다. `is_admin()`은 노출 스키마의 `SECURITY DEFINER` 함수이고, `public.users`는 관리자만 들어 있어 회원 목록으로 오해하기 쉽다.
+12. (해결: 10단계) 관리자 판정 근거가 두 곳이다. 앱은 `app_metadata.is_admin` 또는 `public.users.is_admin`, RLS `is_admin()`은 `public.users`만 본다. `is_admin()`은 노출 스키마의 `SECURITY DEFINER` 함수이고, `public.users`는 관리자만 들어 있어 회원 목록으로 오해하기 쉽다.
 
 ### 동작·데이터
 
