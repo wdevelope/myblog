@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { Comment } from "@/lib/types";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useSessionUser } from "@/app/_components/useSessionUser";
 import { formatPostDate } from "@/lib/utils";
 import {
   createComment as createCommentAction,
@@ -103,21 +103,9 @@ export default function CommentsThread({
 }) {
   const router = useRouter();
   const [replyTo, setReplyTo] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { user } = useSessionUser();
+  const currentUserId = user?.id ?? null;
   const canWrite = Boolean(currentUserId);
-
-  useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setCurrentUserId(session?.user.id ?? null);
-    });
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUserId(session?.user.id ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   const { roots, repliesByParent } = useMemo(() => {
     const roots: Comment[] = [];

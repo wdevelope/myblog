@@ -1,19 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FiMenu, FiX, FiSearch } from "react-icons/fi";
 import LogoutButton from "@/app/_components/LogoutButton";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-
-type User = { id: string; email?: string | null } | null;
+import { useSessionUser } from "@/app/_components/useSessionUser";
 
 export default function MobileNav() {
   const pathname = usePathname();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
-  const [user, setUser] = useState<User>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useSessionUser();
 
   const links = useMemo(
     () => [
@@ -23,25 +20,6 @@ export default function MobileNav() {
     ],
     [],
   );
-
-  useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-
-    // 초기 세션 확인
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // 인증 상태 변경 구독
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   function open() {
     dialogRef.current?.showModal();
