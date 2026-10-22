@@ -1,10 +1,8 @@
 "use server";
 
 import { getViewer } from "@/lib/server/admin";
-import { revalidatePublicPosts } from "@/lib/server/publicPosts";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCommentedPosts, revalidateCommentedPosts } from "@/lib/server/account";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import type { PostType } from "@/lib/types";
 
 export type DeleteAccountResult =
   | { success: true }
@@ -21,15 +19,11 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
     return { success: false, error: "관리자 계정은 탈퇴할 수 없어요." };
   }
 
-  // 댓글은 계정과 함께 cascade로 지워진다. 그 글들의 공개 캐시를 무효화하려면 지우기 전에 읽어 둬야 한다.
-  const supabase = await createSupabaseServerClient();
-  const { data: comments, error: commentsError } = await supabase
-    .from("comments")
-    .select("posts(slug,type)")
-    .eq("author_id", user.id);
-
-  if (commentsError) {
-    return { success: false, error: `DB Error: ${commentsError.message}` };
+  let commentedPosts;
+  try {
+    commentedPosts = await getCommentedPosts(user.id);
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "DB Error" };
   }
 
   const { error } = await createSupabaseServiceClient().auth.admin.deleteUser(user.id);
@@ -37,16 +31,7 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
     return { success: false, error: "탈퇴에 실패했어요." };
   }
 
-  const slugsByType = new Map<PostType, string[]>();
-  for (const comment of comments ?? []) {
-    // Database 타입이 없어(6단계) 다대일 관계도 배열로 추론되므로 두 모양을 모두 받는다.
-    const post = Array.isArray(comment.posts) ? comment.posts[0] : comment.posts;
-    if (!post) continue;
-    slugsByType.set(post.type, [...(slugsByType.get(post.type) ?? []), post.slug]);
-  }
-  for (const [type, slugs] of slugsByType) {
-    revalidatePublicPosts({ type, slugs });
-  }
+  revalidateCommentedPosts(commentedPosts);
 
   return { success: true };
 }
