@@ -49,7 +49,11 @@ npm run build                          # next build --webpack (Turbopack 제한�
 - 이미지: `app/api/images` 라우트 핸들러가 service role로 Storage에 올리고 내려준다. 키 형식은 `<버킷>:<경로>`. 비공개 버킷 응답은 `Cache-Control: private, no-store`이고, SVG는 올리지 않는다.
 - Supabase 클라이언트: `lib/supabase/server.ts`(서버, RLS 적용), `client.ts`(브라우저), `service.ts`(서버 전용, RLS 우회 — `requireAdmin` 뒤에만. 예외: 방문자 다이어리 목록의 본문 없는 조회, 회원 탈퇴 `deleteAccount`의 본인 계정 삭제).
 - 인증: Supabase Auth(이메일·비밀번호). 관문은 `lib/server/admin.ts`다. 화면 분기는 `getViewer()`(user·isAdmin), 페이지 접근은 `requireLogin`·`requireAdmin`(redirect), 서버 액션·라우트 핸들러는 `assertAdmin()`(실패를 돌려줌). 관리자는 `app_metadata.is_admin`(JSON `true`)만 보고, RLS의 `is_admin()`도 JWT의 같은 값을 본다. 관리자 지정은 SQL Editor(service role)로 `auth.users.raw_app_meta_data`에 `is_admin: true`를 넣고 다시 로그인한다(RLS는 토큰이 갱신돼야 반영). `proxy.ts`는 `sb-` 쿠키가 있을 때 세션 갱신만 한다.
-- 마이페이지(`/mypage`, `requireLogin`·동적): 내 댓글, 비밀번호 변경, 회원 탈퇴(관리자는 못 한다). 헤더는 로그인하면 아바타가 여기로 간다. 아바타는 `UserAvatar` 하나로 관리자만 오웬 로고, 나머지는 사람 아이콘이고 사진 올리기는 없다. 이름은 `userDisplayName`(관리자 Owen, 그 외 `사용자 <id 앞 6자>`). 정적 댓글 목록은 `auth.users`를 못 읽으므로 `comments.author_is_admin`(INSERT 트리거가 쓰는 사람의 JWT로 채움)을 본다.
+- 마이페이지(`/mypage`, `requireLogin`·동적): 닉네임·프로필 사진, 내 댓글, 비밀번호 변경, 회원 탈퇴(관리자는 못 한다). 헤더는 로그인하면 아바타가 여기로 간다.
+  - 표시: 관리자는 프로필과 상관없이 오웬 로고·Owen이다. 다른 사용자는 닉네임·사진, 없으면 `사용자 <id 앞 6자>`·사람 아이콘이다(`userDisplayName`·`UserAvatar`). 정적 댓글 목록은 `auth.users`를 못 읽으므로 `comments.author_is_admin`(INSERT 트리거가 쓰는 사람의 JWT로 채움)과 `author:profiles(nickname,avatar_path)` 임베드를 본다.
+  - `profiles`: 누구나 읽고 본인 행의 두 열만 고친다. 가입 트리거가 `raw_user_meta_data.nickname`으로 행을 만든다(가입 폼은 중복확인 `check_nickname`을 거친다). 닉네임 규칙은 DB(`nickname_problem`)와 `lib/nickname.ts`가 같아야 한다.
+  - 사진: 브라우저가 256px JPEG로 줄여 `avatars` 버킷의 본인 폴더에 새 uuid 이름으로 올리고(Storage 정책), 서버 액션이 확인해 저장한 뒤 이전 파일을 지운다. Storage 파일은 계정과 함께 지워지지 않으므로 탈퇴·되돌리기에서 직접 지운다.
+  - 이름·사진이 바뀌면 그 사람이 댓글을 단 글을 무효화한다(`getCommentedPosts`·`revalidateCommentedPosts`). 관리자는 댓글의 "프로필 초기화"(`resetUserProfile`)로 닉네임·사진을 되돌린다.
 - ISR: 라우트 세그먼트 `revalidate`는 리터럴이어야 하므로 `86400 // REVALIDATE_PERIOD`로 쓴다.
 - 일시정지 방지: `/api/cron/keep-alive`(Vercel Cron 하루 1회, `CRON_SECRET`)가 캐시하지 않는 조회로 DB 활동을 남긴다(무료 플랜 7일 무활동 일시정지).
 
