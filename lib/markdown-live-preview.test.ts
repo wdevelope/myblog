@@ -32,26 +32,41 @@ function preview(source: string) {
 }
 
 describe("작성 칸 라이브 프리뷰", () => {
-  it("커서 밖 줄의 굵게 기호는 숨기고, 커서 줄은 기호를 흐리게 드러낸 채 서식을 입힌다", () => {
+  it("굵게 기호는 커서 줄에서도 숨기고 서식을 입힌다", () => {
     expect(preview("**굵게**\n‸")).toEqual(["cm-md-strong:**굵게**", "hide:**", "hide:**"]);
-    expect(preview("**굵‸게**")).toEqual(["cm-md-strong:**굵게**", "cm-md-syntax:**", "cm-md-syntax:**"]);
+    expect(preview("**굵‸게**")).toEqual(["cm-md-strong:**굵게**", "hide:**", "hide:**"]);
   });
 
-  it("문장부호로 끝난 굵게 뒤에 조사가 붙어도 커서 밖에서는 기호를 숨긴다", () => {
-    expect(preview('**"중요"**는\n‸')).toEqual(['cm-md-strong:**"중요"**', "hide:**", "hide:**"]);
-  });
-
-  it("선택이 여러 줄에 걸치면 그 줄 모두 기호를 드러낸다", () => {
-    expect(preview("«==가==\n++나++»\n~~다~~")).toEqual([
+  it("기울임·취소선·형광펜·밑줄·인라인 코드 기호도 커서·선택과 상관없이 숨긴다", () => {
+    expect(preview("*기‸울임*")).toEqual(["cm-md-em:*기울임*", "hide:*", "hide:*"]);
+    expect(preview("«==가==\n++나++»\n~~다~~ `라`")).toEqual([
       "cm-md-highlight:==가==",
-      "cm-md-syntax:==",
-      "cm-md-syntax:==",
+      "hide:==",
+      "hide:==",
       "cm-md-underline:++나++",
-      "cm-md-syntax:++",
-      "cm-md-syntax:++",
+      "hide:++",
+      "hide:++",
       "cm-md-strike:~~다~~",
       "hide:~~",
       "hide:~~",
+      "cm-md-code:`라`",
+      "hide:`",
+      "hide:`",
+    ]);
+  });
+
+  it("문장부호로 끝난 굵게 뒤에 조사가 붙어도 기호를 숨긴다", () => {
+    expect(preview('**"중요"**는\n‸')).toEqual(['cm-md-strong:**"중요"**', "hide:**", "hide:**"]);
+  });
+
+  it("선택이 여러 줄에 걸치면 그 줄 모두 제목·인용 기호를 드러낸다", () => {
+    expect(preview("«## 가\n> 나»\n\n## 다")).toEqual([
+      "cm-md-syntax:## ",
+      "line:cm-md-h2@1",
+      "cm-md-syntax:> ",
+      "line:cm-md-quote@2",
+      "hide:## ",
+      "line:cm-md-h2@4",
     ]);
   });
 
@@ -85,14 +100,14 @@ describe("작성 칸 라이브 프리뷰", () => {
     expect(preview("«앞 ![](https://exa»mple.com/a.png)")).toEqual(["image:https://example.com/a.png"]);
   });
 
-  it("이미지만 커서가 건너뛰는 한 덩어리로 다루고 다른 장식은 그렇지 않다", () => {
-    const doc = "**굵게** ![](https://example.com/a.png)";
+  it("이미지와 숨긴 인라인 서식 기호만 커서가 건너뛰는 한 덩어리로 다룬다", () => {
+    const doc = "## **굵게** [a](b) ![](https://example.com/a.png)";
     const state = EditorState.create({ doc, extensions: markdownLivePreview });
     const atomic: string[] = [];
     state.field(livePreviewField).atomic.between(0, doc.length, (from, to) => {
       atomic.push(doc.slice(from, to));
     });
-    expect(atomic).toEqual(["![](https://example.com/a.png)"]);
+    expect(atomic).toEqual(["**", "**", "![](https://example.com/a.png)"]);
   });
 
   it("커서가 `$$` 블록 안이면 블록 전체가 원문이고, 밖이면 수식 하나로 그린다", () => {

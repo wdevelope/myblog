@@ -8,7 +8,7 @@ import { ImageWidget } from "@/lib/markdown-image-widget";
 import { blogMarkdownParser } from "@/lib/markdown-syntax";
 
 // 작성 칸 라이브 프리뷰. 커서(선택 영역)가 걸친 줄은 기호를 흐리게 드러내고, 나머지 줄은 기호를 숨기거나 위젯으로 바꾼다.
-// 이미지는 커서 줄에서도 경로 대신 이미지만 보인다.
+// 이미지와 인라인 서식(굵게·기울임 등) 기호는 커서 줄에서도 숨긴다. 서식을 넣자마자 기호 없이 보이게 하려는 사용자 결정이다.
 // 서식(굵게·제목 크기 등)은 커서 줄에도 입힌다. 한글 조합은 늘 커서 줄에서 일어나므로 조합 중에 기호가 숨었다 나타나지 않는다.
 
 const IMAGE_KEY = new RegExp(`^(?:${PUBLIC_IMAGE_BUCKET}|${PRIVATE_IMAGE_BUCKET}):`);
@@ -128,7 +128,10 @@ function buildDecorations(state: EditorState): LivePreview {
         return;
       }
       if (INLINE_MARKS.has(name) || (name === "CodeMark" && parent === "InlineCode")) {
-        addHidden(from, to);
+        // 보이지 않는 `**` 사이에 커서가 멈추면 방향키가 먹지 않는 것처럼 보여 한 덩어리로 건너뛰게 한다.
+        const mark = hide.range(from, to);
+        ranges.push(mark);
+        atomic.push(mark);
         return;
       }
 
