@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import AdminModeToggle from "@/app/_components/AdminModeToggle";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
+import AdminModeSync from "@/app/_components/AdminModeSync";
 
 type SessionUser = { id: string; app_metadata: { is_admin?: boolean } };
 
@@ -36,8 +36,9 @@ vi.mock("sonner", () => ({ toast: { error: mocks.toastError } }));
 const admin = { user: { id: "admin-1", app_metadata: { is_admin: true } } };
 const member = { user: { id: "user-1", app_metadata: {} } };
 
-// 세션 조회(getSession)가 끝날 때까지 기다린다.
+// 세션 조회(getSession)와 그 뒤의 요청이 끝날 때까지 기다린다.
 async function settle() {
+  await act(async () => {});
   await act(async () => {});
 }
 
@@ -51,70 +52,62 @@ beforeEach(() => {
 // vitest globals가 꺼져 있어 Testing Library가 자동으로 정리하지 않는다.
 afterEach(cleanup);
 
-describe("관리자 화면 토글", () => {
-  it("세션이 없거나 일반 사용자면 그리지 않는다", async () => {
-    render(<AdminModeToggle enabled={false} />);
+describe("관리자 화면 맞추기", () => {
+  it("화면에 아무것도 그리지 않는다", async () => {
+    mocks.session = admin;
+    const { container } = render(<AdminModeSync enabled />);
     await settle();
-    expect(screen.queryByRole("button", { name: "관리자 화면" })).not.toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("세션이 없거나 일반 사용자면 꺼진 상태를 그대로 둔다", async () => {
+    render(<AdminModeSync enabled={false} />);
+    await settle();
     cleanup();
 
     mocks.session = member;
-    render(<AdminModeToggle enabled={false} />);
+    render(<AdminModeSync enabled={false} />);
     await settle();
-    expect(screen.queryByRole("button", { name: "관리자 화면" })).not.toBeInTheDocument();
+
+    expect(mocks.enableAdminMode).not.toHaveBeenCalled();
+    expect(mocks.disableAdminMode).not.toHaveBeenCalled();
+    expect(mocks.refresh).not.toHaveBeenCalled();
   });
 
-  it("꺼져 있을 때 누르면 켜기를 요청한 뒤 화면을 새로 받는다", async () => {
+  it("관리자 세션인데 꺼져 있으면 켜기를 요청한 뒤 화면을 새로 받는다", async () => {
     mocks.session = admin;
-    render(<AdminModeToggle enabled={false} />);
-
-    const button = await screen.findByRole("button", { name: "관리자 화면" });
-    expect(button).toHaveAttribute("aria-pressed", "false");
-    fireEvent.click(button);
+    render(<AdminModeSync enabled={false} />);
 
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
     expect(mocks.enableAdminMode).toHaveBeenCalledTimes(1);
     expect(mocks.disableAdminMode).not.toHaveBeenCalled();
   });
 
-  it("켜져 있으면 눌림 상태이고, 누르면 끄기를 요청한 뒤 화면을 새로 받는다", async () => {
-    mocks.session = admin;
-    render(<AdminModeToggle enabled />);
-
-    const button = await screen.findByRole("button", { name: "관리자 화면" });
-    expect(button).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(button);
-
-    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
-    expect(mocks.disableAdminMode).toHaveBeenCalledTimes(1);
-    expect(mocks.enableAdminMode).not.toHaveBeenCalled();
-  });
-
   it("켜기가 거절되면 알리고 화면을 새로 받지 않는다", async () => {
     mocks.session = admin;
     mocks.enableAdminMode.mockResolvedValue(false);
-    render(<AdminModeToggle enabled={false} />);
-
-    fireEvent.click(await screen.findByRole("button", { name: "관리자 화면" }));
+    render(<AdminModeSync enabled={false} />);
 
     await waitFor(() => expect(mocks.toastError).toHaveBeenCalledTimes(1));
     expect(mocks.refresh).not.toHaveBeenCalled();
   });
 
   it("서버가 켜짐으로 그렸는데 관리자 세션이 없으면 조용히 끄고 화면을 새로 받는다", async () => {
-    render(<AdminModeToggle enabled />);
+    render(<AdminModeSync enabled />);
 
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
     expect(mocks.disableAdminMode).toHaveBeenCalledTimes(1);
+    expect(mocks.enableAdminMode).not.toHaveBeenCalled();
     expect(mocks.toastError).not.toHaveBeenCalled();
-    expect(screen.queryByRole("button", { name: "관리자 화면" })).not.toBeInTheDocument();
   });
 
-  it("관리자 세션이 있으면 켜진 상태를 그대로 둔다", async () => {
+  it("관리자 세션이고 켜져 있으면 아무것도 요청하지 않는다", async () => {
     mocks.session = admin;
-    render(<AdminModeToggle enabled />);
+    render(<AdminModeSync enabled />);
+    await settle();
 
-    await screen.findByRole("button", { name: "관리자 화면" });
+    expect(mocks.enableAdminMode).not.toHaveBeenCalled();
     expect(mocks.disableAdminMode).not.toHaveBeenCalled();
+    expect(mocks.refresh).not.toHaveBeenCalled();
   });
 });

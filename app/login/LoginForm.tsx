@@ -104,7 +104,7 @@ export default function LoginForm() {
       }
 
       // 관리자면 이동할 화면을 관리자 화면으로 렌더링한다. is_admin은 표시용이고 켜기는 서버가 다시 판정한다.
-      // 켜지 못해도(세션 지연 등) 로그인은 끝났으므로 그대로 이동하고, 헤더 토글로 다시 켤 수 있다.
+      // 켜지 못해도(세션 지연 등) 로그인은 끝났으므로 그대로 이동하고, 헤더의 AdminModeSync가 다시 켠다.
       if (result.data.user?.app_metadata?.is_admin === true) {
         await enableAdminMode();
       }

@@ -3,7 +3,7 @@ import { draftMode } from "next/headers";
 import MobileNav from "@/app/_components/MobileNav";
 import NavLink from "@/app/_components/NavLink";
 import AccountButton from "@/app/_components/AccountButton";
-import AdminModeToggle from "@/app/_components/AdminModeToggle";
+import AdminModeSync from "@/app/_components/AdminModeSync";
 import AdminNavProgress from "@/app/_components/AdminNavProgress";
 import { Suspense } from "react";
 import Image from "next/image";
@@ -38,6 +38,7 @@ export default async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/75 backdrop-blur-md">
+      <AdminModeSync enabled={adminMode} />
       {/* useSearchParams를 읽어 Suspense로 감싼다. 관리자 화면 요청에서만 그리므로 방문자 정적 HTML에는 없다. */}
       {adminMode ? (
         <Suspense fallback={null}>
@@ -85,10 +86,9 @@ export default async function SiteHeader() {
 
           {/* 클라이언트에서 인증 상태 확인 후 로그인 버튼 또는 마이페이지 아바타 표시 */}
           <div className="hidden shrink-0 items-center gap-2 sm:flex">
-            <AdminModeToggle enabled={adminMode} className="flex h-10 px-4" />
             <AccountButton loginClassName="h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 flex" />
           </div>
-          <MobileNav adminMode={adminMode} />
+          <MobileNav />
         </div>
       </div>
     </header>
