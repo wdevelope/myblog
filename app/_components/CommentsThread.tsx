@@ -64,7 +64,7 @@ function CommentComposer({
         className="w-full rounded-2xl border border-border bg-transparent px-4 py-3 text-base text-foreground outline-none transition focus:border-primary/60 disabled:opacity-60 sm:text-xs"
         placeholder={placeholder}
       />
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="text-xs text-danger">{error}</p> : null}
       <div className="flex items-center justify-end">
         <Button
           disabled={disabled || isPending}
@@ -183,7 +183,7 @@ export default function CommentsThread({
       <button
         type="button"
         onClick={() => handleDelete(comment.id)}
-        className="inline-flex items-center gap-2 font-semibold text-red-500/80 hover:text-red-600 transition"
+        className="inline-flex items-center gap-2 font-semibold text-danger/80 hover:text-danger transition"
       >
         삭제
       </button>

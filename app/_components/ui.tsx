@@ -43,8 +43,8 @@ export function Badge({
   const styles: Record<typeof variant, string> = {
     default: "border-border bg-surface-2 text-muted",
     primary: "border-primary/30 bg-primary/15 text-primary",
-    success: "border-emerald-500/25 bg-emerald-500/15 text-emerald-400",
-    warning: "border-amber-500/25 bg-amber-500/15 text-amber-400",
+    success: "border-success/25 bg-success/15 text-success",
+    warning: "border-warning/25 bg-warning/15 text-warning",
   };
   return <span className={cn(base, styles[variant])}>{children}</span>;
 }

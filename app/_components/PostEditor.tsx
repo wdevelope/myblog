@@ -191,7 +191,7 @@ export default function PostEditor({
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
-          <span className="text-sm text-gray-400 font-medium mr-2">
+          <span className="text-sm text-muted font-medium mr-2">
             {content.length}자
           </span>
           <button
@@ -205,7 +205,7 @@ export default function PostEditor({
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
-            className="px-5 py-2 rounded-lg bg-emerald-400 hover:bg-emerald-500 text-white text-sm font-bold shadow-sm transition disabled:opacity-50"
+            className="px-5 py-2 rounded-lg bg-success hover:brightness-110 text-background text-sm font-bold shadow-sm transition disabled:opacity-50"
           >
             발행
           </button>
@@ -221,7 +221,7 @@ export default function PostEditor({
                   <p className="text-sm font-bold text-foreground">
                     임시저장된 글이 있습니다
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted">
                     {new Date(pendingDraft.updatedAt).toLocaleTimeString()}에
                     저장됨
                   </p>
@@ -241,7 +241,7 @@ export default function PostEditor({
                     applyDraft(pendingDraft);
                     dismissDraft();
                   }}
-                  className="px-3 py-1.5 text-xs font-bold bg-emerald-500 text-white rounded-lg hover:brightness-110 shadow-sm transition"
+                  className="px-3 py-1.5 text-xs font-bold bg-success text-background rounded-lg hover:brightness-110 shadow-sm transition"
                 >
                   불러오기
                 </button>

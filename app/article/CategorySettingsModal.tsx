@@ -337,8 +337,8 @@ function CategoryRow({
               className={cn(
                 "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] ring-1",
                 category.visibility === "public"
-                  ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20"
-                  : "bg-amber-500/10 text-amber-600 ring-amber-500/20",
+                  ? "bg-success/10 text-success ring-success/20"
+                  : "bg-warning/10 text-warning ring-warning/20",
               )}
               title={category.visibility === "public" ? "공개" : "비공개"}
             >
@@ -406,7 +406,7 @@ function CategoryRow({
               setDeleteMoveTo("");
               onRequestDelete(category.slug);
             }}
-            className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-500/15"
+            className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-1.5 text-xs font-bold text-danger transition hover:bg-danger/15"
           >
             삭제
           </button>
@@ -481,7 +481,7 @@ function CategoryRow({
             <button
               type="button"
               onClick={() => onDelete(category, deleteMoveTo)}
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-bold text-white transition hover:bg-red-700"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-danger px-4 text-sm font-bold text-background transition hover:brightness-110"
             >
               삭제 확정
             </button>

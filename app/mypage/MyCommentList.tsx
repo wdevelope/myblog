@@ -49,7 +49,7 @@ export default function MyCommentList({ comments }: { comments: MyComment[] }) {
           <button
             type="button"
             onClick={() => void handleDelete(c.id)}
-            className="text-xs font-semibold text-red-500/80 transition hover:text-red-600"
+            className="text-xs font-semibold text-danger/80 transition hover:text-danger"
           >
             삭제
           </button>

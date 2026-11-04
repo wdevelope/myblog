@@ -72,11 +72,11 @@ export default function NicknameField({
         </Button>
       </div>
       {status ? (
-        <p className={status === "ok" ? "text-xs text-emerald-600" : "text-xs text-red-600"}>
+        <p className={status === "ok" ? "text-xs text-success" : "text-xs text-danger"}>
           {NICKNAME_MESSAGES[status]}
         </p>
       ) : null}
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="text-xs text-danger">{error}</p> : null}
     </div>
   );
 }

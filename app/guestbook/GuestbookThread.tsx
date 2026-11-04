@@ -106,7 +106,7 @@ function GuestbookComposer({
         placeholder={placeholder}
         className="w-full resize-y rounded-2xl border border-border bg-transparent px-4 py-3 text-base text-foreground outline-none transition placeholder:text-muted focus:border-primary/60 disabled:opacity-60 sm:text-sm"
       />
-      {error ? <p role="alert" className="text-xs text-red-600">{error}</p> : null}
+      {error ? <p role="alert" className="text-xs text-danger">{error}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         {allowSecret ? (
           <label className="inline-flex items-center gap-2 text-xs font-semibold text-foreground">
@@ -117,7 +117,7 @@ function GuestbookComposer({
               disabled={isPending}
               className="size-4 accent-primary"
             />
-            <Lock aria-hidden className="size-3.5 text-amber-500" />
+            <Lock aria-hidden className="size-3.5 text-warning" />
             비밀글
             <span className="font-normal text-muted">관리자와 나만 볼 수 있어요</span>
           </label>
@@ -222,7 +222,7 @@ export default function GuestbookThread({
             <span className="text-muted">·</span>
             <span className="text-muted">{formatPostDate(entry.createdAt, "ko")}</span>
             {entry.isSecret && content !== null ? (
-              <span className="inline-flex items-center gap-1 text-amber-500">
+              <span className="inline-flex items-center gap-1 text-warning">
                 <Lock aria-hidden className="size-3" />
                 <span className="font-semibold">비밀글</span>
               </span>
@@ -253,7 +253,7 @@ export default function GuestbookThread({
                 <button
                   type="button"
                   onClick={() => handleDelete(entry)}
-                  className="font-semibold text-red-500/80 transition hover:text-red-600"
+                  className="font-semibold text-danger/80 transition hover:text-danger"
                 >
                   삭제
                 </button>

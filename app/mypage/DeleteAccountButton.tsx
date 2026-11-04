@@ -34,7 +34,7 @@ export default function DeleteAccountButton() {
       type="button"
       onClick={onClick}
       disabled={pending}
-      className="inline-flex h-10 items-center justify-center rounded-xl border border-red-500/40 px-4 text-sm font-bold text-red-600 transition hover:bg-red-500/10 disabled:opacity-50"
+      className="inline-flex h-10 items-center justify-center rounded-xl border border-danger/40 px-4 text-sm font-bold text-danger transition hover:bg-danger/10 disabled:opacity-50"
     >
       {pending ? "탈퇴 중…" : "회원 탈퇴"}
     </button>

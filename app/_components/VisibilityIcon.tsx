@@ -14,7 +14,7 @@ export default function VisibilityIcon({
   return (
     <Icon
       aria-hidden
-      className={cn(visibility === "private" ? "text-amber-500" : "text-emerald-500", className)}
+      className={cn(visibility === "private" ? "text-warning" : "text-success", className)}
     />
   );
 }

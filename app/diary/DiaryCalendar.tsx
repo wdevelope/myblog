@@ -90,7 +90,7 @@ export default function DiaryCalendar({
                     "relative flex h-9 w-full items-center justify-center rounded-xl text-sm font-semibold transition",
                     inMonth ? "text-foreground" : "text-muted/50",
                     hasEntry
-                      ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20"
+                      ? "bg-success/15 text-success hover:bg-success/20"
                       : "hover:bg-surface-2",
                     isSelected ? "ring-2 ring-primary/60" : "ring-0",
                   )}

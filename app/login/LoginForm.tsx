@@ -234,8 +234,8 @@ export default function LoginForm() {
             </label>
           )}
 
-          {error ? <p className="text-sm text-red-500">{error}</p> : null}
-          {notice ? <p className="text-sm text-emerald-600">{notice}</p> : null}
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          {notice ? <p className="text-sm text-success">{notice}</p> : null}
 
           <Button
             onClick={submit}

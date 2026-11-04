@@ -103,7 +103,7 @@ export default function PostSettingsPanel({
                       className={cn(
                         "py-2 flex items-center justify-center rounded-lg transition",
                         visibility === "public"
-                          ? "bg-background shadow-sm text-emerald-500"
+                          ? "bg-background shadow-sm text-success"
                           : "text-muted hover:text-foreground"
                       )}
                       title="공개"
@@ -116,7 +116,7 @@ export default function PostSettingsPanel({
                       className={cn(
                         "py-2 flex items-center justify-center rounded-lg transition",
                         visibility === "private"
-                          ? "bg-background shadow-sm text-amber-500"
+                          ? "bg-background shadow-sm text-warning"
                           : "text-muted hover:text-foreground"
                       )}
                       title="비공개"
@@ -248,7 +248,7 @@ export default function PostSettingsPanel({
               )}
 
               {error && (
-                <div className="p-3 rounded-xl bg-red-500/10 text-red-500 text-sm font-medium">
+                <div className="p-3 rounded-xl bg-danger/10 text-danger text-sm font-medium">
                   {error}
                 </div>
               )}
@@ -259,7 +259,7 @@ export default function PostSettingsPanel({
                 type="button"
                 onClick={onSubmit}
                 disabled={isPending}
-                className="w-full h-11 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full h-11 rounded-xl bg-success hover:brightness-110 text-background font-bold shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isPending ? "발행 중..." : "발행하기"}
               </button>
@@ -268,7 +268,7 @@ export default function PostSettingsPanel({
                 <DeletePostButton
                   slug={deleteSlug}
                   redirectTo={deleteRedirectTo}
-                  className="w-full h-11 rounded-xl border border-red-500/20 text-red-500 font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-2"
+                  className="w-full h-11 rounded-xl border border-danger/20 text-danger font-bold hover:bg-danger/5 transition flex items-center justify-center gap-2"
                 >
                   <Trash2 className="size-4" />
                   삭제하기

@@ -58,8 +58,8 @@ export default function PasswordChangeForm() {
           autoComplete="new-password"
         />
       </label>
-      {mismatch ? <p className="text-xs text-red-600">비밀번호가 일치하지 않습니다.</p> : null}
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {mismatch ? <p className="text-xs text-danger">비밀번호가 일치하지 않습니다.</p> : null}
+      {error ? <p className="text-xs text-danger">{error}</p> : null}
       <div className="flex justify-end">
         <Button
           type="submit"
