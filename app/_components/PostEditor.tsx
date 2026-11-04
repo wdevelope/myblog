@@ -48,6 +48,7 @@ type DraftPayloadV1 = {
 export default function PostEditor({
   type,
   defaultVisibility,
+  defaultTitle = "",
   initial,
   createdAtYmd,
   deleteSlug,
@@ -55,6 +56,7 @@ export default function PostEditor({
 }: {
   type: PostType;
   defaultVisibility?: Visibility;
+  defaultTitle?: string;
   initial?: {
     id: string;
     slug: string;
@@ -75,7 +77,7 @@ export default function PostEditor({
   const [visibility, setVisibility] = useState<Visibility>(
     initial?.visibility ?? defaultVisibility ?? "public"
   );
-  const [title, setTitle] = useState(initial?.title ?? "");
+  const [title, setTitle] = useState(initial?.title ?? defaultTitle);
   const [categorySlug, setCategorySlug] = useState(
     initial?.categorySlug?.trim() ?? ""
   );
@@ -152,13 +154,14 @@ export default function PostEditor({
 
   const hasMeaningfulDraft = useCallback((draft: DraftPayloadV1) => {
     if (draft.type === "blog" && draft.categorySlug.trim()) return true;
-    if (draft.type !== "feed" && draft.title.trim()) return true;
+    // 화면이 채운 기본 제목은 쓴 내용이 아니다. 임시저장하면 다음 날 날짜만 다른 불러오기 알림이 뜬다.
+    if (draft.type !== "feed" && draft.title.trim() && draft.title !== defaultTitle) return true;
     if (draft.content.trim()) return true;
     if (draft.imageKeys.length > 0) return true;
     if (draft.type === "blog" && draft.thumbnailImageKey.trim()) return true;
     if (draft.type === "diary" && draft.createdAtYmd?.trim()) return true;
     return false;
-  }, []);
+  }, [defaultTitle]);
 
   // 처음 그릴 때 한 번, 지금 내용과 다른 임시저장 글이 있으면 불러오기 알림을 띄운다.
   // localStorage는 브라우저에만 있어, 알림은 hydration 뒤(hydrated)에만 그린다.

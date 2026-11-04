@@ -93,3 +93,45 @@ describe("글 에디터 임시저장 알림", () => {
     expect(screen.getByText(DRAFT_NOTICE)).toBeTruthy();
   });
 });
+
+describe("글 에디터 기본 제목", () => {
+  const DATE_TITLE = "2026년 11월 4일의 기록";
+  const DIARY_DRAFT_KEY = "draft:post:new:diary";
+
+  function titleInput() {
+    return screen.getByPlaceholderText("제목을 입력하세요.") as HTMLInputElement;
+  }
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("기본 제목을 제목 칸에 채운다", () => {
+    render(<PostEditor type="diary" defaultTitle={DATE_TITLE} />);
+
+    expect(titleInput().value).toBe(DATE_TITLE);
+  });
+
+  it("기본 제목만 있으면 쓴 내용이 없으므로 임시저장하지 않는다", () => {
+    vi.useFakeTimers();
+    render(<PostEditor type="diary" defaultTitle={DATE_TITLE} />);
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(localStorage.getItem(DIARY_DRAFT_KEY)).toBeNull();
+  });
+
+  it("기본 제목을 고치면 임시저장한다", () => {
+    vi.useFakeTimers();
+    render(<PostEditor type="diary" defaultTitle={DATE_TITLE} />);
+
+    fireEvent.change(titleInput(), { target: { value: "봄날" } });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(JSON.parse(localStorage.getItem(DIARY_DRAFT_KEY) ?? "{}").title).toBe("봄날");
+  });
+});

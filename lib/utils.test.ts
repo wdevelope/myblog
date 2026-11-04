@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPostDate, userDisplayName } from "@/lib/utils";
+import { formatPostDate, toDiaryTitle, userDisplayName } from "@/lib/utils";
 
 describe("formatPostDate", () => {
   it("UTC로는 전날이어도 한국 시간 날짜로 보인다", () => {
@@ -9,6 +9,16 @@ describe("formatPostDate", () => {
 
   it("상세 화면용 한국식 표기도 한국 시간 기준이다", () => {
     expect(formatPostDate("2026-01-07T16:30:00Z", "ko")).toBe("2026. 1. 8.");
+  });
+});
+
+describe("toDiaryTitle", () => {
+  it("날짜로 제목을 만든다", () => {
+    expect(toDiaryTitle("2026-11-04")).toBe("2026년 11월 4일의 기록");
+  });
+
+  it("한 자리 월·일 앞에 0을 붙이지 않는다", () => {
+    expect(toDiaryTitle("2026-01-08")).toBe("2026년 1월 8일의 기록");
   });
 });
 

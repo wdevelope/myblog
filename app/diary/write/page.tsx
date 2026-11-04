@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import PostEditor from "@/app/_components/PostEditor";
 import { requireAdmin } from "@/lib/server/admin";
+import { formatPostDate, toDiaryTitle } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "다이어리 쓰기",
@@ -22,11 +23,13 @@ export default async function DiaryWritePage({ searchParams }: Props) {
   const sp = (await searchParams) ?? {};
   const dateParam = typeof sp.date === "string" ? sp.date : null;
   const createdAtYmd = dateParam && isYmd(dateParam) ? dateParam : undefined;
+  const today = formatPostDate(new Date().toISOString());
 
   return (
     <PostEditor
       type="diary"
       defaultVisibility="private"
+      defaultTitle={toDiaryTitle(createdAtYmd ?? today)}
       createdAtYmd={createdAtYmd}
     />
   );

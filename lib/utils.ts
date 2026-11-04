@@ -13,6 +13,11 @@ export function formatPostDate(iso: string, style: "iso" | "ko" = "iso") {
   return date.toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 }
 
+export function toDiaryTitle(ymd: string) {
+  const [year, month, day] = ymd.split("-").map(Number);
+  return `${year}년 ${month}월 ${day}일의 기록`;
+}
+
 // 관리자는 닉네임과 상관없이 Owen이다. 다른 사용자는 닉네임, 없으면 id 앞 6자로 부른다. 댓글·마이페이지·헤더가 같은 이름을 쓴다.
 export function userDisplayName(
   userId: string | null | undefined,
