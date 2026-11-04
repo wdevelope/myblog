@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export function Card({
   children,
@@ -9,11 +10,11 @@ export function Card({
 }) {
   return (
     <div
-      className={[
+      className={cn(
         "rounded-2xl border border-border bg-surface shadow-sm shadow-black/5",
         "dark:shadow-black/20",
         className,
-      ].join(" ")}
+      )}
     >
       {children}
     </div>
@@ -27,7 +28,7 @@ export function CardBody({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <div className={["p-6", className].join(" ")}>{children}</div>;
+  return <div className={cn("p-6", className)}>{children}</div>;
 }
 
 export function Badge({
@@ -45,7 +46,7 @@ export function Badge({
     success: "border-emerald-500/25 bg-emerald-500/15 text-emerald-400",
     warning: "border-amber-500/25 bg-amber-500/15 text-amber-400",
   };
-  return <span className={[base, styles[variant]].join(" ")}>{children}</span>;
+  return <span className={cn(base, styles[variant])}>{children}</span>;
 }
 
 export function ButtonLink({
@@ -65,7 +66,7 @@ export function ButtonLink({
       : "border border-border bg-surface text-foreground hover:bg-surface-2";
 
   return (
-    <Link href={href} className={[base, styles].join(" ")}>
+    <Link href={href} className={cn(base, styles)}>
       {children}
     </Link>
   );
@@ -75,7 +76,7 @@ export function ButtonLink({
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
-      className={["animate-pulse rounded-xl bg-surface-2", className].join(" ")}
+      className={cn("animate-pulse rounded-xl bg-surface-2", className)}
     />
   );
 }

@@ -7,6 +7,7 @@ import { FiMenu, FiX, FiSearch } from "react-icons/fi";
 import LogoutButton from "@/app/_components/LogoutButton";
 import { useSessionUser } from "@/app/_components/useSessionUser";
 import { SEARCH_QUERY_MAX_LENGTH } from "@/lib/search";
+import { cn } from "@/lib/utils";
 
 export default function MobileNav() {
   const pathname = usePathname();
@@ -95,10 +96,10 @@ export default function MobileNav() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={[
+                    className={cn(
                       "flex h-11 items-center justify-between rounded-xl px-3 text-sm font-bold transition",
                       active ? "bg-primary/12 text-primary" : "hover:bg-surface-2",
-                    ].join(" ")}
+                    )}
                   >
                     <span>{link.label}</span>
                     <span className="text-muted">→</span>

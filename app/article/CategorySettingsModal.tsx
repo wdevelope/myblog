@@ -12,6 +12,7 @@ import {
   reorderCategory,
   type Category,
 } from "@/lib/actions/categories";
+import { cn } from "@/lib/utils";
 
 export default function CategorySettingsModal() {
   const router = useRouter();
@@ -332,12 +333,12 @@ function CategoryRow({
               사용 {inUse}
             </span>
             <span
-              className={[
+              className={cn(
                 "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] ring-1",
                 category.visibility === "public"
                   ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20"
                   : "bg-amber-500/10 text-amber-600 ring-amber-500/20",
-              ].join(" ")}
+              )}
               title={category.visibility === "public" ? "공개" : "비공개"}
             >
               {category.visibility === "public" ? (

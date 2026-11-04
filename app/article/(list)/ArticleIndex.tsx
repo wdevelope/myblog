@@ -12,6 +12,7 @@ import { getPreviewViewer } from "@/lib/server/admin";
 import { getArticleListDirectly } from "@/lib/server/posts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { articleListHref } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import CategorySelect from "@/app/article/CategorySelect";
 import { RememberArticleList } from "@/app/article/ArticleListMemory";
@@ -94,21 +95,21 @@ export default async function ArticleIndex({
           <nav className="flex flex-col gap-1.5">
             <Link
               href={articleListHref()}
-              className={[
+              className={cn(
                 "group flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition-all duration-200",
                 selectedCategory
                   ? "text-muted hover:bg-surface-2 hover:text-foreground"
                   : "bg-primary/10 text-primary shadow-sm shadow-primary/5",
-              ].join(" ")}
+              )}
             >
               <span className="text-sm font-bold">전체 글</span>
               <span
-                className={[
+                className={cn(
                   "inline-flex items-center justify-center min-w-7 h-5 px-1.5 rounded-lg text-[10px] font-black transition-colors",
                   selectedCategory
                     ? "text-muted/40 group-hover:text-muted/60"
                     : "text-primary/60",
-                ].join(" ")}
+                )}
               >
                 {sidebarTotalCount}
               </span>
@@ -119,12 +120,12 @@ export default async function ArticleIndex({
                 <Link
                   key={category.slug}
                   href={articleListHref(category.slug)}
-                  className={[
+                  className={cn(
                     "group flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition-all duration-200",
                     isActive
                       ? "bg-primary/10 text-primary shadow-sm shadow-primary/5"
                       : "text-muted hover:bg-surface-2 hover:text-foreground",
-                  ].join(" ")}
+                  )}
                 >
                   <span className="flex min-w-0 items-center gap-2 text-sm font-bold">
                     {isAdmin && category.visibility === "private" ? (
@@ -135,12 +136,12 @@ export default async function ArticleIndex({
                     <span className="truncate">{category.slug}</span>
                   </span>
                   <span
-                    className={[
+                    className={cn(
                       "inline-flex items-center justify-center min-w-7 h-5 px-1.5 rounded-lg text-[10px] font-black transition-colors",
                       isActive
                         ? "text-primary/60"
                         : "text-muted/40 group-hover:text-muted/60",
-                    ].join(" ")}
+                    )}
                   >
                     {categoryCounts[category.slug] ?? 0}
                   </span>

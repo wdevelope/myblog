@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { safeRedirectPath } from "@/lib/redirect";
 import { enableAdminMode } from "@/lib/adminMode";
+import { cn } from "@/lib/utils";
 import NicknameField from "@/app/_components/NicknameField";
 import { toast } from "sonner";
 
@@ -138,24 +139,24 @@ export default function LoginForm() {
             <button
               type="button"
               onClick={() => setMode("login")}
-              className={[
+              className={cn(
                 "h-9 flex-1 rounded-xl border px-3 text-sm font-semibold",
                 mode === "login"
                   ? "border-primary/40 bg-primary/15 text-primary"
                   : "border-border bg-surface text-muted hover:bg-surface-2 hover:text-foreground",
-              ].join(" ")}
+              )}
             >
               로그인
             </button>
             <button
               type="button"
               onClick={() => setMode("signup")}
-              className={[
+              className={cn(
                 "h-9 flex-1 rounded-xl border px-3 text-sm font-semibold",
                 mode === "signup"
                   ? "border-primary/40 bg-primary/15 text-primary"
                   : "border-border bg-surface text-muted hover:bg-surface-2 hover:text-foreground",
-              ].join(" ")}
+              )}
             >
               회원가입
             </button>

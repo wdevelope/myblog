@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import DeletePostButton from "@/app/_components/DeletePostButton";
+import { cn } from "@/lib/utils";
 
 function DotsIcon({ className }: { className?: string }) {
   return (
@@ -60,7 +61,7 @@ export default function PostActionMenu({
 
   return (
     <div
-      className={["relative", className].filter(Boolean).join(" ")}
+      className={cn("relative", className)}
       ref={rootRef}
     >
       <button

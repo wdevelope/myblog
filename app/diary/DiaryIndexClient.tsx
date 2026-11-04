@@ -6,6 +6,7 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { FiLock } from "react-icons/fi";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 import { useHydrated } from "@/app/_components/useHydrated";
+import { cn } from "@/lib/utils";
 
 type DiaryPost = {
   id: string;
@@ -387,14 +388,14 @@ export default function DiaryIndexClient({
                             setSelectedYmd((prev) => (prev === ymd ? null : ymd));
                             setPage(1);
                           }}
-                          className={[
+                          className={cn(
                             "relative flex h-9 w-full items-center justify-center rounded-xl text-sm font-semibold transition",
                             inMonth ? "text-foreground" : "text-muted/50",
                             hasEntry
                               ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20"
                               : "hover:bg-surface-2",
                             isSelected ? "ring-2 ring-primary/60" : "ring-0",
-                          ].join(" ")}
+                          )}
                         >
                           {date.getDate()}
                         </button>
@@ -419,12 +420,12 @@ export default function DiaryIndexClient({
                           setPage(1);
                           setSelectedYmd(null);
                         }}
-                        className={[
+                        className={cn(
                           "flex h-12 items-center justify-center rounded-xl text-sm font-bold transition",
                           isCurrentMonth
                             ? "bg-primary text-white shadow-lg shadow-primary/25"
                             : "bg-surface text-foreground hover:bg-surface-2",
-                        ].join(" ")}
+                        )}
                       >
                         {monthLabel}
                       </button>
