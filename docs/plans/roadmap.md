@@ -14,7 +14,7 @@
 - [x] 4. 기반 정리와 테스트 안전망 — `getPostForRoute`·`loadPostForEdit`, `revalidatePublicPosts`, `formatPostDate`(KST)·`coverKeyOf`, `postHref`·`SITE_URL`, 로딩 route group, 행 매핑 분리(2026-10-22, 테스트 파일 15개·82개)
 - [x] 5. ISR 복구와 일시정지 방지 — 공개 화면 전부 정적·ISR(`next start`에서 HIT, TTFB 2~5ms), 관리자는 draft mode, `/article` 경로 기반, 댓글 공개, 일시정지 방지 Cron(2026-10-22). 배포 뒤 확인과 `CRON_SECRET` 설정이 남았다(5절)
 - [ ] 6. DB 타입과 쓰기 액션 정리
-- [ ] 7. UI 통일과 큰 컴포넌트 분할 — 코드 대조와 실행 계획 작성, 사용자 확인 대기(2026-11-04, 7절)
+- [ ] 7. UI 통일과 큰 컴포넌트 분할 — 코드 대조와 실행 계획 확인, 구현 중(2026-11-04, 7절)
 - [x] 8. 에디터 교체와 본문 보안 (CKEditor → 마크다운) — 마크다운 렌더러·원문 편집 에디터, 기존 글 135개 변환, 비공개 이미지 `private, no-store`·SVG 차단, CKEditor 제거(2026-10-22)
 - [x] 9. 요청 왕복 줄이기 — `proxy.ts`를 `getClaims()`로(로그인 요청의 proxy 27~49ms → 1.5~3ms), 상세 댓글 조회의 글 재조회 제거. 아티클 목록 병렬화는 5단계로 넘김(2026-10-22, 9절)
 - [x] 10. 관리자 판정 단일화와 `public.users` 정리 — RLS `is_admin()`·`getViewer` 모두 `app_metadata.is_admin`, `public.users` 삭제(운영 DB 적용, 2026-10-22, 10절)
@@ -127,7 +127,7 @@
 - 다크 모드: `@custom-variant dark`를 넣어 `dark:`가 next-themes `.dark`를 따르게 하고 `ThemeToggle`은 `resolvedTheme`을 본다.
 - 접근성: 아이콘 버튼 `aria-label`, 토글 `aria-pressed`, label·입력 연결.
 
-### 실행 계획 (2026-11-04, 사용자 확인 대기)
+### 실행 계획 (2026-11-04, 사용자 확인)
 
 위 목록을 지금 코드와 대조했다. 위 숫자는 10월 기준이고, 지금 숫자는 아래와 같다.
 
@@ -138,12 +138,13 @@
   - `dark:`가 사이트 테마가 아니라 OS 설정을 따른다. 시스템 테마가 어두울 때 테마 버튼의 첫 클릭은 화면을 바꾸지 않는다.
   - 다이어리 달력·목록이 한국 시간과 브라우저 시간을 섞어 써서, 한국 밖에서는 날짜가 어긋날 수 있다.
   - 밝은 모드에서 달력의 글 있는 날짜(`text-emerald-300`)가 잘 보이지 않는다.
-- 위 목록과 달리 하는 것(확인 필요)
+- 위 목록과 달리 하는 것(사용자 확인)
   1. framer-motion: 위 전제와 달리 `FeedCard`가 아직 쓴다(좋아요·저장 버튼의 눌림 효과, 저장 문구). 가짜 좋아요 수를 지울 때 버튼은 남겼으므로 버튼은 두고 효과만 CSS로 옮긴다.
   2. `confirm`은 그대로 두고 `alert`만 sonner로 옮긴다. 토스트는 저절로 사라져 되돌릴 수 없는 삭제의 확인에 맞지 않고, `confirm`이 7개 파일 9곳에 있어 댓글만 바꾸면 화면마다 달라진다. `alert`는 댓글·방명록·마이페이지 5곳을 모두 옮긴다.
   3. 표현 컴포넌트는 `VisibilityIcon`(14곳)과 `PostMeta`(상세 2곳)만 만든다. `CategorySidebar`는 쓰는 곳이 하나이고, `Pagination`은 아티클이 링크, 다이어리가 버튼이라 진행 원칙("두 곳 이상 같은 코드만")에 맞지 않는다. 페이지 버튼 클래스만 `Button` variant로 함께 쓴다.
 - 순서와 커밋 단위(한 줄이 한 커밋)
   - 동작 불변(기존 테스트로 지킨다)
+    0. `refactor(editor)`: `MarkdownEditor`의 `uploadImages`를 쓰기 전에 선언해 lint 오류 없애기
     1. `refactor(ui)`: `.join(" ")`을 `cn`으로
     2. `refactor(ui)`: 아이콘을 lucide-react로, `VisibilityIcon`, `react-icons` 제거. 아이콘 모양은 거의 같고 `⌕`·`💬` 같은 문자도 아이콘으로 바뀐다
     3. `refactor(ui)`: `Button`·`buttonClass` variant
@@ -164,7 +165,7 @@
     17. `style(ui)`: `--success`·`--warning`·`--danger` 토큰. 밝은·어두운 모드 값을 따로 두고 글자 대비를 맞추므로 일부 색이 조금 달라진다. `ThemeToggle`의 해·달 색은 상태 색이 아니라 그대로 둔다
     18. `fix(a11y)`: `aria-label`·`aria-pressed`·`aria-current`, label과 입력 연결, 포커스 표시
     19. `docs`: 로드맵 결과와 CLAUDE.md 구조 설명
-- 확인: 커밋마다 `npm run lint && npm run typecheck && npm test`. 화면은 데스크톱·모바일·다크 모드를 개발 서버에서 본다. 이 worktree에는 `.env.development.local`이 없어 사용자가 넣어 줘야 개발 서버가 뜬다. 로그인이 필요한 에디터는 커밋하지 않는 임시 화면으로 본다.
+- 확인: 커밋마다 `npm run lint && npm run typecheck && npm test`. 화면은 데스크톱·모바일·다크 모드를 개발 서버에서 본다. 로그인이 필요한 에디터는 커밋하지 않는 임시 화면으로 본다.
 
 ## 8. 에디터 교체와 본문 보안 (CKEditor → 마크다운)
 
