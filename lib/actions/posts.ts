@@ -1,5 +1,6 @@
 "use server";
 
+import { draftMode } from "next/headers";
 import type { PostType, Visibility } from "@/lib/types";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assertAdmin } from "@/lib/server/admin";
@@ -114,25 +115,31 @@ export async function createPost(
   const baseSlug = (input.id ? input.slug?.trim() : null) || "post";
   const service = createSupabaseServiceClient();
 
-  // 수정으로 slug·카테고리가 바뀌면 이전 값의 공개 캐시도 무효화해야 하고, 새 버전에서 뺀 이미지는 저장 뒤에 지운다.
-  const { data: previous } = input.id
-    ? await service
-        .from("posts")
-        .select("slug,category_slug,content,image_keys,thumbnail_image_key")
-        .eq("id", input.id)
-        .maybeSingle()
-    : { data: null };
   const categorySlug =
     input.type === "blog" ? input.categorySlug?.trim() ?? null : null;
+  let slug = isNew ? `${baseSlug}-${Math.random().toString(16).slice(2, 8)}` : baseSlug;
+  const findPostBySlug = (candidate: string) =>
+    service.from("posts").select("id").eq("slug", candidate).maybeSingle();
+
+  // 저장 앞의 조회는 서로의 결과가 필요 없다. 차례로 기다리면 저장마다 DB 왕복이 둘 더 붙는다.
+  // 수정으로 slug·카테고리가 바뀌면 이전 값의 공개 캐시도 무효화해야 하고, 새 버전에서 뺀 이미지는 저장 뒤에 지운다.
+  const [{ data: previous }, { data: existingCategory, error: categoryLookupError }, slugLookup] =
+    await Promise.all([
+      input.id
+        ? service
+            .from("posts")
+            .select("slug,category_slug,content,image_keys,thumbnail_image_key")
+            .eq("id", input.id)
+            .maybeSingle()
+        : { data: null },
+      categorySlug
+        ? service.from("categories").select("slug").eq("slug", categorySlug).maybeSingle()
+        : { data: null, error: null },
+      findPostBySlug(slug),
+    ]);
 
   // 카테고리 자동 생성
-  if (input.type === "blog" && categorySlug) {
-    const { data: existingCategory, error: categoryLookupError } = await service
-      .from("categories")
-      .select("slug")
-      .eq("slug", categorySlug)
-      .maybeSingle();
-
+  if (categorySlug) {
     if (categoryLookupError) {
       return {
         success: false,
@@ -171,19 +178,11 @@ export async function createPost(
   }
 
   // 슬러그 유니크 보장
-  let slug = baseSlug;
-  if (isNew) {
-    slug = `${baseSlug}-${Math.random().toString(16).slice(2, 8)}`;
-  }
-
+  let existing = slugLookup.data;
   for (let i = 0; i < 5; i++) {
-    const { data: existing } = await service
-      .from("posts")
-      .select("id")
-      .eq("slug", slug)
-      .maybeSingle();
     if (!existing || (input.id && existing.id === input.id)) break;
     slug = `${baseSlug}-${Math.random().toString(16).slice(2, 8)}`;
+    ({ data: existing } = await findPostBySlug(slug));
   }
 
   // 이미지 버킷은 올리는 순간 에디터의 공개 범위로 정해진다. 저장하기 전에 글 공개 범위와 다른 버킷의 파일을 옮겨,
@@ -252,6 +251,10 @@ export async function createPost(
     const previousPlaced = replaceImageBucket(postImages(previous), otherBucket, targetBucket, misplaced);
     await removeUnusedImages(service, imageKeysUnusedBy(imageKeysOf(previousPlaced), [placed]));
   }
+
+  // 관리자 화면이 꺼진 채 비공개 글을 저장하면 상세가 404(다이어리는 안내 화면)라 켜서 돌려준다.
+  // 저장 응답의 쿠키로 켜면 브라우저가 상세를 받기 전에 왕복을 한 번 더 기다리지 않는다.
+  (await draftMode()).enable();
 
   return {
     success: true,

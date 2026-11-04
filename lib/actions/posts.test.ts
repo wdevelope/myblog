@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { revalidatePath, updateTag } from "next/cache";
 import { createPost, deletePost } from "@/lib/actions/posts";
 
-type QueryResult = { data: unknown; error: null };
+type QueryResult = { data: unknown; error: { message: string } | null };
 
 // PostgREST 쿼리 체인을 흉내 내고 쓰기 메서드 호출을 기록한다.
 class FakeQuery {
@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   writes: [] as string[],
   createServiceClient: vi.fn(),
+  enableDraftMode: vi.fn(),
 }));
 
 const savedRow = {
@@ -48,6 +49,7 @@ const savedRow = {
 
 vi.mock("next/headers", () => ({
   headers: async () => mocks.requestHeaders,
+  draftMode: async () => ({ enable: mocks.enableDraftMode }),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -179,6 +181,120 @@ describe("createPost 캐시 무효화", () => {
     expect(paths).not.toContain("/blog");
     expect(paths).toContain("/article");
     expect(paths).toContain("/article/post-abc");
+  });
+});
+
+describe("createPost 관리자 화면", () => {
+  it("저장에 성공하면 관리자 화면을 켠다", async () => {
+    signedIn(user({ app: { is_admin: true } }));
+
+    const result = await createPost(blogInput);
+
+    expect(result.success).toBe(true);
+    expect(mocks.enableDraftMode).toHaveBeenCalledTimes(1);
+  });
+
+  it("관리자가 아니면 관리자 화면을 켜지 않는다", async () => {
+    signedIn(user());
+
+    await createPost(blogInput);
+
+    expect(mocks.enableDraftMode).not.toHaveBeenCalled();
+  });
+
+  it("저장이 실패하면 관리자 화면을 켜지 않는다", async () => {
+    signedIn(user({ app: { is_admin: true } }));
+    mocks.createServiceClient.mockReturnValue({
+      from: () => new FakeQuery({ data: null, error: { message: "저장 실패" } }, mocks.writes),
+    });
+
+    const result = await createPost({ ...blogInput, type: "diary" });
+
+    expect(result.success).toBe(false);
+    expect(mocks.enableDraftMode).not.toHaveBeenCalled();
+  });
+});
+
+describe("createPost 저장 전 조회", () => {
+  // 조회마다 시작한 값을 남기고, 시작한 뒤에도 풀어 줄 때까지 답하지 않는다. 슬러그 조회만 값으로 구분한다.
+  function pendingService(slugOwners: (string | null)[] = []) {
+    const started: string[] = [];
+    const slugs: string[] = [];
+    const payloads: Record<string, unknown>[] = [];
+    const release = Promise.withResolvers<void>();
+    const from = (table: string) => {
+      let selected = "";
+      let matched = "";
+      const query = {
+        select: (columns = "") => {
+          selected = columns;
+          return query;
+        },
+        eq: (_: string, value: string) => {
+          matched = value;
+          return query;
+        },
+        order: () => query,
+        limit: () => query,
+        insert: () => query,
+        upsert: (payload: Record<string, unknown>) => {
+          payloads.push(payload);
+          return query;
+        },
+        maybeSingle: async () => {
+          const name = table === "categories" ? "category" : selected === "id" ? "slug" : "previous";
+          started.push(name);
+          await release.promise;
+          if (name === "category") return { data: { slug: "dev" }, error: null };
+          if (name === "previous") return { data: { slug: "post-abc", category_slug: "dev" }, error: null };
+          slugs.push(matched);
+          const owner = slugOwners.shift() ?? null;
+          return { data: owner ? { id: owner } : null, error: null };
+        },
+        single: async () => ({ data: savedRow, error: null }),
+      };
+      return query;
+    };
+    return { service: { from }, started, slugs, payloads, release };
+  }
+
+  it("이전 글·카테고리·slug 조회를 서로 기다리지 않고 한 번에 보낸다", async () => {
+    signedIn(user({ app: { is_admin: true } }));
+    const { service, started, release } = pendingService();
+    mocks.createServiceClient.mockReturnValue(service);
+
+    const saving = createPost({ ...blogInput, id: "post-1", slug: "post-abc" });
+    await vi.waitFor(() => expect(started).toHaveLength(3));
+    release.resolve();
+
+    expect((await saving).success).toBe(true);
+    expect([...started].sort()).toEqual(["category", "previous", "slug"]);
+  });
+
+  it("새 글 slug를 다른 글이 쓰면 비어 있는 slug로 저장한다", async () => {
+    signedIn(user({ app: { is_admin: true } }));
+    const { service, slugs, payloads, release } = pendingService(["other-post"]);
+    release.resolve();
+    mocks.createServiceClient.mockReturnValue(service);
+
+    const result = await createPost(blogInput);
+
+    expect(result.success).toBe(true);
+    expect(slugs).toHaveLength(2);
+    expect(slugs[1]).not.toBe(slugs[0]);
+    expect(payloads[0].slug).toBe(slugs[1]);
+  });
+
+  it("글을 고칠 때 slug의 주인이 그 글이면 slug를 바꾸지 않는다", async () => {
+    signedIn(user({ app: { is_admin: true } }));
+    const { service, slugs, payloads, release } = pendingService(["post-1"]);
+    release.resolve();
+    mocks.createServiceClient.mockReturnValue(service);
+
+    await createPost({ ...blogInput, id: "post-1", slug: "post-abc" });
+
+    expect(slugs).toEqual(["post-abc"]);
+    expect(payloads[0].slug).toBe("post-abc");
   });
 });
 

@@ -6,9 +6,12 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import PostEditor from "@/app/_components/PostEditor";
 import { createPost } from "@/lib/actions/posts";
+import { enableAdminMode } from "@/lib/adminMode";
+
+const router = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn(), back: vi.fn() }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), back: vi.fn() }),
+  useRouter: () => router,
 }));
 
 vi.mock("@/lib/actions/posts", () => ({
@@ -252,6 +255,38 @@ describe("글 에디터 발행", () => {
 
     // React는 진행 중인 비동기 transition을 전역으로 묶어, 끝내지 않으면 다음 테스트의 isPending도 풀리지 않는다.
     await act(async () => save.resolve({ success: false, error: "끝" }));
+  });
+
+  it("저장에 성공하면 관리자 화면을 따로 켜지 않고 상세를 한 번만 받는다", async () => {
+    vi.mocked(createPost).mockResolvedValue({
+      success: true,
+      data: {
+        id: "post-1",
+        slug: "post-abc",
+        type: "diary",
+        visibility: "private",
+        title: "제목",
+        content: "본문",
+        categorySlug: null,
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+        imageKeys: [],
+        thumbnailImageKey: null,
+      },
+    });
+    vi.mocked(enableAdminMode).mockClear();
+    router.push.mockClear();
+    router.refresh.mockClear();
+    const publish = openPanelAndGetPublishButton();
+
+    await act(async () => {
+      fireEvent.click(publish);
+    });
+
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/diary/post-abc"));
+    expect(router.push).toHaveBeenCalledTimes(1);
+    expect(router.refresh).not.toHaveBeenCalled();
+    expect(enableAdminMode).not.toHaveBeenCalled();
   });
 
   it("저장이 실패하면 이유를 보이고 다시 누를 수 있다", async () => {

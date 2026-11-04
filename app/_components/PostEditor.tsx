@@ -6,7 +6,6 @@ import { ArrowLeft } from "lucide-react";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
 import { postHref } from "@/lib/constants";
-import { enableAdminMode } from "@/lib/adminMode";
 import { createPost } from "@/lib/actions/posts";
 import MarkdownEditor from "@/app/_components/MarkdownEditor";
 import PostSettingsPanel from "@/app/_components/PostSettingsPanel";
@@ -165,12 +164,9 @@ export default function PostEditor({
       }
 
       clearDraft();
-      // 관리자 화면이 꺼진 채 비공개 글을 저장하면 상세가 404(다이어리는 안내 화면)라, 켜고 이동한다.
-      // 켜기에 실패해도 저장은 끝났으므로 그대로 이동한다.
-      await enableAdminMode();
+      // 저장 응답이 관리자 화면을 켜고 브라우저의 화면 캐시도 비워, 상세만 받으면 된다.
       startTransition(() => {
         router.push(postHref(result.data.type, result.data.slug));
-        router.refresh();
       });
     });
   }
