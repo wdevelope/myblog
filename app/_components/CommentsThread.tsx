@@ -57,6 +57,7 @@ function CommentComposer({
   return (
     <div className="space-y-2">
       <textarea
+        aria-label={placeholder}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={3}
@@ -244,6 +245,7 @@ export default function CommentsThread({
                         onClick={() =>
                           setReplyTo((prev) => (prev === c.id ? null : c.id))
                         }
+                        aria-expanded={openReply}
                         className="inline-flex items-center gap-2 font-semibold hover:text-foreground transition"
                       >
                         <MessageCircle className="size-3.5" aria-hidden />

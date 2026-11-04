@@ -32,9 +32,7 @@ export default function ArticleListItem({
               {post.categorySlug || "전체"}
             </span>
             {post.visibility === "private" ? (
-              <span className="shrink-0" aria-label="비공개">
-                <VisibilityIcon visibility="private" className="size-3.5" />
-              </span>
+              <VisibilityIcon visibility="private" className="size-3.5 shrink-0" />
             ) : null}
           </div>
           <h2 className="mt-1.5 line-clamp-2 text-lg font-black leading-snug text-foreground transition group-hover:text-primary sm:text-xl">

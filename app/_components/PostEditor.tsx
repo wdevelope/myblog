@@ -185,8 +185,9 @@ export default function PostEditor({
             onClick={() => router.back()}
             className="flex items-center justify-center size-10 rounded-full hover:bg-surface-2 transition text-muted"
             title="뒤로 가기"
+            aria-label="뒤로 가기"
           >
-            <ArrowLeft className="size-6" />
+            <ArrowLeft className="size-6" aria-hidden />
           </button>
         </div>
 

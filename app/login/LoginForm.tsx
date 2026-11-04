@@ -140,6 +140,7 @@ export default function LoginForm() {
             <button
               type="button"
               onClick={() => setMode("login")}
+              aria-pressed={mode === "login"}
               className={cn(
                 "h-9 flex-1 rounded-xl border px-3 text-sm font-semibold",
                 mode === "login"
@@ -152,6 +153,7 @@ export default function LoginForm() {
             <button
               type="button"
               onClick={() => setMode("signup")}
+              aria-pressed={mode === "signup"}
               className={cn(
                 "h-9 flex-1 rounded-xl border px-3 text-sm font-semibold",
                 mode === "signup"

@@ -88,6 +88,7 @@ export default function MobileNav() {
                   <Link
                     key={link.href}
                     href={link.href}
+                    aria-current={active ? "page" : undefined}
                     className={cn(
                       "flex h-11 items-center justify-between rounded-xl px-3 text-sm font-bold transition",
                       active ? "bg-primary/12 text-primary" : "hover:bg-surface-2",

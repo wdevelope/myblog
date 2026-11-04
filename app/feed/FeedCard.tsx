@@ -92,7 +92,9 @@ export function FeedCard({
             <button
               type="button"
               onClick={() => setIsLiked(!isLiked)}
-              className="p-1 hover:opacity-60 transition active:scale-80 outline-none"
+              aria-label="좋아요"
+              aria-pressed={isLiked}
+              className="p-1 hover:opacity-60 transition active:scale-80"
             >
               <Heart
                 className={cn(
@@ -114,7 +116,9 @@ export function FeedCard({
             <button
               type="button"
               onClick={handleSave}
-              className="p-1 hover:opacity-60 transition active:scale-80 outline-none"
+              aria-label="저장"
+              aria-pressed={isSaved}
+              className="p-1 hover:opacity-60 transition active:scale-80"
             >
               <Bookmark
                 className={cn(

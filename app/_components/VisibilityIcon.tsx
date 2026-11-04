@@ -13,7 +13,8 @@ export default function VisibilityIcon({
   const Icon = visibility === "private" ? Lock : Globe;
   return (
     <Icon
-      aria-hidden
+      role="img"
+      aria-label={visibility === "private" ? "비공개" : "공개"}
       className={cn(visibility === "private" ? "text-warning" : "text-success", className)}
     />
   );

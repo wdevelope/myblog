@@ -17,6 +17,7 @@ export default function NavLink({
   return (
     <Link
       href={href}
+      aria-current={isActive ? "page" : undefined}
       className={`text-sm transition-colors ${
         isActive
           ? "font-bold text-foreground"

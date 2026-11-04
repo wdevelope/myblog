@@ -81,6 +81,7 @@ export default function PostActionMenu({
           <DeletePostButton
             slug={deleteSlug}
             redirectTo={deleteRedirectTo}
+            role="menuitem"
             className="flex w-full items-center justify-center px-4 py-3 text-sm font-bold text-foreground transition hover:bg-surface-2"
           >
             삭제하기

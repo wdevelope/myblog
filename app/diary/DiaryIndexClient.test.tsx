@@ -92,8 +92,7 @@ describe("다이어리 목록의 보는 달", () => {
     const replaceState = vi.spyOn(window.history, "replaceState");
     renderDiary();
 
-    const nextMonth = screen.getAllByRole("button").filter((button) => button.className.includes("size-9"))[1];
-    fireEvent.click(nextMonth);
+    fireEvent.click(screen.getByRole("button", { name: "다음 달" }));
 
     expect(replaceState).toHaveBeenCalledWith(null, "", "/diary?year=2026&month=5");
     expect(sessionStorage.getItem("diary_view")).toBe("year=2026&month=5");
@@ -104,7 +103,9 @@ describe("다이어리 목록의 보는 달", () => {
     const replaceState = vi.spyOn(window.history, "replaceState");
     renderDiary();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "5" })[0]);
+    const day = screen.getByRole("button", { name: "2026년 3월 5일, 다이어리 있음" });
+    expect(day).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(day);
 
     expect(replaceState).toHaveBeenCalledWith(null, "", "/diary?year=2026&month=3");
   });

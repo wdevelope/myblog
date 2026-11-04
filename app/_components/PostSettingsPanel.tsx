@@ -50,8 +50,8 @@ export default function PostSettingsPanel({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const componentId = useId();
   const titleId = `post-settings-title-${componentId}`;
-  const fileInputId = `post-editor-files-${componentId}`;
-  const thumbnailInputId = `post-editor-thumbnail-${componentId}`;
+  const visibilityLabelId = `post-settings-visibility-${componentId}`;
+  const categoryInputId = `post-settings-category-${componentId}`;
 
   const categoryOptions = useMemo(() => {
     const current = categorySlug.trim();
@@ -83,9 +83,10 @@ export default function PostSettingsPanel({
               <button
                 type="button"
                 onClick={onClose}
+                aria-label="닫기"
                 className="p-2 hover:bg-surface-2 rounded-lg"
               >
-                <X className="size-5" />
+                <X className="size-5" aria-hidden />
               </button>
             </div>
 
@@ -93,10 +94,14 @@ export default function PostSettingsPanel({
               {/* Visibility */}
               {type !== "feed" && (
                 <div className="space-y-3">
-                  <label className="block text-sm font-bold text-muted">
+                  <p id={visibilityLabelId} className="text-sm font-bold text-muted">
                     공개 설정
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 p-1 bg-surface-2 rounded-xl border border-border">
+                  </p>
+                  <div
+                    role="group"
+                    aria-labelledby={visibilityLabelId}
+                    className="grid grid-cols-2 gap-2 p-1 bg-surface-2 rounded-xl border border-border"
+                  >
                     <button
                       type="button"
                       onClick={() => onVisibilityChange("public")}
@@ -107,8 +112,10 @@ export default function PostSettingsPanel({
                           : "text-muted hover:text-foreground"
                       )}
                       title="공개"
+                      aria-label="공개"
+                      aria-pressed={visibility === "public"}
                     >
-                      <Globe className="size-4" />
+                      <Globe className="size-4" aria-hidden />
                     </button>
                     <button
                       type="button"
@@ -120,8 +127,10 @@ export default function PostSettingsPanel({
                           : "text-muted hover:text-foreground"
                       )}
                       title="비공개"
+                      aria-label="비공개"
+                      aria-pressed={visibility === "private"}
                     >
-                      <Lock className="size-4" />
+                      <Lock className="size-4" aria-hidden />
                     </button>
                   </div>
                 </div>
@@ -130,10 +139,11 @@ export default function PostSettingsPanel({
               {/* Category */}
               {type === "blog" && (
                 <div className="space-y-3">
-                  <label className="block text-sm font-bold text-muted">
+                  <label htmlFor={categoryInputId} className="block text-sm font-bold text-muted">
                     카테고리
                   </label>
                   <select
+                    id={categoryInputId}
                     value={categorySlug}
                     onChange={(e) => onCategoryChange(e.target.value)}
                     className="w-full h-10 px-3 rounded-xl border border-border bg-background text-base sm:text-sm outline-none focus:border-primary transition"
@@ -152,9 +162,7 @@ export default function PostSettingsPanel({
               {/* Images */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="block text-sm font-bold text-muted">
-                    이미지
-                  </label>
+                  <p className="text-sm font-bold text-muted">이미지</p>
                   <span className="text-xs text-muted bg-surface-2 px-2 py-0.5 rounded-full">
                     {imageKeys.length}
                   </span>
@@ -172,38 +180,33 @@ export default function PostSettingsPanel({
                       <button
                         type="button"
                         onClick={() => onRemoveImage(key)}
-                        className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition"
+                        aria-label={`이미지 ${idx + 1} 빼기`}
+                        className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition"
                       >
-                        <X className="size-3" />
+                        <X className="size-3" aria-hidden />
                       </button>
                     </div>
                   ))}
-                  <label
-                    htmlFor={fileInputId}
-                    className="flex flex-col items-center justify-center aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition cursor-pointer"
-                  >
-                    <ImageIcon className="size-6 text-muted mb-2" />
+                  <label className="flex flex-col items-center justify-center aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 has-focus-visible:border-primary transition cursor-pointer">
+                    <ImageIcon className="size-6 text-muted mb-2" aria-hidden />
                     <span className="text-xs font-bold text-muted">
                       추가하기
                     </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="sr-only"
+                      onChange={(e) => void onUpload(e.target.files, true)}
+                    />
                   </label>
                 </div>
-                <input
-                  id={fileInputId}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => void onUpload(e.target.files, true)}
-                />
               </div>
 
               {/* Thumbnail Manager */}
               {type === "blog" && (
                 <div className="space-y-3">
-                  <label className="block text-sm font-bold text-muted">
-                    대표 이미지 (썸네일)
-                  </label>
+                  <p className="text-sm font-bold text-muted">대표 이미지 (썸네일)</p>
                   {thumbnailImageKey ? (
                     <div className="relative aspect-video rounded-xl bg-surface-2 border border-border overflow-hidden group">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -212,31 +215,28 @@ export default function PostSettingsPanel({
                           coverSrcFromImageKey(thumbnailImageKey) ??
                           thumbnailImageKey
                         }
-                        alt="Thumbnail"
+                        alt="대표 이미지"
                         className="w-full h-full object-cover"
                       />
                       <button
                         type="button"
                         onClick={() => onThumbnailChange("")}
-                        className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition"
+                        aria-label="대표 이미지 지우기"
+                        className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition"
                       >
-                        <X className="size-4" />
+                        <X className="size-4" aria-hidden />
                       </button>
                     </div>
                   ) : (
-                    <label
-                      htmlFor={thumbnailInputId}
-                      className="flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition cursor-pointer"
-                    >
-                      <ImageIcon className="size-8 text-muted mb-2" />
+                    <label className="flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 has-focus-visible:border-primary transition cursor-pointer">
+                      <ImageIcon className="size-8 text-muted mb-2" aria-hidden />
                       <span className="text-sm font-bold text-muted">
                         썸네일 업로드
                       </span>
                       <input
-                        id={thumbnailInputId}
                         type="file"
                         accept="image/*"
-                        className="hidden"
+                        className="sr-only"
                         onChange={async (e) => {
                           const keys = await onUpload(e.target.files, false);
                           if (keys.length > 0) onThumbnailChange(keys[0]);
@@ -248,7 +248,7 @@ export default function PostSettingsPanel({
               )}
 
               {error && (
-                <div className="p-3 rounded-xl bg-danger/10 text-danger text-sm font-medium">
+                <div role="alert" className="p-3 rounded-xl bg-danger/10 text-danger text-sm font-medium">
                   {error}
                 </div>
               )}
@@ -270,7 +270,7 @@ export default function PostSettingsPanel({
                   redirectTo={deleteRedirectTo}
                   className="w-full h-11 rounded-xl border border-danger/20 text-danger font-bold hover:bg-danger/5 transition flex items-center justify-center gap-2"
                 >
-                  <Trash2 className="size-4" />
+                  <Trash2 className="size-4" aria-hidden />
                   삭제하기
                 </DeletePostButton>
               )}

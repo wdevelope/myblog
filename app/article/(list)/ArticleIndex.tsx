@@ -96,6 +96,7 @@ export default async function ArticleIndex({
           <nav className="flex flex-col gap-1.5">
             <Link
               href={articleListHref()}
+              aria-current={selectedCategory ? undefined : "page"}
               className={cn(
                 "group flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition-all duration-200",
                 selectedCategory
@@ -121,6 +122,7 @@ export default async function ArticleIndex({
                 <Link
                   key={category.slug}
                   href={articleListHref(category.slug)}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "group flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition-all duration-200",
                     isActive

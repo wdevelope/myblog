@@ -244,6 +244,7 @@ export default function GuestbookThread({
                 <button
                   type="button"
                   onClick={() => setReplyTo((prev) => (prev === entry.id ? null : entry.id))}
+                  aria-expanded={replyTo === entry.id}
                   className="font-semibold transition hover:text-foreground"
                 >
                   답글

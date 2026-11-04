@@ -153,7 +153,7 @@ describe("글 설정 패널", () => {
     fireEvent.click(screen.getByRole("button", { name: "발행" }));
     expect(dialog.open).toBe(true);
 
-    fireEvent.click(dialog.querySelector("button") as HTMLButtonElement);
+    fireEvent.click(screen.getByRole("button", { name: "닫기" }));
     expect(dialog.open).toBe(false);
   });
 
@@ -178,6 +178,27 @@ describe("글 설정 패널", () => {
 
     fireEvent.click(dialog);
     expect(dialog.open).toBe(false);
+  });
+});
+
+describe("글 설정 패널 접근성", () => {
+  it("공개 범위 버튼이 이름과 눌림 상태를 알린다", () => {
+    render(<PostEditor type="diary" defaultVisibility="private" />);
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+
+    expect(screen.getByRole("button", { name: "비공개" })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "공개" }));
+
+    expect(screen.getByRole("button", { name: "공개" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "비공개" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("카테고리 선택이 라벨과 연결된다", () => {
+    render(<PostEditor type="blog" categories={["개발"]} />);
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+
+    expect(screen.getByLabelText("카테고리")).toHaveProperty("tagName", "SELECT");
   });
 });
 

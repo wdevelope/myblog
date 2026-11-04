@@ -6,6 +6,11 @@ import { Button } from "@/app/_components/ui";
 import { addMonths, buildCalendarGrid, DAY_NAMES, type YearMonth } from "@/lib/diaryCalendar";
 import { cn } from "@/lib/utils";
 
+function dayLabel(ymd: string, hasEntry: boolean) {
+  const [year, month, day] = ymd.split("-").map(Number);
+  return `${year}년 ${month}월 ${day}일${hasEntry ? ", 다이어리 있음" : ""}`;
+}
+
 export default function DiaryCalendar({
   month,
   selectedYmd,
@@ -39,6 +44,8 @@ export default function DiaryCalendar({
           onClick={() =>
             setViewMode((prev) => (prev === "day" ? "month" : "day"))
           }
+          aria-expanded={viewMode === "month"}
+          aria-label={viewMode === "day" ? `${monthTitle}, 달 고르기` : `${month.year}년, 달력으로 돌아가기`}
           className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-surface-2 transition"
         >
           <p className="text-lg font-black tracking-tight text-foreground">
@@ -53,15 +60,21 @@ export default function DiaryCalendar({
         <div className="flex items-center gap-1">
           <Button
             onClick={() => moveBy(-1)}
-            variant="secondary" size="icon" className="size-9"
+            aria-label={viewMode === "day" ? "이전 달" : "이전 해"}
+            variant="secondary"
+            size="icon"
+            className="size-9"
           >
-            <ChevronLeft className="size-5" />
+            <ChevronLeft className="size-5" aria-hidden />
           </Button>
           <Button
             onClick={() => moveBy(1)}
-            variant="secondary" size="icon" className="size-9"
+            aria-label={viewMode === "day" ? "다음 달" : "다음 해"}
+            variant="secondary"
+            size="icon"
+            className="size-9"
           >
-            <ChevronRight className="size-5" />
+            <ChevronRight className="size-5" aria-hidden />
           </Button>
         </div>
       </div>
@@ -86,6 +99,8 @@ export default function DiaryCalendar({
                   key={ymd}
                   type="button"
                   onClick={() => onToggleDay(ymd)}
+                  aria-label={dayLabel(ymd, hasEntry)}
+                  aria-pressed={isSelected}
                   className={cn(
                     "relative flex h-9 w-full items-center justify-center rounded-xl text-sm font-semibold transition",
                     inMonth ? "text-foreground" : "text-muted/50",
@@ -111,10 +126,11 @@ export default function DiaryCalendar({
               <button
                 key={i}
                 type="button"
+                aria-pressed={isCurrentMonth}
                 onClick={() => {
-                      onMonthChange({ year: month.year, month: i + 1 });
-                      setViewMode("day");
-                    }}
+                  onMonthChange({ year: month.year, month: i + 1 });
+                  setViewMode("day");
+                }}
                 className={cn(
                   "flex h-12 items-center justify-center rounded-xl text-sm font-bold transition",
                   isCurrentMonth

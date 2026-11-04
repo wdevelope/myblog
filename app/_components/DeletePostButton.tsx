@@ -8,11 +8,13 @@ export default function DeletePostButton({
   slug,
   redirectTo,
   className,
+  role,
   children = "삭제",
 }: {
   slug: string;
   redirectTo?: string;
   className?: string;
+  role?: React.AriaRole;
   children?: React.ReactNode;
 }) {
   const router = useRouter();
@@ -40,7 +42,7 @@ export default function DeletePostButton({
   }
 
   return (
-    <button type="button" onClick={() => void onDelete()} className={className}>
+    <button type="button" role={role} onClick={() => void onDelete()} className={className}>
       {children}
     </button>
   );
