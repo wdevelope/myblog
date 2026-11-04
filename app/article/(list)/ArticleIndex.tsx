@@ -9,7 +9,7 @@ import {
   getPublicPosts,
 } from "@/lib/server/publicPosts";
 import { getPreviewViewer } from "@/lib/server/admin";
-import { getPostsDirectly } from "@/lib/server/posts";
+import { getArticleListDirectly } from "@/lib/server/posts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { articleListHref } from "@/lib/constants";
 import { notFound } from "next/navigation";
@@ -38,32 +38,14 @@ export default async function ArticleIndex({
   let categories: Category[] = [];
 
   if (isAdmin) {
-    // 사이드바 개수에 비공개 글까지 넣으려고 전체를 읽어 메모리에서 나눈다(관리자 글 수가 적다).
-    const [allVisiblePosts, adminCategories] = await Promise.all([
-      getPostsDirectly({ type: "blog" }),
+    const [{ data, count, counts, total }, adminCategories] = await Promise.all([
+      getArticleListDirectly({ category: selectedCategory, page, limit: LIMIT }),
       getAdminCategories(),
     ]);
-    sidebarTotalCount = allVisiblePosts.length;
-
-    categoryCounts = allVisiblePosts.reduce<Record<string, number>>(
-      (acc, post) => {
-        const key = post.categorySlug?.trim();
-        if (!key) return acc;
-        acc[key] = (acc[key] ?? 0) + 1;
-        return acc;
-      },
-      {}
-    );
-
-    const filtered = selectedCategory
-      ? allVisiblePosts.filter(
-        (p) => (p.categorySlug ?? "").trim() === selectedCategory
-      )
-      : allVisiblePosts;
-
-    totalCount = filtered.length;
-    const start = (page - 1) * LIMIT;
-    posts = filtered.slice(start, start + LIMIT);
+    categoryCounts = counts;
+    sidebarTotalCount = total;
+    posts = data;
+    totalCount = count;
 
     // 글에는 있는데 카테고리 행이 없는 이름도 관리자에게는 보여 정리할 수 있게 한다.
     const existing = new Set(adminCategories.map((c) => c.slug));

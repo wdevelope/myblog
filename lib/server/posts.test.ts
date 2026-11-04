@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  getArticleListDirectly,
   getCommentsDirectly,
   getDiaryIndexDirectly,
   getPostForRoute,
-  getPostsDirectly,
   loadPostForEdit,
 } from "@/lib/server/posts";
 
-type QueryResult = { data: unknown; error: null };
+type QueryResult = { data: unknown; error: { message: string } | null; count?: number };
 
 // PostgREST 쿼리 체인을 흉내 내고 어떤 조건이 붙었는지 기록한다.
 function createQuery(result: QueryResult) {
@@ -17,6 +17,7 @@ function createQuery(result: QueryResult) {
     select: (...args: unknown[]) => (calls.push(["select", ...args]), query),
     eq: (...args: unknown[]) => (calls.push(["eq", ...args]), query),
     order: (...args: unknown[]) => (calls.push(["order", ...args]), query),
+    range: (...args: unknown[]) => (calls.push(["range", ...args]), query),
     maybeSingle: async () => result,
     then: (resolve: (value: QueryResult) => unknown) => Promise.resolve(result).then(resolve),
   };
@@ -46,7 +47,11 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: async () => ({
     auth: { getUser: mocks.getUser },
-    from: (table: string) => mocks.tables[table],
+    // 한 표를 여러 번 읽는 함수는 배열로 준 쿼리를 부른 순서대로 쓴다.
+    from: (table: string) => {
+      const entry = mocks.tables[table];
+      return Array.isArray(entry) ? entry.shift() : entry;
+    },
   }),
 }));
 
@@ -80,12 +85,14 @@ describe("관리자 판정에 따른 글 조회", () => {
     mocks.requestHeaders.set("x-user-id", "attacker");
     mocks.requestHeaders.set("x-user-is-admin", "true");
     mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
-    const posts = createQuery({ data: [], error: null });
-    mocks.tables.posts = posts;
+    const page = createQuery({ data: [], error: null });
+    const slugs = createQuery({ data: [], error: null, count: 0 });
+    mocks.tables.posts = [page, slugs];
 
-    await getPostsDirectly({ type: "blog" });
+    await getArticleListDirectly({ category: "", page: 1, limit: 12 });
 
-    expect(posts.calls).toContainEqual(["eq", "visibility", "public"]);
+    expect(page.calls).toContainEqual(["eq", "visibility", "public"]);
+    expect(slugs.calls).toContainEqual(["eq", "visibility", "public"]);
   });
 
   it("user_metadata.is_admin만 있는 사용자는 상세에서도 공개 글만 조회한다", async () => {
@@ -207,6 +214,95 @@ describe("getDiaryIndexDirectly", () => {
     await getDiaryIndexDirectly();
 
     expect(posts.calls).toContainEqual(["eq", "visibility", "public"]);
+  });
+});
+
+describe("getArticleListDirectly", () => {
+  const slugRows = [
+    { category_slug: "개발" },
+    { category_slug: "개발" },
+    { category_slug: "비밀노트" },
+    { category_slug: null },
+    { category_slug: "" },
+  ];
+
+  beforeEach(() => {
+    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
+  });
+
+  it("본문은 요청한 쪽의 글만 읽고 개수는 카테고리 이름으로 센다", async () => {
+    const page = createQuery({ data: [privatePostRow], error: null });
+    const slugs = createQuery({ data: slugRows, error: null, count: slugRows.length });
+    mocks.tables.posts = [page, slugs];
+
+    const result = await getArticleListDirectly({ category: "", page: 2, limit: 12 });
+
+    expect(page.calls).toContainEqual(["range", 12, 23]);
+    expect(page.calls).toContainEqual(["eq", "type", "blog"]);
+    expect(page.calls).not.toContainEqual(["eq", "visibility", "public"]);
+    expect(slugs.calls).toContainEqual(["select", "category_slug", { count: "exact" }]);
+    expect(result.data.map((post) => post.slug)).toEqual(["secret"]);
+    expect(result.count).toBe(5);
+    expect(result.total).toBe(5);
+    expect(result.counts).toEqual({ 개발: 2, 비밀노트: 1 });
+  });
+
+  it("같은 시각의 글이 쪽 사이에서 겹치지 않게 순서를 끝까지 정한다", async () => {
+    const page = createQuery({ data: [], error: null });
+    mocks.tables.posts = [page, createQuery({ data: [], error: null, count: 0 })];
+
+    await getArticleListDirectly({ category: "", page: 1, limit: 12 });
+
+    expect(page.calls).toContainEqual(["order", "created_at", { ascending: false }]);
+    expect(page.calls).toContainEqual(["order", "id"]);
+  });
+
+  it("카테고리를 고르면 글 조회에만 조건을 걸고 사이드바 개수는 전체로 센다", async () => {
+    const page = createQuery({ data: [], error: null });
+    const slugs = createQuery({ data: slugRows, error: null, count: slugRows.length });
+    mocks.tables.posts = [page, slugs];
+
+    const result = await getArticleListDirectly({ category: "개발", page: 1, limit: 12 });
+
+    expect(page.calls).toContainEqual(["eq", "category_slug", "개발"]);
+    expect(slugs.calls).not.toContainEqual(["eq", "category_slug", "개발"]);
+    expect(result.count).toBe(2);
+    expect(result.total).toBe(5);
+  });
+
+  it("글이 없는 카테고리의 개수는 0이다", async () => {
+    mocks.tables.posts = [
+      createQuery({ data: [], error: null }),
+      createQuery({ data: slugRows, error: null, count: slugRows.length }),
+    ];
+
+    const result = await getArticleListDirectly({ category: "빈카테고리", page: 1, limit: 12 });
+
+    expect(result.count).toBe(0);
+  });
+
+  it("응답 행 상한에 잘리면 전체 수에 닿을 때까지 이어서 읽는다", async () => {
+    const first = createQuery({ data: slugRows.slice(0, 2), error: null, count: 3 });
+    const second = createQuery({ data: slugRows.slice(2, 3), error: null, count: 3 });
+    mocks.tables.posts = [createQuery({ data: [], error: null }), first, second];
+
+    const result = await getArticleListDirectly({ category: "", page: 1, limit: 12 });
+
+    expect(first.calls).toContainEqual(["range", 0, 999]);
+    expect(second.calls).toContainEqual(["range", 2, 1001]);
+    expect(result.total).toBe(3);
+    expect(result.counts).toEqual({ 개발: 2, 비밀노트: 1 });
+  });
+
+  it("조회가 실패하면 빈 목록 대신 예외를 던진다", async () => {
+    mocks.tables.posts = [
+      createQuery({ data: null, error: { message: "boom" } }),
+      createQuery({ data: [], error: null, count: 0 }),
+    ];
+
+    await expect(getArticleListDirectly({ category: "", page: 1, limit: 12 })).rejects.toThrow(
+      "DB Error: boom"
+    );
   });
 });
 

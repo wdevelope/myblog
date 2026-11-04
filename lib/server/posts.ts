@@ -6,22 +6,70 @@ import { mapPost, type PostRow } from "@/lib/server/postRow";
 import { postHref } from "@/lib/constants";
 import type { Post, PostType, Comment } from "@/lib/types";
 
-export async function getPostsDirectly(params: { type: PostType }): Promise<Post[]> {
+// PostgREST 서버가 한 응답에 돌려주는 행 수에는 상한이 있어(기본 1000) 이 단위로 나눠 읽는다.
+const CATEGORY_SLUG_CHUNK = 1000;
+
+// 개수를 세는 목록이 응답 행 상한에 잘리면 사이드바 숫자가 조용히 틀어지므로 전체 수에 닿을 때까지 읽는다.
+async function getArticleCategorySlugs(isAdmin: boolean) {
+    const supabase = await createSupabaseServerClient();
+    const slugs: (string | null)[] = [];
+
+    while (true) {
+        let query = supabase
+            .from("posts")
+            .select("category_slug", { count: "exact" })
+            .eq("type", "blog")
+            .order("id")
+            .range(slugs.length, slugs.length + CATEGORY_SLUG_CHUNK - 1);
+
+        if (!isAdmin) query = query.eq("visibility", "public");
+
+        const { data, count, error } = await query;
+        if (error) throw new Error(`DB Error: ${error.message}`);
+
+        const rows = data ?? [];
+        slugs.push(...rows.map((row) => row.category_slug));
+        if (rows.length === 0 || slugs.length >= (count ?? 0)) return slugs;
+    }
+}
+
+// 사이드바 개수에는 비공개 글까지 들어가지만 본문은 이번 쪽의 글만 읽는다.
+// 글이 늘어도 관리자 목록의 본문 전송량이 쪽 크기로 묶인다.
+export async function getArticleListDirectly(params: {
+    category: string;
+    page: number;
+    limit: number;
+}): Promise<{ data: Post[]; count: number; counts: Record<string, number>; total: number }> {
     const { isAdmin } = await getViewer();
     const supabase = await createSupabaseServerClient();
+    const from = (params.page - 1) * params.limit;
 
+    // created_at이 같은 글이 쪽 경계에서 겹치거나 빠지지 않게 id로 순서를 끝까지 정한다.
     let query = supabase
         .from("posts")
         .select("*, comments(count)")
-        .eq("type", params.type)
-        .order("created_at", { ascending: false });
+        .eq("type", "blog")
+        .order("created_at", { ascending: false })
+        .order("id")
+        .range(from, from + params.limit - 1);
 
+    if (params.category) query = query.eq("category_slug", params.category);
     if (!isAdmin) query = query.eq("visibility", "public");
 
-    const { data: posts, error } = await query;
+    const [{ data: posts, error }, slugs] = await Promise.all([query, getArticleCategorySlugs(isAdmin)]);
     if (error) throw new Error(`DB Error: ${error.message}`);
 
-    return (posts ?? []).map((p) => mapPost(p as PostRow));
+    const counts: Record<string, number> = {};
+    for (const slug of slugs) {
+        if (slug) counts[slug] = (counts[slug] ?? 0) + 1;
+    }
+
+    return {
+        data: (posts ?? []).map((p) => mapPost(p as PostRow)),
+        count: params.category ? (counts[params.category] ?? 0) : slugs.length,
+        counts,
+        total: slugs.length,
+    };
 }
 
 // 목록은 클라이언트 컴포넌트로 넘어가 페이지 전환 응답에 그대로 실리므로 화면이 쓰는 열만 읽는다.
