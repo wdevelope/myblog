@@ -38,11 +38,13 @@ npm run build                          # next build --webpack (Turbopack 제한�
 
 ## 구조
 
-- Next.js 16 App Router, React 19, TypeScript strict, Tailwind CSS v4, next-themes, sonner. 경로 별칭 `@/*`는 저장소 루트다.
+- Next.js 16 App Router, React 19, TypeScript strict, Tailwind CSS v4, next-themes, sonner, lucide-react. 경로 별칭 `@/*`는 저장소 루트다.
 - 본문: 마크다운으로 저장한다. 렌더링은 `lib/markdown.ts`의 `renderMarkdown`(markdown-it, `html: false` + 형광펜 `==`·밑줄 `++`·수식 KaTeX) 하나이고, 화면은 `MarkdownContent`로 그린다. raw HTML을 끄는 것이 본문 XSS 방어이므로 `html: true`나 `rehype-raw`류로 바꾸지 않는다. 클라이언트 컴포넌트에서 렌더러를 import하지 않는다(공개 번들에 markdown-it·KaTeX가 실린다). 서버에서 만든 본문을 props로 넘긴다(예: `FeedCard`).
+- 글 쓰기 화면: `PostEditor`가 값을 들고, 임시저장은 `usePostDraft`, 공개 범위·카테고리·이미지·발행은 `<dialog>`인 `PostSettingsPanel`이다. 카테고리 선택지는 페이지가 서버에서 읽어 넘긴다.
 - 에디터: `MarkdownEditor`(CodeMirror 6 + 툴바, 미리보기 패널 없이 작성 칸에 바로 서식을 보인다). 작성 칸은 `lib/markdown-syntax.ts`(Lezer 파서, `==`·`++`·`$`, 강조 여닫기는 글 화면처럼 cjk-friendly 규칙)로 읽고 `lib/markdown-live-preview.ts`가 커서 밖 줄의 기호를 숨긴다(인라인 서식 기호 `*`·`==`·`++`·`~~`·백틱은 커서 줄에서도 숨기고 커서가 한 덩어리로 건너뛴다). 글 화면 렌더러와 파서가 다르므로 본문 문법을 늘리면 두 곳에 같이 넣는다. 툴바 동작은 `lib/markdown-edit.ts`의 순수 함수다. 본문 이미지는 글의 공개 범위 버킷으로 올라가고 `![](<버킷>:<경로>)`로 들어간다. 크기·정렬은 주소 끝 조각(`#w=60&align=center`, `lib/image-options.ts`)에 담고, 렌더러는 검증한 값만 style·class로 옮긴다. 작성 칸 이미지는 누르면 선택되고 툴바·크기 손잡이가 뜬다(`lib/markdown-image-widget.ts`).
 - 공개 화면(홈·아티클·피드·다이어리 목록과 상세, 댓글, sitemap, `/rss.xml`)은 쿠키를 읽지 않아 정적·ISR이다. `lib/server/publicPosts.ts`가 anon 키로 PostgREST를 `fetch`하고 태그 캐시(`posts:public:<type>`, 하루)를 건다. 방문자 다이어리 목록만 service role로 본문 없이 읽어 `unstable_cache`한다(`getPublicDiaryIndex`).
 - 검색(`/search?q=`, 동적·쿠키 없음, noindex): 공개 아티클만 `lib/server/publicSearch.ts`가 `fetchPublicRest`로 제목·본문 `imatch`(최근 50개, 아티클 태그 캐시). PostgREST는 `ilike` 값의 `*`를 `%`로 바꿔 쓰지 않는다. 검색어 정리·필터 이스케이프는 `lib/search.ts`의 순수 함수이고, 헤더·모바일 입력은 `form GET`(`name=q`)이다.
+- 다이어리 목록: 날짜 계산은 `lib/diaryCalendar.ts`(브라우저 시간대를 쓰지 않는 한국 날짜)다. 보는 달과 날짜는 주소(`?year=&month=&date=`)가 정하고, 주소에 없으면 탭 저장소의 마지막 값, 그것도 없으면 이번 달이다. 바꿀 때는 `history.replaceState`만 쓴다(서버 재요청 없음).
 - 조회수: 아티클 상세는 정적이고, 말단 `ViewCount`가 마운트 뒤 `/api/views`에 탭 세션당 한 번 POST해 숫자를 바꾼다. 라우트는 draft mode·봇이면 204, 공개 아티클이 아니면(비공개·없음 모두) 404, 응답은 `no-store`다. 다이어리·피드는 세지 않는다.
 - RSS(`/rss.xml`, `lib/rss.ts`): 최근 공개 아티클 30개의 요약. 루트 메타데이터 `alternates.types`로 모든 페이지 head에 알린다.
 - 댓글 메일 알림: `createComment`가 관리자 외 댓글·답글을 저장·무효화한 뒤 `after()`로 `lib/server/notify.ts`를 부른다. Resend HTTP API에 text 본문만 보내고(사용자 입력을 HTML에 넣지 않는다), `RESEND_API_KEY`·`COMMENT_NOTIFY_EMAIL`이 없으면 건너뛰며, 발송 실패는 댓글 쓰기를 실패로 돌리지 않는다. 새 방명록도 같은 모듈로 알리되 비밀글 내용은 메일에 싣지 않는다.
@@ -71,4 +73,4 @@ npm run build                          # next build --webpack (Turbopack 제한�
 - 새 `any`·`@ts-ignore`를 쓰지 않는다. 입력 검증은 서버 액션·라우트 핸들러 경계에서 zod로 한다.
 - RSC 우선: `"use client"`는 브라우저 API·상태가 필요한 말단 컴포넌트에만. 서버 전용 모듈은 `import "server-only"`.
 - 조회는 필요한 열만 고르고 관계 count(`comments(count)`)로 N+1을 피한다.
-- UI: Tailwind v4 문법(`bg-linear-to-*` 등), 디자인 토큰은 `app/globals.css`. 다크 모드와 모바일 폭을 확인한다.
+- UI: Tailwind v4 문법(`bg-linear-to-*` 등), 디자인 토큰은 `app/globals.css`. 상태 색은 `success`·`warning`·`danger` 토큰, 버튼은 `ui.tsx`의 `Button`·`ButtonLink`·`buttonClass`, 아이콘은 lucide-react, 클래스 조합은 `cn`이다. `dark:`는 OS 설정이 아니라 html의 `.dark`를 따른다. 다크 모드와 모바일 폭을 확인한다.
