@@ -2,7 +2,6 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import type { Comment } from "@/lib/types";
 import { useSessionUser } from "@/app/_components/useSessionUser";
