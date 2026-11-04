@@ -1,36 +1,18 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useState,
-  useTransition,
-} from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Globe, ImageIcon, Lock, Trash2, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
-import { coverSrcFromImageKey } from "@/lib/image";
 import { postHref } from "@/lib/constants";
 import { enableAdminMode } from "@/lib/adminMode";
-// import PostImages from "@/app/_components/PostImages";
-import DeletePostButton from "@/app/_components/DeletePostButton";
-import { cn } from "@/lib/utils";
 import { getCategories } from "@/lib/actions/categories";
 import { createPost } from "@/lib/actions/posts";
 import MarkdownEditor from "@/app/_components/MarkdownEditor";
+import PostSettingsPanel from "@/app/_components/PostSettingsPanel";
 import { useHydrated } from "@/app/_components/useHydrated";
 import { usePostDraft, type PostDraft } from "@/app/_components/usePostDraft";
-
-// ... (Helper functions like typeLabel can remain or be inline)
-// function typeLabel(type: PostType) {
-//   if (type === "blog") return "아티클";
-//   if (type === "feed") return "피드";
-//   return "다이어리";
-// }
 
 export default function PostEditor({
   type,
@@ -59,8 +41,6 @@ export default function PostEditor({
   deleteRedirectTo?: string;
 }) {
   const router = useRouter();
-  // const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const componentId = useId();
   const [visibility, setVisibility] = useState<Visibility>(
     initial?.visibility ?? defaultVisibility ?? "public"
   );
@@ -78,20 +58,10 @@ export default function PostEditor({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [categories, setCategories] = useState<string[]>([]);
-  const fileInputId = useMemo(
-    () => `post-editor-files-${componentId}`,
-    [componentId]
-  );
-  const thumbnailInputId = useMemo(
-    () => `post-editor-thumbnail-${componentId}`,
-    [componentId]
-  );
   const hydrated = useHydrated();
 
   // Layout state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  // --- LOGIC SECTION (Copied & Adapted) ---
 
   const draftKey = initial?.id
     ? `draft:post:edit:${initial.id}`
@@ -100,17 +70,9 @@ export default function PostEditor({
   const removeImageKey = useCallback(
     (key: string) => {
       setImageKeys((prev) => prev.filter((k) => k !== key));
-      // setThumbnailImageKey((prev) => (prev === key ? "" : prev));
     },
     [setImageKeys]
   );
-
-  const categoryOptions = useMemo(() => {
-    const current = categorySlug.trim();
-    const list = categories.slice();
-    if (current && !list.includes(current)) list.unshift(current);
-    return list;
-  }, [categories, categorySlug]);
 
   const { pendingDraft, saveDraft, clearDraft, dismissDraft } = usePostDraft({
     draftKey,
@@ -148,14 +110,6 @@ export default function PostEditor({
   useEffect(() => {
     void refreshCategories();
   }, [refreshCategories]);
-
-  // Removed auto-clear thumbnail logic to allow independent thumbnails
-  // useEffect(() => {
-  //   if (type !== "blog") return;
-  //   if (!thumbnailImageKey.trim()) return;
-  //   if (imageKeys.includes(thumbnailImageKey)) return;
-  //   setThumbnailImageKey("");
-  // }, [type, imageKeys, thumbnailImageKey]);
 
   // 첨부·썸네일·본문 이미지가 함께 쓰는 업로드. 글의 공개 범위 버킷으로 올린다.
   const uploadFiles = useCallback(
@@ -238,8 +192,6 @@ export default function PostEditor({
     });
   }
 
-  // --- UI RENDER ---
-
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col h-dvh">
       {/* Top Bar */}
@@ -277,7 +229,6 @@ export default function PostEditor({
         </div>
       </header>
 
-      {/* ... (Editor Content remains same) */}
       <div className="flex-1 flex overflow-hidden bg-background">
         <div className="flex-1 flex flex-col min-w-0 overflow-visible relative">
           {hydrated && pendingDraft ? (
@@ -330,230 +281,26 @@ export default function PostEditor({
         </div>
       </div>
 
-      {/* Settings Sidebar */}
-      <AnimatePresence>
-        {isSidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsSidebarOpen(false)}
-              className="absolute inset-0 z-50 bg-black/20 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none"
-            />
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute right-0 top-0 bottom-0 z-50 w-80 bg-surface border-l border-border shadow-2xl flex flex-col"
-            >
-              <div className="flex items-center justify-between p-4 border-b border-border">
-                <h3 className="font-bold">글 설정</h3>
-                <button
-                  type="button"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="p-2 hover:bg-surface-2 rounded-lg"
-                >
-                  <X className="size-5" />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-auto p-4 space-y-6">
-                {/* Visibility */}
-                {type !== "feed" && (
-                  <div className="space-y-3">
-                    <label className="block text-sm font-bold text-muted">
-                      공개 설정
-                    </label>
-                    <div className="grid grid-cols-2 gap-2 p-1 bg-surface-2 rounded-xl border border-border">
-                      <button
-                        type="button"
-                        onClick={() => setVisibility("public")}
-                        className={cn(
-                          "py-2 flex items-center justify-center rounded-lg transition",
-                          visibility === "public"
-                            ? "bg-background shadow-sm text-emerald-500"
-                            : "text-muted hover:text-foreground"
-                        )}
-                        title="공개"
-                      >
-                        <Globe className="size-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setVisibility("private")}
-                        className={cn(
-                          "py-2 flex items-center justify-center rounded-lg transition",
-                          visibility === "private"
-                            ? "bg-background shadow-sm text-amber-500"
-                            : "text-muted hover:text-foreground"
-                        )}
-                        title="비공개"
-                      >
-                        <Lock className="size-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Category */}
-                {type === "blog" && (
-                  <div className="space-y-3">
-                    <label className="block text-sm font-bold text-muted">
-                      카테고리
-                    </label>
-                    <select
-                      value={categorySlug}
-                      onChange={(e) => setCategorySlug(e.target.value)}
-                      className="w-full h-10 px-3 rounded-xl border border-border bg-background text-base sm:text-sm outline-none focus:border-primary transition"
-                    >
-                      <option value="">카테고리 선택</option>
-                      {categoryOptions.map((slug) => (
-                        <option key={slug} value={slug}>
-                          {slug}
-                          {categories.includes(slug) ? "" : " (삭제됨)"}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Images */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-sm font-bold text-muted">
-                      이미지
-                    </label>
-                    <span className="text-xs text-muted bg-surface-2 px-2 py-0.5 rounded-full">
-                      {imageKeys.length}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    {imageKeys.map((key, idx) => (
-                      <div
-                        key={key}
-                        className="relative group aspect-square bg-surface-2 rounded-lg overflow-hidden border border-border"
-                      >
-                        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted break-all p-2 text-center">
-                          이미지 {idx + 1}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeImageKey(key)}
-                          className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition"
-                        >
-                          <X className="size-3" />
-                        </button>
-                      </div>
-                    ))}
-                    <label
-                      htmlFor={fileInputId}
-                      className="flex flex-col items-center justify-center aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition cursor-pointer"
-                    >
-                      <ImageIcon className="size-6 text-muted mb-2" />
-                      <span className="text-xs font-bold text-muted">
-                        추가하기
-                      </span>
-                    </label>
-                  </div>
-                  <input
-                    id={fileInputId}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => void uploadFiles(e.target.files, true)}
-                  />
-                </div>
-
-                {/* Thumbnail Manager */}
-                {type === "blog" && (
-                  <div className="space-y-3">
-                    <label className="block text-sm font-bold text-muted">
-                      대표 이미지 (썸네일)
-                    </label>
-                    {thumbnailImageKey ? (
-                      <div className="relative aspect-video rounded-xl bg-surface-2 border border-border overflow-hidden group">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={
-                            coverSrcFromImageKey(thumbnailImageKey) ??
-                            thumbnailImageKey
-                          }
-                          alt="Thumbnail"
-                          className="w-full h-full object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setThumbnailImageKey("")}
-                          className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition"
-                        >
-                          <X className="size-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <label
-                        htmlFor={thumbnailInputId}
-                        className="flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition cursor-pointer"
-                      >
-                        <ImageIcon className="size-8 text-muted mb-2" />
-                        <span className="text-sm font-bold text-muted">
-                          썸네일 업로드
-                        </span>
-                        <input
-                          id={thumbnailInputId}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const keys = await uploadFiles(
-                              e.target.files,
-                              false
-                            );
-                            if (keys.length > 0) {
-                              setThumbnailImageKey(keys[0]);
-                            }
-                          }}
-                        />
-                      </label>
-                    )}
-                  </div>
-                )}
-
-                {error && (
-                  <div className="p-3 rounded-xl bg-red-500/10 text-red-500 text-sm font-medium">
-                    {error}
-                  </div>
-                )}
-              </div>
-
-              <div className="p-4 border-t border-border mt-auto flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={submit}
-                  disabled={isPending}
-                  className="w-full h-11 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isPending ? "발행 중..." : "발행하기"}
-                </button>
-
-                {deleteSlug && (
-                  <DeletePostButton
-                    slug={deleteSlug}
-                    redirectTo={deleteRedirectTo}
-                    className="w-full h-11 rounded-xl border border-red-500/20 text-red-500 font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-2"
-                  >
-                    <Trash2 className="size-4" />
-                    삭제하기
-                  </DeletePostButton>
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <PostSettingsPanel
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        type={type}
+        visibility={visibility}
+        onVisibilityChange={setVisibility}
+        categorySlug={categorySlug}
+        onCategoryChange={setCategorySlug}
+        categories={categories}
+        imageKeys={imageKeys}
+        onRemoveImage={removeImageKey}
+        thumbnailImageKey={thumbnailImageKey}
+        onThumbnailChange={setThumbnailImageKey}
+        onUpload={uploadFiles}
+        error={error}
+        isPending={isPending}
+        onSubmit={submit}
+        deleteSlug={deleteSlug}
+        deleteRedirectTo={deleteRedirectTo}
+      />
     </div>
   );
 }
