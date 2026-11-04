@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
+import { toast } from "sonner";
 import UserAvatar from "@/app/_components/UserAvatar";
 import { useSessionUser } from "@/app/_components/useSessionUser";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -184,7 +185,7 @@ export default function GuestbookThread({
     }
     const result = await deleteGuestbookEntry(entry.id);
     if (!result.success) {
-      alert(result.error);
+      toast.error(result.error);
       return;
     }
     router.refresh();
@@ -201,7 +202,7 @@ export default function GuestbookThread({
     }
     const result = await resetUserProfile(entry.authorId);
     if (!result.success) {
-      alert(result.error ?? "프로필을 되돌리지 못했어요.");
+      toast.error(result.error ?? "프로필을 되돌리지 못했어요.");
       return;
     }
     router.refresh();

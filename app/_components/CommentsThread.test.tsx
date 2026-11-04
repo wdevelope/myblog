@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { toast } from "sonner";
 import CommentsThread from "@/app/_components/CommentsThread";
+import { deleteComment } from "@/lib/actions/comments";
 import type { Comment } from "@/lib/types";
 
 const mocks = vi.hoisted(() => ({
@@ -29,6 +31,8 @@ vi.mock("@/lib/actions/comments", () => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 
 const comments: Comment[] = [
   { id: "c1", postId: "p1", parentId: null, authorId: "u1", authorIsAdmin: false, content: "내 댓글", createdAt: "2026-01-01T00:00:00Z" },
@@ -108,5 +112,17 @@ describe("댓글 영역(정적 페이지 안의 클라이언트 말단)", () => 
 
     render(<CommentsThread postSlug="hello" comments={withProfiles} isAdmin />);
     expect(screen.getAllByRole("button", { name: "프로필 초기화" })).toHaveLength(1);
+  });
+
+  it("삭제가 실패하면 브라우저 경고창 대신 토스트로 알린다", async () => {
+    const alert = vi.spyOn(window, "alert").mockImplementation(() => {});
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(deleteComment).mockResolvedValue({ success: false, error: "지울 수 없어요" });
+
+    render(<CommentsThread postSlug="post-1" comments={comments} isAdmin />);
+    fireEvent.click(screen.getAllByRole("button", { name: "삭제" })[0]);
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("지울 수 없어요"));
+    expect(alert).not.toHaveBeenCalled();
   });
 });

@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MessageCircle } from "lucide-react";
+import { toast } from "sonner";
 import type { Comment } from "@/lib/types";
 import { useSessionUser } from "@/app/_components/useSessionUser";
 import UserAvatar from "@/app/_components/UserAvatar";
@@ -141,7 +142,7 @@ export default function CommentsThread({
 
     const result = await deleteCommentAction(commentId);
     if (!result.success) {
-      alert(result.error ?? "댓글 삭제에 실패했어요.");
+      toast.error(result.error ?? "댓글 삭제에 실패했어요.");
       return;
     }
 
@@ -165,7 +166,7 @@ export default function CommentsThread({
 
     const result = await resetUserProfile(comment.authorId);
     if (!result.success) {
-      alert(result.error ?? "프로필을 되돌리지 못했어요.");
+      toast.error(result.error ?? "프로필을 되돌리지 못했어요.");
       return;
     }
 
