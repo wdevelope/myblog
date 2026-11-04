@@ -2,7 +2,7 @@ import Link from "next/link";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 import VisibilityIcon from "@/app/_components/VisibilityIcon";
 import { Button, ButtonLink } from "@/app/_components/ui";
-import { DAY_NAMES } from "@/lib/diaryCalendar";
+import { DAY_NAMES, kstDate } from "@/lib/diaryCalendar";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -38,7 +38,7 @@ export default function DiaryList({
         <div className="divide-y divide-border">
           {paginatedPosts.length ? (
             paginatedPosts.map((post) => {
-              const date = new Date(post.createdAt);
+              const date = kstDate(post.createdAt);
 
               return (
                 <div
@@ -49,10 +49,10 @@ export default function DiaryList({
                     {/* Prominent Date Display */}
                     <div className="flex flex-col items-center justify-center min-w-14 transition-colors group-hover:text-primary">
                       <span className="text-xs font-semibold text-muted/60">
-                        {date.getMonth() + 1}월
+                        {date.month}월
                       </span>
                       <span className="text-2xl font-black text-foreground/80">
-                        {date.getDate()}
+                        {date.day}
                       </span>
                     </div>
 
@@ -89,8 +89,7 @@ export default function DiaryList({
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
                         <p className="text-sm text-muted">
-                          {date.getFullYear()}년 {date.getMonth() + 1}월{" "}
-                          {date.getDate()}일 ({DAY_NAMES[date.getDay()]})
+                          {date.year}년 {date.month}월 {date.day}일 ({DAY_NAMES[date.weekday]})
                         </p>
                       </div>
                     </div>

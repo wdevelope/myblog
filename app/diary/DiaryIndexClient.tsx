@@ -8,7 +8,7 @@ import DiaryCalendar from "@/app/diary/DiaryCalendar";
 import DiaryList, { type DiaryPost } from "@/app/diary/DiaryList";
 import { useHydrated } from "@/app/_components/useHydrated";
 import { ButtonLink } from "@/app/_components/ui";
-import { endOfMonth, formatYmdKst, startOfMonth } from "@/lib/diaryCalendar";
+import { isInMonth, kstDate, kstYmd, type YearMonth } from "@/lib/diaryCalendar";
 
 function buildWriteHref(selectedYmd: string | null) {
   if (!selectedYmd) return "/diary/write";
@@ -25,7 +25,10 @@ export default function DiaryIndexClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [month, setMonth] = useState(() => startOfMonth(new Date()));
+  const [month, setMonth] = useState<YearMonth>(() => {
+    const today = kstDate(new Date());
+    return { year: today.year, month: today.month };
+  });
   const [selectedYmd, setSelectedYmd] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const hydrated = useHydrated();
@@ -41,10 +44,10 @@ export default function DiaryIndexClient({
     const urlDate = searchParams.get("date");
 
     if (urlYear && urlMonth) {
-      const m = parseInt(urlMonth, 10) - 1;
+      const m = parseInt(urlMonth, 10);
       const y = parseInt(urlYear, 10);
       if (!isNaN(m) && !isNaN(y)) {
-        setMonth(new Date(y, m, 1));
+        setMonth({ year: y, month: m });
       }
       if (urlDate) {
         setSelectedYmd(urlDate);
@@ -58,7 +61,7 @@ export default function DiaryIndexClient({
         if (storedYm) {
           const [y, m] = storedYm.split("-").map(Number);
           if (!isNaN(y) && !isNaN(m)) {
-            setMonth(new Date(y, m - 1, 1));
+            setMonth({ year: y, month: m });
           }
         }
         if (storedDate) {
@@ -75,9 +78,7 @@ export default function DiaryIndexClient({
     if (!isInitialized) return;
 
     // Save to SessionStorage
-    const ymStr = `${month.getFullYear()}-${String(
-      month.getMonth() + 1
-    ).padStart(2, "0")}`;
+    const ymStr = `${month.year}-${String(month.month).padStart(2, "0")}`;
     sessionStorage.setItem("diary_view_ym", ymStr);
     if (selectedYmd) {
       sessionStorage.setItem("diary_selected_date", selectedYmd);
@@ -87,8 +88,8 @@ export default function DiaryIndexClient({
 
     // Update URL (Shallow) if changed
     const currentParams = new URLSearchParams(searchParams.toString());
-    const newYear = month.getFullYear().toString();
-    const newMonth = (month.getMonth() + 1).toString();
+    const newYear = month.year.toString();
+    const newMonth = month.month.toString();
 
     const needsUpdate =
       currentParams.get("year") !== newYear ||
@@ -112,40 +113,22 @@ export default function DiaryIndexClient({
 
   const entryDays = useMemo(() => {
     const set = new Set<string>();
-    for (const p of posts) set.add(formatYmdKst(new Date(p.createdAt)));
+    for (const p of posts) set.add(kstYmd(p.createdAt));
     return set;
   }, [posts]);
 
   const [page, setPage] = useState(1);
 
   const visiblePosts = useMemo(() => {
-    let filtered = posts;
+    const filtered = posts.filter((p) => {
+      const ymd = kstYmd(p.createdAt);
+      return selectedYmd ? ymd === selectedYmd : isInMonth(ymd, month);
+    });
 
-    if (selectedYmd) {
-      filtered = posts.filter(
-        (p) => formatYmdKst(new Date(p.createdAt)) === selectedYmd
-      );
-    } else {
-      // If no date selected, show only posts for the current view month
-      const start = startOfMonth(month);
-      const end = endOfMonth(month);
-      // Extend end to include the last second of the month
-      const endOfDay = new Date(end);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      filtered = posts.filter((p) => {
-        const d = new Date(p.createdAt);
-        return d >= start && d <= endOfDay;
-      });
-    }
-
-    const sorted = [...filtered].sort((a, b) =>
-      b.createdAt.localeCompare(a.createdAt)
-    );
-    return sorted;
+    return [...filtered].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [posts, selectedYmd, month]);
 
-  function changeMonth(next: Date) {
+  function changeMonth(next: YearMonth) {
     setMonth(next);
     setPage(1);
     setSelectedYmd(null);

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/app/_components/ui";
-import { addMonths, buildCalendarGrid, DAY_NAMES, formatYmdKst } from "@/lib/diaryCalendar";
+import { addMonths, buildCalendarGrid, DAY_NAMES, type YearMonth } from "@/lib/diaryCalendar";
 import { cn } from "@/lib/utils";
 
 export default function DiaryCalendar({
@@ -13,21 +13,21 @@ export default function DiaryCalendar({
   onMonthChange,
   onToggleDay,
 }: {
-  month: Date;
+  month: YearMonth;
   selectedYmd: string | null;
   entryDays: Set<string>;
-  onMonthChange: (month: Date) => void;
+  onMonthChange: (month: YearMonth) => void;
   onToggleDay: (ymd: string) => void;
 }) {
   const [viewMode, setViewMode] = useState<"day" | "month">("day");
   const monthGrid = useMemo(() => buildCalendarGrid(month), [month]);
-  const monthTitle = `${month.getFullYear()}년 ${month.getMonth() + 1}월`;
+  const monthTitle = `${month.year}년 ${month.month}월`;
 
   function moveBy(diff: number) {
     onMonthChange(
       viewMode === "day"
         ? addMonths(month, diff)
-        : new Date(month.getFullYear() + diff, month.getMonth(), 1),
+        : { year: month.year + diff, month: month.month },
     );
   }
 
@@ -42,7 +42,7 @@ export default function DiaryCalendar({
           className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-surface-2 transition"
         >
           <p className="text-lg font-black tracking-tight text-foreground">
-            {viewMode === "day" ? monthTitle : `${month.getFullYear()}년`}
+            {viewMode === "day" ? monthTitle : `${month.year}년`}
           </p>
           <ChevronRight
             className={`size-4 text-muted transition-transform duration-200 ${viewMode === "month" ? "rotate-90" : ""
@@ -77,8 +77,7 @@ export default function DiaryCalendar({
           </div>
 
           <div className="mt-2 grid grid-cols-7 gap-2 text-center">
-            {monthGrid.map(({ date, inMonth }) => {
-              const ymd = formatYmdKst(date);
+            {monthGrid.map(({ ymd, day, inMonth }) => {
               const hasEntry = entryDays.has(ymd);
               const isSelected = selectedYmd === ymd;
 
@@ -96,7 +95,7 @@ export default function DiaryCalendar({
                     isSelected ? "ring-2 ring-primary/60" : "ring-0",
                   )}
                 >
-                  {date.getDate()}
+                  {day}
                 </button>
               );
             })}
@@ -105,8 +104,7 @@ export default function DiaryCalendar({
       ) : (
         <div className="mt-4 grid grid-cols-3 gap-3">
           {Array.from({ length: 12 }).map((_, i) => {
-            const currentMonth = new Date(month.getFullYear(), i, 1);
-            const isCurrentMonth = i === month.getMonth();
+            const isCurrentMonth = i + 1 === month.month;
             const monthLabel = `${i + 1}월`;
 
             return (
@@ -114,7 +112,7 @@ export default function DiaryCalendar({
                 key={i}
                 type="button"
                 onClick={() => {
-                      onMonthChange(currentMonth);
+                      onMonthChange({ year: month.year, month: i + 1 });
                       setViewMode("day");
                     }}
                 className={cn(
