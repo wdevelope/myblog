@@ -49,6 +49,19 @@ function select(start: number, end = start) {
   view().dispatch({ selection: EditorSelection.range(start, end) });
 }
 
+// 입력기는 조합 중인 글자를 ㅎ → 하 → 한처럼 같은 자리에서 계속 바꿔 쓴다.
+function compose(start: number, steps: string[]) {
+  let length = 0;
+  for (const step of steps) {
+    view().dispatch({
+      changes: { from: start, to: start + length, insert: step },
+      selection: { anchor: start + step.length },
+      userEvent: "input.type.compose",
+    });
+    length = step.length;
+  }
+}
+
 describe("마크다운 에디터", () => {
   it("툴바 버튼은 선택한 글자를 문법으로 감싸고 바깥 값에도 알린다", () => {
     render(<Harness initial="안녕 세상" />);
@@ -105,6 +118,39 @@ describe("마크다운 에디터", () => {
     await waitFor(() => expect(text()).toBe("앞 ![](post-images-public:2026-10-22/a.png)"));
     expect(upload).toHaveBeenCalledWith([file]);
     expect(screen.getByLabelText("값").textContent).toBe("앞 ![](post-images-public:2026-10-22/a.png)");
+  });
+
+  it("끌어다 놓은 이미지도 버킷 키로 들어간다", async () => {
+    const key = "post-images-public:2026-10-22/a.png";
+    const upload = vi.fn(async () => [key]);
+    render(<Harness initial="앞 " upload={upload} />);
+    select(2);
+    const file = new File(["x"], "a.png", { type: "image/png" });
+    fireEvent.drop(content(), { dataTransfer: { files: [file] } });
+
+    await waitFor(() => expect(text()).toBe(`앞 ![](${key})`));
+    expect(upload).toHaveBeenCalledWith([file]);
+  });
+
+  it("서식 안에서 한글을 조합해도 글자가 쪼개지지 않고 커서가 글자 뒤에 남는다", async () => {
+    render(<Harness initial="**굵게**" />);
+    select(3);
+
+    compose(3, ["ㅎ", "하", "한"]);
+
+    expect(text()).toBe("**굵한게**");
+    expect(view().state.selection.main.head).toBe(4);
+    await waitFor(() => expect(screen.getByLabelText("값").textContent).toBe("**굵한게**"));
+  });
+
+  it("숨긴 서식 기호 바로 뒤에서 조합한 한글은 서식 밖에 남는다", () => {
+    render(<Harness initial="**굵게**" />);
+    select(6);
+
+    compose(6, ["ㅎ", "하", "한"]);
+
+    expect(text()).toBe("**굵게**한");
+    expect(view().state.selection.main.head).toBe(7);
   });
 
   it("업로드가 끝나면 커서를 넣은 이미지 문법 뒤에 둔다", async () => {
