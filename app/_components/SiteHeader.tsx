@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import Image from "next/image";
 import { Search } from "lucide-react";
 import { ThemeToggle } from "@/app/_components/ThemeToggle";
+import { NAV_LINKS } from "@/lib/constants";
 import { SEARCH_QUERY_MAX_LENGTH } from "@/lib/search";
 import { buttonClass } from "@/app/_components/ui";
 
@@ -51,10 +52,11 @@ export default async function SiteHeader() {
         <div className="flex items-center gap-8">
           <Brand />
           <nav className="hidden items-center gap-6 md:flex">
-            <NavLink href="/feed">피드</NavLink>
-            <NavLink href="/article">아티클</NavLink>
-            <NavLink href="/diary">다이어리</NavLink>
-            <NavLink href="/guestbook">방명록</NavLink>
+            {NAV_LINKS.map((link) => (
+              <NavLink key={link.href} href={link.href}>
+                {link.label}
+              </NavLink>
+            ))}
           </nav>
         </div>
 

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, Menu, Search, X } from "lucide-react";
 import LogoutButton from "@/app/_components/LogoutButton";
 import { useSessionUser } from "@/app/_components/useSessionUser";
+import { NAV_LINKS, isNavActive } from "@/lib/constants";
 import { SEARCH_QUERY_MAX_LENGTH } from "@/lib/search";
 import { cn } from "@/lib/utils";
 import { ButtonLink, buttonClass } from "@/app/_components/ui";
@@ -14,16 +15,6 @@ export default function MobileNav() {
   const pathname = usePathname();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const { user, loading } = useSessionUser();
-
-  const links = useMemo(
-    () => [
-      { href: "/feed", label: "피드" },
-      { href: "/article", label: "아티클" },
-      { href: "/diary", label: "다이어리" },
-      { href: "/guestbook", label: "방명록" },
-    ],
-    [],
-  );
 
   function open() {
     dialogRef.current?.showModal();
@@ -91,8 +82,8 @@ export default function MobileNav() {
             </form>
 
             <nav className="space-y-1">
-              {links.map((link) => {
-                const active = pathname?.startsWith(link.href);
+              {NAV_LINKS.map((link) => {
+                const active = isNavActive(pathname, link.href);
                 return (
                   <Link
                     key={link.href}

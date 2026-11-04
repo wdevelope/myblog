@@ -28,6 +28,18 @@ export function postHref(type: PostType, slug?: string) {
   return `${POST_TYPE_PATH[type]}/${slug}`;
 }
 
+// 헤더와 모바일 메뉴가 같이 쓴다.
+export const NAV_LINKS = [
+  { href: "/feed", label: "피드" },
+  { href: "/article", label: "아티클" },
+  { href: "/diary", label: "다이어리" },
+  { href: "/guestbook", label: "방명록" },
+];
+
+export function isNavActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 // /article 목록은 카테고리·쪽 번호를 경로로 나눠 정적으로 만든다(5단계 결정 2).
 export function articleListHref(category?: string | null, page = 1) {
   const base = category ? `/article/category/${encodeURIComponent(category)}` : "/article";
