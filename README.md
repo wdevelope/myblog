@@ -33,6 +33,7 @@ Next.js(App Router) + Tailwind CSS 기반 개인 블로그(w-life). 배포는 Ve
 - 데이터: `supabase/seed.sql`(가짜 글·카테고리·댓글)을 개발 프로젝트의 SQL Editor에서 실행한다. 운영에는 넣지 않는다.
 - 테스트 계정: 개발 프로젝트 대시보드 Authentication → Add user(Auto Confirm)로 관리자·일반 계정을 만들고, 관리자는 SQL Editor에서 `update auth.users set raw_app_meta_data = raw_app_meta_data || '{"is_admin": true}' where email = '<이메일>';` 뒤 다시 로그인한다. 계정을 만든 뒤 seed를 다시 실행하면 댓글이 채워진다.
 - 개발 프로젝트는 7일 동안 쓰지 않으면 일시정지된다. 대시보드에서 다시 켜면 데이터는 그대로다.
+- 개발 서버(`npm run dev`)는 운영 프로젝트 주소로는 시작하지 않는다. `.env.development.local`에 개발 프로젝트 값을 넣는다. 운영 데이터로 볼 때는 `npm run build` 뒤 `next start`를 쓴다.
 
 ### 2) 실행
 
