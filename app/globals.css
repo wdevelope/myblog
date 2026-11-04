@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* 기본 dark:는 OS 설정을 따른다. 테마 버튼이 html에 붙이는 .dark를 따르게 한다. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f6f6f8;
   --foreground: #0f172a;

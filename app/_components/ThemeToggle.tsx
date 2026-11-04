@@ -4,12 +4,13 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 export function ThemeToggle() {
-  const { setTheme, theme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
 
-  // 아이콘은 dark: 클래스로 바뀌고 theme는 클릭할 때만 읽어, 서버 HTML과 어긋나지 않아 마운트를 기다리지 않는다.
+  // 아이콘은 dark: 클래스로 바뀌고 테마 값은 클릭할 때만 읽어, 서버 HTML과 어긋나지 않아 마운트를 기다리지 않는다.
+  // theme는 시스템 설정이면 "system"이라 실제로 보이는 값인 resolvedTheme을 본다.
   return (
     <button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
       className="relative w-10 h-10 flex items-center justify-center rounded-full border border-border/40 bg-surface/50 hover:bg-surface-2 transition-all duration-300 group overflow-hidden"
       aria-label="테마 변경"
     >
