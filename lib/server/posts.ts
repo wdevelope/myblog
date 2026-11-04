@@ -24,6 +24,33 @@ export async function getPostsDirectly(params: { type: PostType }): Promise<Post
     return (posts ?? []).map((p) => mapPost(p as PostRow));
 }
 
+// 목록은 클라이언트 컴포넌트로 넘어가 페이지 전환 응답에 그대로 실리므로 화면이 쓰는 열만 읽는다.
+export async function getDiaryIndexDirectly(): Promise<
+    Pick<Post, "id" | "slug" | "title" | "createdAt" | "visibility">[]
+> {
+    const { isAdmin } = await getViewer();
+    const supabase = await createSupabaseServerClient();
+
+    let query = supabase
+        .from("posts")
+        .select("id,slug,title,created_at,visibility")
+        .eq("type", "diary")
+        .order("created_at", { ascending: false });
+
+    if (!isAdmin) query = query.eq("visibility", "public");
+
+    const { data, error } = await query;
+    if (error) throw new Error(`DB Error: ${error.message}`);
+
+    return (data ?? []).map((row) => ({
+        id: row.id,
+        slug: row.slug,
+        title: row.title,
+        createdAt: row.created_at,
+        visibility: row.visibility,
+    }));
+}
+
 // 없는 글, 경로와 타입이 다른 글, 볼 권한이 없는 글은 모두 null이다. 호출부는 notFound()로 끝낸다.
 export async function getPostForRoute(type: PostType, slug: string): Promise<Post | null> {
     const { isAdmin } = await getViewer();

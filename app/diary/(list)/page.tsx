@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { getPreviewViewer } from "@/lib/server/admin";
-import { getPostsDirectly } from "@/lib/server/posts";
+import { getDiaryIndexDirectly } from "@/lib/server/posts";
 import { getPublicDiaryIndex } from "@/lib/server/publicPosts";
 import DiaryIndexClient from "@/app/diary/DiaryIndexClient";
 import DiaryLoading from "@/app/diary/(list)/loading";
@@ -14,7 +14,7 @@ export const revalidate = 86400; // REVALIDATE_PERIOD
 export default async function DiaryPage() {
   // 관리자는 draft mode에서 비공개 제목까지 본다. 방문자 목록은 본문 없이 제목만 담은 캐시다.
   const { isAdmin } = await getPreviewViewer();
-  const posts = isAdmin ? await getPostsDirectly({ type: "diary" }) : await getPublicDiaryIndex();
+  const posts = isAdmin ? await getDiaryIndexDirectly() : await getPublicDiaryIndex();
 
   // DiaryIndexClient가 useSearchParams를 읽어, 정적 렌더링에서는 Suspense 경계가 있어야 한다.
   return (

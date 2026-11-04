@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getCommentsDirectly, getPostForRoute, getPostsDirectly, loadPostForEdit } from "@/lib/server/posts";
+import {
+  getCommentsDirectly,
+  getDiaryIndexDirectly,
+  getPostForRoute,
+  getPostsDirectly,
+  loadPostForEdit,
+} from "@/lib/server/posts";
 
 type QueryResult = { data: unknown; error: null };
 
@@ -160,6 +166,47 @@ describe("loadPostForEdit", () => {
     mocks.tables.posts = createQuery({ data: privatePostRow, error: null });
 
     await expect(loadPostForEdit("blog", "secret")).resolves.toMatchObject({ slug: "secret" });
+  });
+});
+
+describe("getDiaryIndexDirectly", () => {
+  const diaryRow = {
+    id: "diary-1",
+    slug: "diary-secret",
+    title: "비공개 일기",
+    created_at: "2026-01-01T00:00:00Z",
+    visibility: "private",
+  };
+
+  it("목록에 쓰는 다섯 열만 읽고 본문 없이 그 필드만 돌려준다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
+    const posts = createQuery({ data: [diaryRow], error: null });
+    mocks.tables.posts = posts;
+
+    const result = await getDiaryIndexDirectly();
+
+    expect(posts.calls).toContainEqual(["select", "id,slug,title,created_at,visibility"]);
+    expect(posts.calls).toContainEqual(["eq", "type", "diary"]);
+    expect(posts.calls).not.toContainEqual(["eq", "visibility", "public"]);
+    expect(result).toEqual([
+      {
+        id: "diary-1",
+        slug: "diary-secret",
+        title: "비공개 일기",
+        createdAt: "2026-01-01T00:00:00Z",
+        visibility: "private",
+      },
+    ]);
+  });
+
+  it("관리자가 아니면 공개 다이어리만 조회한다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+    const posts = createQuery({ data: [], error: null });
+    mocks.tables.posts = posts;
+
+    await getDiaryIndexDirectly();
+
+    expect(posts.calls).toContainEqual(["eq", "visibility", "public"]);
   });
 });
 
