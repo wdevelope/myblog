@@ -144,7 +144,8 @@ describe("글 에디터 카테고리", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "발행" }));
 
-    const options = screen.getAllByRole("option").map((option) => option.textContent);
+    const select = screen.getByRole("option", { name: "카테고리 선택" }).closest("select");
+    const options = Array.from(select?.options ?? []).map((option) => option.textContent);
     expect(options).toEqual(["카테고리 선택", "옛카테고리 (삭제됨)", "개발"]);
   });
 });
