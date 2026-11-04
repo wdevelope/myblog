@@ -7,6 +7,7 @@ import AdminModeSync from "@/app/_components/AdminModeSync";
 import AdminNavProgress from "@/app/_components/AdminNavProgress";
 import { Suspense } from "react";
 import Image from "next/image";
+import { Search } from "lucide-react";
 import { ThemeToggle } from "@/app/_components/ThemeToggle";
 import { SEARCH_QUERY_MAX_LENGTH } from "@/lib/search";
 
@@ -68,7 +69,7 @@ export default async function SiteHeader() {
               <span className="sr-only">검색</span>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted">
-                  <span className="text-sm">⌕</span>
+                  <Search className="size-4" aria-hidden />
                 </div>
                 <input
                   type="search"

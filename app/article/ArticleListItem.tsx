@@ -1,29 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
-import { FiLock } from "react-icons/fi";
+import { MessageCircleMore } from "lucide-react";
 import { Skeleton } from "@/app/_components/ui";
+import VisibilityIcon from "@/app/_components/VisibilityIcon";
 import type { Post } from "@/lib/types";
 import { toExcerpt } from "@/lib/markdown";
 import { coverKeyOf, coverSrcFromImageKey } from "@/lib/image";
 import { formatPostDate } from "@/lib/utils";
-
-function CommentIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className ?? "size-4"}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-      />
-    </svg>
-  );
-}
 
 // 아티클 목록과 홈 최신 아티클이 함께 쓰는 게시판형 한 줄. 부모는 `ul.divide-y`다.
 export default function ArticleListItem({
@@ -49,8 +32,8 @@ export default function ArticleListItem({
               {post.categorySlug || "전체"}
             </span>
             {post.visibility === "private" ? (
-              <span className="shrink-0 text-amber-500" aria-label="비공개">
-                <FiLock className="size-3.5" />
+              <span className="shrink-0" aria-label="비공개">
+                <VisibilityIcon visibility="private" className="size-3.5" />
               </span>
             ) : null}
           </div>
@@ -66,7 +49,7 @@ export default function ArticleListItem({
             </time>
             {(post.commentCount ?? 0) > 0 && (
               <span className="flex items-center gap-1 text-primary/80">
-                <CommentIcon className="size-3.5" />
+                <MessageCircleMore className="size-3.5" aria-hidden />
                 <span className="font-bold">{post.commentCount}</span>
               </span>
             )}

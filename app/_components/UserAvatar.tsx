@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { FiUser } from "react-icons/fi";
+import { User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // 관리자는 사진과 상관없이 오웬 로고다. 다른 사용자는 올린 사진(src), 없으면 사람 아이콘이다(로드맵 17·18절).
@@ -30,7 +30,7 @@ export default function UserAvatar({
       {image ? (
         <Image src={image} alt="" width={80} height={80} className="size-full object-cover" />
       ) : (
-        <FiUser aria-hidden className="size-1/2" />
+        <User aria-hidden className="size-1/2" />
       )}
     </span>
   );

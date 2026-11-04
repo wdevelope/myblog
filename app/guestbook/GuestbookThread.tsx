@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FiLock } from "react-icons/fi";
+import { Lock } from "lucide-react";
 import UserAvatar from "@/app/_components/UserAvatar";
 import { useSessionUser } from "@/app/_components/useSessionUser";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -116,7 +116,7 @@ function GuestbookComposer({
               disabled={isPending}
               className="size-4 accent-primary"
             />
-            <FiLock aria-hidden className="size-3.5 text-amber-500" />
+            <Lock aria-hidden className="size-3.5 text-amber-500" />
             비밀글
             <span className="font-normal text-muted">관리자와 나만 볼 수 있어요</span>
           </label>
@@ -223,7 +223,7 @@ export default function GuestbookThread({
             <span className="text-muted">{formatPostDate(entry.createdAt, "ko")}</span>
             {entry.isSecret && content !== null ? (
               <span className="inline-flex items-center gap-1 text-amber-500">
-                <FiLock aria-hidden className="size-3" />
+                <Lock aria-hidden className="size-3" />
                 <span className="font-semibold">비밀글</span>
               </span>
             ) : null}
@@ -231,7 +231,7 @@ export default function GuestbookThread({
 
           {content === null ? (
             <p className="inline-flex items-center gap-1.5 text-sm text-muted">
-              <FiLock aria-hidden className="size-3.5" />
+              <Lock aria-hidden className="size-3.5" />
               비밀글입니다
             </p>
           ) : (

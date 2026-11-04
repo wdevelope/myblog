@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
-import { FiLock } from "react-icons/fi";
+import { ChevronLeft, ChevronRight, CloudSun } from "lucide-react";
 import PostActionMenu from "@/app/_components/PostActionMenu";
+import VisibilityIcon from "@/app/_components/VisibilityIcon";
 import { useHydrated } from "@/app/_components/useHydrated";
 import { cn } from "@/lib/utils";
 
@@ -67,68 +68,6 @@ function buildCalendarGrid(month: Date) {
     days.push({ date: d, inMonth });
   }
   return days;
-}
-
-
-
-function ChevronLeft({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className ?? "size-5"}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M15.75 19.5L8.25 12l7.5-7.5"
-      />
-    </svg>
-  );
-}
-
-function ChevronRight({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className ?? "size-5"}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M8.25 4.5l7.5 7.5-7.5 7.5"
-      />
-    </svg>
-  );
-}
-
-function WeatherIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className ?? "size-6"}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M3 15.75A4.5 4.5 0 017.5 11.25h.207a6 6 0 0111.337 1.665A3.75 3.75 0 0118.75 20.25H7.5A4.5 4.5 0 013 15.75z"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M12 3.75v1.5m6.364.636l-1.06 1.06M20.25 12h-1.5m-.636 6.364l-1.06-1.06"
-      />
-    </svg>
-  );
 }
 
 export default function DiaryIndexClient({
@@ -442,7 +381,7 @@ export default function DiaryIndexClient({
               >
                 <div className="flex items-center gap-4">
                   <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                    <WeatherIcon className="size-6" />
+                    <CloudSun className="size-6" aria-hidden />
                   </div>
                   <div className="space-y-1">
                     <p className="text-base font-bold text-foreground">
@@ -503,9 +442,7 @@ export default function DiaryIndexClient({
                             )}
                             <div className="flex items-center gap-2">
                               {post.visibility === "private" && (
-                                <div className="text-amber-500">
-                                  <FiLock className="size-3.5" />
-                                </div>
+                                <VisibilityIcon visibility="private" className="size-3.5" />
                               )}
                               {isAdmin ? (
                                 <PostActionMenu

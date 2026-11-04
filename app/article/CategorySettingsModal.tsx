@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { FiSettings, FiX, FiGlobe, FiLock } from "react-icons/fi";
+import { Settings, X } from "lucide-react";
 import {
   getCategories,
   createCategory,
@@ -12,6 +12,7 @@ import {
   reorderCategory,
   type Category,
 } from "@/lib/actions/categories";
+import VisibilityIcon from "@/app/_components/VisibilityIcon";
 import { cn } from "@/lib/utils";
 
 export default function CategorySettingsModal() {
@@ -191,7 +192,7 @@ export default function CategorySettingsModal() {
         title="카테고리 설정"
         className="inline-flex size-9 items-center justify-center rounded-xl bg-transparent text-muted transition hover:text-foreground"
       >
-        <FiSettings className="size-4" aria-hidden />
+        <Settings className="size-4" aria-hidden />
       </button>
 
       {/* ESC처럼 브라우저가 직접 닫는 경로도 close 이벤트는 거치므로 편집 상태는 여기서 비운다. */}
@@ -212,7 +213,7 @@ export default function CategorySettingsModal() {
             aria-label="닫기"
             title="닫기"
           >
-            <FiX className="size-5" aria-hidden />
+            <X className="size-5" aria-hidden />
           </button>
         </div>
 
@@ -341,11 +342,7 @@ function CategoryRow({
               )}
               title={category.visibility === "public" ? "공개" : "비공개"}
             >
-              {category.visibility === "public" ? (
-                <FiGlobe className="size-3.5" />
-              ) : (
-                <FiLock className="size-3.5" />
-              )}
+              <VisibilityIcon visibility={category.visibility} className="size-3.5" />
             </span>
           </div>
         </div>

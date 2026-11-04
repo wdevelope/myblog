@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
-import { FiHeart, FiBookmark } from "react-icons/fi";
+import { Bookmark, FileText, Heart } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn, formatPostDate } from "@/lib/utils";
 import type { Post } from "@/lib/types";
@@ -82,19 +82,7 @@ export function FeedCard({
         <div className="aspect-square w-full bg-linear-to-br from-surface-2 via-surface to-surface-2 flex items-center justify-center">
           <div className="text-center space-y-2 p-8">
             <div className="mx-auto size-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <svg
-                className="size-8 text-primary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-.75a.75.75 0 01-.75-.75v-.75a3.375 3.375 0 00-3.375-3.375H9.75a3.375 3.375 0 00-3.375 3.375v11.25A3.375 3.375 0 009.75 21h4.5a3.375 3.375 0 003.375-3.375v-.375"
-                />
-              </svg>
+              <FileText className="size-8 text-primary" aria-hidden />
             </div>
           </div>
         </div>
@@ -110,7 +98,7 @@ export function FeedCard({
               onClick={() => setIsLiked(!isLiked)}
               className="p-1 hover:opacity-60 transition outline-none"
             >
-              <FiHeart
+              <Heart
                 className={cn(
                   "size-6 transition-colors",
                   isLiked ? "fill-red-500 text-red-500" : ""
@@ -137,7 +125,7 @@ export function FeedCard({
               onClick={handleSave}
               className="p-1 hover:opacity-60 transition outline-none"
             >
-              <FiBookmark
+              <Bookmark
                 className={cn(
                   "size-6 transition-colors",
                   isSaved ? "fill-current" : ""

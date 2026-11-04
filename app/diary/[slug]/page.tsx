@@ -7,7 +7,7 @@ import PostActionMenu from "@/app/_components/PostActionMenu";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { FiLock, FiGlobe } from "react-icons/fi";
+import VisibilityIcon from "@/app/_components/VisibilityIcon";
 import { getPreviewViewer } from "@/lib/server/admin";
 import { getPublicDiaryIndex } from "@/lib/server/publicPosts";
 
@@ -78,11 +78,7 @@ export default async function DiaryEntryPage({
                 <span>조회수 {(post?.viewCount ?? 0).toLocaleString()}회</span>
                 <span>·</span>
                 <span className="flex items-center gap-1.5 font-medium group">
-                  {post?.visibility === "private" ? (
-                    <FiLock className="size-3.5 text-amber-500" aria-hidden />
-                  ) : (
-                    <FiGlobe className="size-3.5 text-emerald-500" aria-hidden />
-                  )}
+                  <VisibilityIcon visibility={post?.visibility === "private" ? "private" : "public"} className="size-3.5" />
                 </span>
               </div>
             </div>

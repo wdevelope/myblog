@@ -2,23 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { Ellipsis } from "lucide-react";
 import DeletePostButton from "@/app/_components/DeletePostButton";
 import { cn } from "@/lib/utils";
-
-function DotsIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className ?? "size-5"}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden
-    >
-      <circle cx="5" cy="12" r="1.75" />
-      <circle cx="12" cy="12" r="1.75" />
-      <circle cx="19" cy="12" r="1.75" />
-    </svg>
-  );
-}
 
 export default function PostActionMenu({
   editHref,
@@ -73,7 +59,7 @@ export default function PostActionMenu({
         onClick={() => setOpen((v) => !v)}
         className="inline-flex size-10 items-center justify-center bg-transparent text-foreground/80 transition hover:text-foreground"
       >
-        <DotsIcon className="size-4.5 text-muted" />
+        <Ellipsis className="size-4.5 text-muted" aria-hidden />
       </button>
 
       {open ? (

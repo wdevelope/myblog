@@ -10,7 +10,7 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
-import { FiArrowLeft, FiImage, FiX, FiTrash2, FiGlobe, FiLock } from "react-icons/fi";
+import { ArrowLeft, Globe, ImageIcon, Lock, Trash2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
@@ -358,7 +358,7 @@ export default function PostEditor({
             className="flex items-center justify-center size-10 rounded-full hover:bg-surface-2 transition text-muted"
             title="뒤로 가기"
           >
-            <FiArrowLeft className="size-6" />
+            <ArrowLeft className="size-6" />
           </button>
         </div>
 
@@ -467,7 +467,7 @@ export default function PostEditor({
                   onClick={() => setIsSidebarOpen(false)}
                   className="p-2 hover:bg-surface-2 rounded-lg"
                 >
-                  <FiX className="size-5" />
+                  <X className="size-5" />
                 </button>
               </div>
 
@@ -490,7 +490,7 @@ export default function PostEditor({
                         )}
                         title="공개"
                       >
-                        <FiGlobe className="size-4" />
+                        <Globe className="size-4" />
                       </button>
                       <button
                         type="button"
@@ -503,7 +503,7 @@ export default function PostEditor({
                         )}
                         title="비공개"
                       >
-                        <FiLock className="size-4" />
+                        <Lock className="size-4" />
                       </button>
                     </div>
                   </div>
@@ -556,7 +556,7 @@ export default function PostEditor({
                           onClick={() => removeImageKey(key)}
                           className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition"
                         >
-                          <FiX className="size-3" />
+                          <X className="size-3" />
                         </button>
                       </div>
                     ))}
@@ -564,7 +564,7 @@ export default function PostEditor({
                       htmlFor={fileInputId}
                       className="flex flex-col items-center justify-center aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition cursor-pointer"
                     >
-                      <FiImage className="size-6 text-muted mb-2" />
+                      <ImageIcon className="size-6 text-muted mb-2" />
                       <span className="text-xs font-bold text-muted">
                         추가하기
                       </span>
@@ -602,7 +602,7 @@ export default function PostEditor({
                           onClick={() => setThumbnailImageKey("")}
                           className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition"
                         >
-                          <FiX className="size-4" />
+                          <X className="size-4" />
                         </button>
                       </div>
                     ) : (
@@ -610,7 +610,7 @@ export default function PostEditor({
                         htmlFor={thumbnailInputId}
                         className="flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition cursor-pointer"
                       >
-                        <FiImage className="size-8 text-muted mb-2" />
+                        <ImageIcon className="size-8 text-muted mb-2" />
                         <span className="text-sm font-bold text-muted">
                           썸네일 업로드
                         </span>
@@ -657,7 +657,7 @@ export default function PostEditor({
                     redirectTo={deleteRedirectTo}
                     className="w-full h-11 rounded-xl border border-red-500/20 text-red-500 font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-2"
                   >
-                    <FiTrash2 className="size-4" />
+                    <Trash2 className="size-4" />
                     삭제하기
                   </DeletePostButton>
                 )}

@@ -8,7 +8,7 @@ import CommentsThread from "@/app/_components/CommentsThread";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { FiLock, FiGlobe } from "react-icons/fi";
+import VisibilityIcon from "@/app/_components/VisibilityIcon";
 import { CardBody } from "@/app/_components/ui";
 import { getPreviewViewer } from "@/lib/server/admin";
 import MarkdownContent from "@/app/_components/MarkdownContent";
@@ -127,11 +127,7 @@ export default async function BlogPostPage({ params }: Props) {
                 </span>
                 <span>·</span>
                 <span className="flex items-center gap-1.5 font-medium group">
-                  {post.visibility === "private" ? (
-                    <FiLock className="size-3.5 text-amber-500" aria-hidden />
-                  ) : (
-                    <FiGlobe className="size-3.5 text-emerald-500" aria-hidden />
-                  )}
+                  <VisibilityIcon visibility={post.visibility} className="size-3.5" />
                 </span>
               </div>
             </div>

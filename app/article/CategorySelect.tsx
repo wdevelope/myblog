@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { ChevronDown } from "lucide-react";
 import { articleListHref } from "@/lib/constants";
 
 interface Category {
@@ -48,19 +49,7 @@ export default function CategorySelect({
                     ))}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted">
-                    <svg
-                        className="size-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                        />
-                    </svg>
+                    <ChevronDown className="size-5" aria-hidden />
                 </div>
             </div>
         </div>

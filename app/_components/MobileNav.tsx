@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FiMenu, FiX, FiSearch } from "react-icons/fi";
+import { ArrowRight, Menu, Search, X } from "lucide-react";
 import LogoutButton from "@/app/_components/LogoutButton";
 import { useSessionUser } from "@/app/_components/useSessionUser";
 import { SEARCH_QUERY_MAX_LENGTH } from "@/lib/search";
@@ -46,7 +46,7 @@ export default function MobileNav() {
         className="inline-flex size-10 items-center justify-center rounded-xl border border-border bg-surface text-foreground md:hidden"
         aria-label="메뉴 열기"
       >
-        <FiMenu className="size-5" aria-hidden />
+        <Menu className="size-5" aria-hidden />
       </button>
 
       <dialog
@@ -65,7 +65,7 @@ export default function MobileNav() {
               className="inline-flex size-10 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
               aria-label="메뉴 닫기"
             >
-              <FiX className="size-5" aria-hidden />
+              <X className="size-5" aria-hidden />
             </button>
           </div>
 
@@ -75,7 +75,7 @@ export default function MobileNav() {
                 <span className="sr-only">검색</span>
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted">
-                    <FiSearch className="size-4" aria-hidden />
+                    <Search className="size-4" aria-hidden />
                   </div>
                   <input
                     type="search"
@@ -102,7 +102,7 @@ export default function MobileNav() {
                     )}
                   >
                     <span>{link.label}</span>
-                    <span className="text-muted">→</span>
+                    <ArrowRight className="size-4 text-muted" aria-hidden />
                   </Link>
                 );
               })}

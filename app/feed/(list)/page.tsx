@@ -1,3 +1,4 @@
+import { CircleAlert } from "lucide-react";
 import { ButtonLink, Card, CardBody } from "@/app/_components/ui";
 import MarkdownContent from "@/app/_components/MarkdownContent";
 import { FeedCard } from "@/app/feed/FeedCard";
@@ -41,19 +42,7 @@ export default async function FeedPage() {
           <Card>
             <CardBody className="text-center py-12">
               <div className="mx-auto size-16 rounded-full bg-surface-2 flex items-center justify-center mb-4">
-                <svg
-                  className="size-8 text-muted"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-                  />
-                </svg>
+                <CircleAlert className="size-8 text-muted" aria-hidden />
               </div>
               <p className="text-sm text-muted">아직 피드가 없습니다.</p>
             </CardBody>

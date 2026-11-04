@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { MessageCircle } from "lucide-react";
 import type { Comment } from "@/lib/types";
 import { useSessionUser } from "@/app/_components/useSessionUser";
 import UserAvatar from "@/app/_components/UserAvatar";
@@ -223,7 +224,7 @@ export default function CommentsThread({
                           }
                           className="inline-flex items-center gap-2 font-semibold hover:text-foreground transition"
                         >
-                          <span aria-hidden>💬</span>
+                          <MessageCircle className="size-3.5" aria-hidden />
                           대댓글
                         </button>
                       ) : null}

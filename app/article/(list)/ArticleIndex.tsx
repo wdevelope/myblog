@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { FiLock } from "react-icons/fi";
 import CategorySettingsModal from "@/app/article/CategorySettingsModal";
 import ArticleListItem from "@/app/article/ArticleListItem";
+import VisibilityIcon from "@/app/_components/VisibilityIcon";
 import type { Post } from "@/lib/types";
 import {
   getPublicCategories,
@@ -129,9 +129,7 @@ export default async function ArticleIndex({
                 >
                   <span className="flex min-w-0 items-center gap-2 text-sm font-bold">
                     {isAdmin && category.visibility === "private" ? (
-                      <span className="text-amber-500/90" aria-hidden>
-                        <FiLock className="size-3" />
-                      </span>
+                      <VisibilityIcon visibility="private" className="size-3" />
                     ) : null}
                     <span className="truncate">{category.slug}</span>
                   </span>
