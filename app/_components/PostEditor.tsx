@@ -5,7 +5,6 @@ import {
   useEffect,
   useId,
   useMemo,
-  useRef,
   useState,
   useTransition,
 } from "react";
@@ -24,19 +23,7 @@ import { getCategories } from "@/lib/actions/categories";
 import { createPost } from "@/lib/actions/posts";
 import MarkdownEditor from "@/app/_components/MarkdownEditor";
 import { useHydrated } from "@/app/_components/useHydrated";
-
-type DraftPayloadV1 = {
-  version: 1;
-  type: PostType;
-  title: string;
-  content: string;
-  visibility: Visibility;
-  categorySlug: string;
-  imageKeys: string[];
-  thumbnailImageKey: string;
-  createdAtYmd?: string;
-  updatedAt: string;
-};
+import { usePostDraft, type PostDraft } from "@/app/_components/usePostDraft";
 
 // ... (Helper functions like typeLabel can remain or be inline)
 // function typeLabel(type: PostType) {
@@ -99,9 +86,6 @@ export default function PostEditor({
     () => `post-editor-thumbnail-${componentId}`,
     [componentId]
   );
-  // const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
-  const [, setDraftSavedAt] = useState<string | null>(null);
-  const saveTimerRef = useRef<number | null>(null);
   const hydrated = useHydrated();
 
   // Layout state
@@ -128,92 +112,21 @@ export default function PostEditor({
     return list;
   }, [categories, categorySlug]);
 
-  const buildDraftPayload = useCallback((): DraftPayloadV1 => {
-    return {
-      version: 1,
-      type,
-      title,
-      content,
-      visibility: type === "feed" ? "public" : visibility,
-      categorySlug,
-      imageKeys,
-      thumbnailImageKey,
-      createdAtYmd,
-      updatedAt: new Date().toISOString(),
-    };
-  }, [
-    categorySlug,
-    content,
-    createdAtYmd,
-    imageKeys,
-    thumbnailImageKey,
-    title,
+  const { pendingDraft, saveDraft, clearDraft, dismissDraft } = usePostDraft({
+    draftKey,
     type,
-    visibility,
-  ]);
-
-  const hasMeaningfulDraft = useCallback((draft: DraftPayloadV1) => {
-    if (draft.type === "blog" && draft.categorySlug.trim()) return true;
-    // 화면이 채운 기본 제목은 쓴 내용이 아니다. 임시저장하면 다음 날 날짜만 다른 불러오기 알림이 뜬다.
-    if (draft.type !== "feed" && draft.title.trim() && draft.title !== defaultTitle) return true;
-    if (draft.content.trim()) return true;
-    if (draft.imageKeys.length > 0) return true;
-    if (draft.type === "blog" && draft.thumbnailImageKey.trim()) return true;
-    if (draft.type === "diary" && draft.createdAtYmd?.trim()) return true;
-    return false;
-  }, [defaultTitle]);
-
-  // 처음 그릴 때 한 번, 지금 내용과 다른 임시저장 글이 있으면 불러오기 알림을 띄운다.
-  // localStorage는 브라우저에만 있어, 알림은 hydration 뒤(hydrated)에만 그린다.
-  const [pendingDraft, setPendingDraft] = useState<DraftPayloadV1 | null>(() => {
-    if (typeof window === "undefined") return null;
-
-    try {
-      const raw = localStorage.getItem(draftKey);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as DraftPayloadV1;
-      if (!parsed || parsed.version !== 1) return null;
-      if (parsed.type !== type) return null;
-      if (!hasMeaningfulDraft(parsed)) return null;
-
-      const current = buildDraftPayload();
-      const differs =
-        parsed.title !== current.title ||
-        parsed.content !== current.content ||
-        parsed.visibility !== current.visibility ||
-        parsed.categorySlug !== current.categorySlug ||
-        parsed.thumbnailImageKey !== current.thumbnailImageKey ||
-        parsed.createdAtYmd !== current.createdAtYmd ||
-        JSON.stringify(parsed.imageKeys) !== JSON.stringify(current.imageKeys);
-
-      return differs ? parsed : null;
-    } catch {
-      return null;
-    }
+    defaultTitle,
+    createdAtYmd,
+    fields: { title, content, visibility, categorySlug, imageKeys, thumbnailImageKey },
   });
 
-  const clearDraft = useCallback(() => {
-    try {
-      localStorage.removeItem(draftKey);
-    } catch {
-      // ignore
-    }
-    setPendingDraft(null);
-    setDraftSavedAt(null);
-  }, [draftKey]);
-
-  const dismissDraft = useCallback(() => {
-    setPendingDraft(null);
-  }, []);
-
-  const applyDraft = useCallback((draft: DraftPayloadV1) => {
+  const applyDraft = useCallback((draft: PostDraft) => {
     setTitle(draft.title);
     setContent(draft.content);
     setVisibility(draft.visibility);
     setCategorySlug(draft.categorySlug);
     setImageKeys(draft.imageKeys);
     setThumbnailImageKey(draft.thumbnailImageKey);
-    setDraftSavedAt(draft.updatedAt);
   }, []);
 
   const refreshCategories = useCallback(async () => {
@@ -243,26 +156,6 @@ export default function PostEditor({
   //   if (imageKeys.includes(thumbnailImageKey)) return;
   //   setThumbnailImageKey("");
   // }, [type, imageKeys, thumbnailImageKey]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
-
-    saveTimerRef.current = window.setTimeout(() => {
-      try {
-        const draft = buildDraftPayload();
-        if (!hasMeaningfulDraft(draft)) return;
-        localStorage.setItem(draftKey, JSON.stringify(draft));
-        setDraftSavedAt(draft.updatedAt);
-      } catch {
-        // ignore
-      }
-    }, 800);
-
-    return () => {
-      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
-    };
-  }, [buildDraftPayload, draftKey, hasMeaningfulDraft]);
 
   // 첨부·썸네일·본문 이미지가 함께 쓰는 업로드. 글의 공개 범위 버킷으로 올린다.
   const uploadFiles = useCallback(
@@ -368,12 +261,7 @@ export default function PostEditor({
           </span>
           <button
             type="button"
-            onClick={() => {
-              const draft = buildDraftPayload();
-              if (!hasMeaningfulDraft(draft)) return;
-              localStorage.setItem(draftKey, JSON.stringify(draft));
-              setDraftSavedAt(draft.updatedAt);
-            }}
+            onClick={saveDraft}
             className="px-4 py-2 text-sm font-bold text-muted hover:bg-surface-2 rounded-lg transition"
           >
             저장
@@ -417,7 +305,7 @@ export default function PostEditor({
                   type="button"
                   onClick={() => {
                     applyDraft(pendingDraft);
-                    setPendingDraft(null);
+                    dismissDraft();
                   }}
                   className="px-3 py-1.5 text-xs font-bold bg-emerald-500 text-white rounded-lg hover:brightness-110 shadow-sm transition"
                 >
