@@ -11,10 +11,6 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), back: vi.fn() }),
 }));
 
-vi.mock("@/lib/actions/categories", () => ({
-  getCategories: async () => ({ success: true, categories: [] }),
-}));
-
 vi.mock("@/lib/actions/posts", () => ({
   createPost: vi.fn(),
   deletePost: vi.fn(),
@@ -134,6 +130,22 @@ describe("글 에디터 기본 제목", () => {
     });
 
     expect(JSON.parse(localStorage.getItem(DIARY_DRAFT_KEY) ?? "{}").title).toBe("봄날");
+  });
+});
+
+describe("글 에디터 카테고리", () => {
+  it("서버에서 받은 카테고리를 처음부터 보이고, 지워진 글의 카테고리는 삭제됨으로 표시한다", () => {
+    render(
+      <PostEditor
+        type="blog"
+        categories={["개발"]}
+        initial={{ id: "1", slug: "a", title: "t", content: "c", visibility: "public", categorySlug: "옛카테고리" }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+
+    const options = screen.getAllByRole("option").map((option) => option.textContent);
+    expect(options).toEqual(["카테고리 선택", "옛카테고리 (삭제됨)", "개발"]);
   });
 });
 

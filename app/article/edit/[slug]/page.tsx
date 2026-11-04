@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import PostEditor from "@/app/_components/PostEditor";
-import { loadPostForEdit } from "@/lib/server/posts";
+import { getCategorySlugsDirectly, loadPostForEdit } from "@/lib/server/posts";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -15,11 +15,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ArticleEditPage({ params }: Props) {
   const { slug } = await params;
-  const post = await loadPostForEdit("blog", slug);
+  const [post, categories] = await Promise.all([
+    loadPostForEdit("blog", slug),
+    getCategorySlugsDirectly(),
+  ]);
 
   return (
     <PostEditor
       type="blog"
+      categories={categories}
       initial={{
         id: post.id,
         slug: post.slug,

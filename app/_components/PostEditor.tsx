@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
 import { postHref } from "@/lib/constants";
 import { enableAdminMode } from "@/lib/adminMode";
-import { getCategories } from "@/lib/actions/categories";
 import { createPost } from "@/lib/actions/posts";
 import MarkdownEditor from "@/app/_components/MarkdownEditor";
 import PostSettingsPanel from "@/app/_components/PostSettingsPanel";
@@ -18,6 +17,7 @@ export default function PostEditor({
   type,
   defaultVisibility,
   defaultTitle = "",
+  categories = [],
   initial,
   createdAtYmd,
   deleteSlug,
@@ -26,6 +26,7 @@ export default function PostEditor({
   type: PostType;
   defaultVisibility?: Visibility;
   defaultTitle?: string;
+  categories?: string[];
   initial?: {
     id: string;
     slug: string;
@@ -57,7 +58,6 @@ export default function PostEditor({
   );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [categories, setCategories] = useState<string[]>([]);
   const hydrated = useHydrated();
 
   // Layout state
@@ -90,26 +90,6 @@ export default function PostEditor({
     setImageKeys(draft.imageKeys);
     setThumbnailImageKey(draft.thumbnailImageKey);
   }, []);
-
-  const refreshCategories = useCallback(async () => {
-    if (type !== "blog") return;
-    try {
-      const result = await getCategories();
-      if (!result.success) return;
-      const slugs = (result.categories ?? [])
-        .map((c) => c.slug)
-        .filter(
-          (v): v is string => typeof v === "string" && v.trim().length > 0
-        );
-      setCategories(Array.from(new Set(slugs)));
-    } finally {
-      // ignore
-    }
-  }, [type]);
-
-  useEffect(() => {
-    void refreshCategories();
-  }, [refreshCategories]);
 
   // 첨부·썸네일·본문 이미지가 함께 쓰는 업로드. 글의 공개 범위 버킷으로 올린다.
   const uploadFiles = useCallback(

@@ -100,6 +100,18 @@ export async function getDiaryIndexDirectly(): Promise<
 }
 
 // 없는 글, 경로와 타입이 다른 글, 볼 권한이 없는 글은 모두 null이다. 호출부는 notFound()로 끝낸다.
+// 글 쓰기·수정 화면의 카테고리 선택지. 비공개 카테고리는 관리자 세션의 RLS로만 보인다.
+export async function getCategorySlugsDirectly() {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase
+        .from("categories")
+        .select("slug")
+        .order("sort_order", { ascending: true })
+        .order("slug", { ascending: true });
+
+    return (data ?? []).map((row) => row.slug as string);
+}
+
 export async function getPostForRoute(type: PostType, slug: string): Promise<Post | null> {
     const { isAdmin } = await getViewer();
     const supabase = await createSupabaseServerClient();

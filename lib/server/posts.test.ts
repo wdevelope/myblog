@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getArticleListDirectly,
   getArticleWithCommentsDirectly,
+  getCategorySlugsDirectly,
   getDiaryIndexDirectly,
   getPostForRoute,
   loadPostForEdit,
@@ -383,5 +384,21 @@ describe("getArticleWithCommentsDirectly", () => {
     await getArticleWithCommentsDirectly("secret");
 
     expect(posts.calls).toContainEqual(["eq", "visibility", "public"]);
+  });
+});
+
+describe("getCategorySlugsDirectly", () => {
+  it("카테고리 이름을 정렬 순서대로 돌려준다", async () => {
+    const query = createQuery({ data: [{ slug: "개발" }, { slug: "일상" }], error: null });
+    mocks.tables.categories = query;
+
+    await expect(getCategorySlugsDirectly()).resolves.toEqual(["개발", "일상"]);
+    expect(query.calls).toContainEqual(["order", "sort_order", { ascending: true }]);
+  });
+
+  it("읽지 못하면 빈 목록이다", async () => {
+    mocks.tables.categories = createQuery({ data: null, error: { message: "boom" } });
+
+    await expect(getCategorySlugsDirectly()).resolves.toEqual([]);
   });
 });
