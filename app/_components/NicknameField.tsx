@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { NICKNAME_MESSAGES, nicknameProblem, type NicknameStatus } from "@/lib/nickname";
+import { Button } from "@/app/_components/ui";
 
 // 가입 폼과 마이페이지가 같이 쓴다. 확인을 통과한 닉네임을 onVerified로 알리고, 부모는 그 값이 지금 입력과 같을 때만
 // 저장·가입 버튼을 켠다(확인한 뒤 글자를 바꾸면 다시 확인해야 한다). 버튼은 편의용이고 최종 판정은 저장할 때 DB가 한다.
@@ -62,14 +63,13 @@ export default function NicknameField({
           placeholder="한글·영문·숫자·_ 2~12자"
           autoComplete="nickname"
         />
-        <button
-          type="button"
+        <Button
           onClick={() => void check()}
           disabled={!trimmed || checking}
-          className="h-11 shrink-0 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:bg-surface-2 disabled:opacity-50"
+          variant="secondary" size="lg" className="shrink-0 px-4"
         >
           중복확인
-        </button>
+        </Button>
       </div>
       {status ? (
         <p className={status === "ok" ? "text-xs text-emerald-600" : "text-xs text-red-600"}>

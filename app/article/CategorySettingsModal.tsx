@@ -14,6 +14,7 @@ import {
 } from "@/lib/actions/categories";
 import VisibilityIcon from "@/app/_components/VisibilityIcon";
 import { cn } from "@/lib/utils";
+import { Button } from "@/app/_components/ui";
 
 export default function CategorySettingsModal() {
   const router = useRouter();
@@ -234,12 +235,11 @@ export default function CategorySettingsModal() {
                 className="h-10 w-full rounded-xl border border-border bg-surface-2 px-3 text-base outline-none focus:border-primary/40 sm:text-sm"
               />
             </label>
-            <button
+            <Button
               type="submit"
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
             >
               추가
-            </button>
+            </Button>
           </form>
 
           <div className="space-y-3">
@@ -433,19 +433,17 @@ function CategoryRow({
             />
           </label>
           <div className="flex gap-2">
-            <button
+            <Button
               type="submit"
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
             >
               저장
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={onCancel}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-bold transition hover:bg-surface-2"
+              variant="secondary"
             >
               취소
-            </button>
+            </Button>
           </div>
         </form>
       ) : null}
@@ -487,13 +485,12 @@ function CategoryRow({
             >
               삭제 확정
             </button>
-            <button
-              type="button"
+            <Button
               onClick={onCancel}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-bold transition hover:bg-surface-2"
+              variant="secondary"
             >
               취소
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}

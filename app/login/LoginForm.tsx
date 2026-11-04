@@ -8,6 +8,7 @@ import { enableAdminMode } from "@/lib/adminMode";
 import { cn } from "@/lib/utils";
 import NicknameField from "@/app/_components/NicknameField";
 import { toast } from "sonner";
+import { Button } from "@/app/_components/ui";
 
 const REMEMBER_EMAIL_KEY = "myblog:remember_email";
 const SAVED_EMAIL_KEY = "myblog:saved_email";
@@ -236,14 +237,13 @@ export default function LoginForm() {
           {error ? <p className="text-sm text-red-500">{error}</p> : null}
           {notice ? <p className="text-sm text-emerald-600">{notice}</p> : null}
 
-          <button
-            type="button"
+          <Button
             onClick={submit}
             disabled={!canSubmit || isPending}
-            className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
+            size="lg" className="w-full"
           >
             {mode === "login" ? "로그인" : "계정 만들기"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

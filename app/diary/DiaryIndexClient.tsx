@@ -8,6 +8,7 @@ import PostActionMenu from "@/app/_components/PostActionMenu";
 import VisibilityIcon from "@/app/_components/VisibilityIcon";
 import { useHydrated } from "@/app/_components/useHydrated";
 import { cn } from "@/lib/utils";
+import { Button, ButtonLink } from "@/app/_components/ui";
 
 type DiaryPost = {
   id: string;
@@ -237,12 +238,12 @@ export default function DiaryIndexClient({
           </div>
           <div className="flex items-center gap-3">
             {isAdmin ? (
-              <Link
+              <ButtonLink
                 href={buildWriteHref(selectedYmd)}
-                className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+                size="sm"
               >
                 다이어리 쓰기
-              </Link>
+              </ButtonLink>
             ) : null}
           </div>
         </div>
@@ -270,8 +271,7 @@ export default function DiaryIndexClient({
                 </button>
 
                 <div className="flex items-center gap-1">
-                  <button
-                    type="button"
+                  <Button
                     onClick={() => {
                       setMonth((m) =>
                         viewMode === "day"
@@ -281,12 +281,11 @@ export default function DiaryIndexClient({
                       setPage(1);
                       setSelectedYmd(null);
                     }}
-                    className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
+                    variant="secondary" size="icon" className="size-9"
                   >
                     <ChevronLeft className="size-5" />
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
                     onClick={() => {
                       setMonth((m) =>
                         viewMode === "day"
@@ -296,10 +295,10 @@ export default function DiaryIndexClient({
                       setPage(1);
                       setSelectedYmd(null);
                     }}
-                    className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
+                    variant="secondary" size="icon" className="size-9"
                   >
                     <ChevronRight className="size-5" />
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -474,14 +473,13 @@ export default function DiaryIndexClient({
                   </p>
                   {isAdmin ? (
                     <div className="mt-4">
-                      <Link
+                      <ButtonLink
                         href={buildWriteHref(selectedYmd)}
-                        className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
                       >
                         {selectedYmd
                           ? "선택한 날짜에 다이어리 작성하기"
                           : "오늘 다이어리 작성하기"}
-                      </Link>
+                      </ButtonLink>
                     </div>
                   ) : null}
                 </div>
@@ -492,25 +490,23 @@ export default function DiaryIndexClient({
           {/* Pagination Controls */}
           {totalPages > 1 && (
             <div className="mt-8 flex justify-center gap-2">
-              <button
-                type="button"
+              <Button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 disabled:opacity-50 disabled:pointer-events-none"
+                variant="secondary" size="sm" className="px-4 font-medium disabled:pointer-events-none"
               >
                 이전
-              </button>
+              </Button>
               <span className="flex items-center px-4 text-sm font-medium text-muted">
                 {page} / {totalPages}
               </span>
-              <button
-                type="button"
+              <Button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 disabled:opacity-50 disabled:pointer-events-none"
+                variant="secondary" size="sm" className="px-4 font-medium disabled:pointer-events-none"
               >
                 다음
-              </button>
+              </Button>
             </div>
           )}
         </section>

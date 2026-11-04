@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { Button } from "@/app/_components/ui";
 
 const inputClassName =
   "h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary/60 sm:text-sm";
@@ -60,13 +61,12 @@ export default function PasswordChangeForm() {
       {mismatch ? <p className="text-xs text-red-600">비밀번호가 일치하지 않습니다.</p> : null}
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
       <div className="flex justify-end">
-        <button
+        <Button
           type="submit"
           disabled={!canSubmit}
-          className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
         >
           비밀번호 변경
-        </button>
+        </Button>
       </div>
     </form>
   );

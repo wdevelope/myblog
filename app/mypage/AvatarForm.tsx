@@ -8,9 +8,9 @@ import { toAvatarJpeg } from "@/app/mypage/toAvatarJpeg";
 import { removeAvatar, updateAvatar } from "@/lib/actions/profile";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { AVATAR_BUCKET } from "@/lib/avatar";
+import { buttonClass } from "@/app/_components/ui";
 
-const buttonClassName =
-  "inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:bg-surface-2 disabled:opacity-50";
+const buttonClassName = buttonClass({ variant: "secondary" });
 
 // 사진은 브라우저가 본인 폴더에 새 이름으로 직접 올리고(Storage 정책), 서버 액션은 그 경로를 확인해 저장한 뒤 이전 파일을 지운다.
 export default function AvatarForm({ userId, hasAvatar }: { userId: string; hasAvatar: boolean }) {

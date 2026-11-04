@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Badge, Card, CardBody } from "@/app/_components/ui";
+import { Badge, Card, CardBody, buttonClass } from "@/app/_components/ui";
 import UserAvatar from "@/app/_components/UserAvatar";
 import LogoutButton from "@/app/_components/LogoutButton";
 import MyCommentList from "@/app/mypage/MyCommentList";
@@ -40,7 +40,7 @@ export default async function MyPage() {
             <p className="truncate text-sm text-muted">{user.email}</p>
             <p className="text-xs text-muted">가입일 {formatPostDate(user.created_at, "ko")}</p>
           </div>
-          <LogoutButton className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-surface-2" />
+          <LogoutButton className={buttonClass({ variant: "secondary", className: "hover:border-primary/40" })} />
         </CardBody>
       </Card>
 

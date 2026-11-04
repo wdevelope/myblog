@@ -6,6 +6,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { disableAdminMode } from "@/lib/adminMode";
 import { useSessionUser } from "@/app/_components/useSessionUser";
 import { toast } from "sonner";
+import { buttonClass } from "@/app/_components/ui";
 
 interface AuthButtonProps {
     loginClassName?: string;
@@ -13,7 +14,7 @@ interface AuthButtonProps {
 }
 
 export default function AuthButton({
-    loginClassName = "inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110",
+    loginClassName = buttonClass(),
     logoutClassName = "h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-surface-2",
 }: AuthButtonProps) {
     const router = useRouter();

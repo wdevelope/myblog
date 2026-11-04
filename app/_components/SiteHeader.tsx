@@ -10,6 +10,7 @@ import Image from "next/image";
 import { Search } from "lucide-react";
 import { ThemeToggle } from "@/app/_components/ThemeToggle";
 import { SEARCH_QUERY_MAX_LENGTH } from "@/lib/search";
+import { buttonClass } from "@/app/_components/ui";
 
 function Brand() {
   return (
@@ -87,7 +88,7 @@ export default async function SiteHeader() {
 
           {/* 클라이언트에서 인증 상태 확인 후 로그인 버튼 또는 마이페이지 아바타 표시 */}
           <div className="hidden shrink-0 items-center gap-2 sm:flex">
-            <AccountButton loginClassName="h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 flex" />
+            <AccountButton loginClassName={buttonClass()} />
           </div>
           <MobileNav />
         </div>

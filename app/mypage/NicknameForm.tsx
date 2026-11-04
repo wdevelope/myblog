@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import NicknameField from "@/app/_components/NicknameField";
 import { notifyProfileChanged } from "@/app/_components/useMyProfile";
 import { updateNickname } from "@/lib/actions/profile";
+import { Button } from "@/app/_components/ui";
 
 export default function NicknameForm({ current }: { current: string | null }) {
   const router = useRouter();
@@ -35,13 +36,12 @@ export default function NicknameForm({ current }: { current: string | null }) {
     <form onSubmit={save} className="space-y-4">
       <NicknameField id="mypage-nickname" value={nickname} onChange={setNickname} onVerified={setVerified} />
       <div className="flex justify-end">
-        <button
+        <Button
           type="submit"
           disabled={!canSave}
-          className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
         >
           닉네임 저장
-        </button>
+        </Button>
       </div>
     </form>
   );

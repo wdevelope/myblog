@@ -49,29 +49,53 @@ export function Badge({
   return <span className={cn(base, styles[variant])}>{children}</span>;
 }
 
-export function ButtonLink({
-  href,
-  children,
-  variant = "primary",
-}: {
-  href: string;
-  children: React.ReactNode;
-  variant?: "primary" | "secondary";
-}) {
-  const base =
-    "inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-bold transition";
-  const styles =
-    variant === "primary"
-      ? "bg-primary text-white shadow-lg shadow-primary/20 hover:brightness-110"
-      : "border border-border bg-surface text-foreground hover:bg-surface-2";
+const BUTTON_VARIANTS = {
+  primary: "bg-primary text-white shadow-lg shadow-primary/20 hover:brightness-110",
+  secondary: "border border-border bg-surface text-foreground hover:bg-surface-2",
+};
 
-  return (
-    <Link href={href} className={cn(base, styles)}>
-      {children}
-    </Link>
+const BUTTON_SIZES = {
+  xs: "h-8 px-4 text-xs",
+  sm: "h-9 px-3 text-sm",
+  md: "h-10 px-4 text-sm",
+  lg: "h-11 px-5 text-sm",
+  icon: "size-10",
+};
+
+type ButtonStyle = {
+  variant?: keyof typeof BUTTON_VARIANTS;
+  size?: keyof typeof BUTTON_SIZES;
+  className?: string;
+};
+
+// 링크·라벨처럼 버튼이 아닌 요소도 같은 모양을 쓰므로 클래스를 따로 내보낸다.
+export function buttonClass({ variant = "primary", size = "md", className }: ButtonStyle = {}) {
+  return cn(
+    "inline-flex items-center justify-center rounded-xl font-bold transition disabled:opacity-50",
+    BUTTON_VARIANTS[variant],
+    BUTTON_SIZES[size],
+    className,
   );
 }
 
+export function Button({
+  variant,
+  size,
+  className,
+  type = "button",
+  ...props
+}: ButtonStyle & React.ComponentProps<"button">) {
+  return <button type={type} className={buttonClass({ variant, size, className })} {...props} />;
+}
+
+export function ButtonLink({
+  variant,
+  size,
+  className,
+  ...props
+}: ButtonStyle & React.ComponentProps<typeof Link>) {
+  return <Link className={buttonClass({ variant, size, className })} {...props} />;
+}
 
 export function Skeleton({ className = "" }: { className?: string }) {
   return (

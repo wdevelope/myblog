@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import CategorySelect from "@/app/article/CategorySelect";
 import { RememberArticleList } from "@/app/article/ArticleListMemory";
+import { ButtonLink, buttonClass } from "@/app/_components/ui";
 
 const LIMIT = 12;
 
@@ -154,12 +155,11 @@ export default async function ArticleIndex({
       <main className="lg:col-span-10 lg:col-start-3 xl:col-span-10 xl:col-start-3">
         <header className={isAdmin ? "mb-6 flex items-center justify-end" : ""}>
           {isAdmin ? (
-            <Link
+            <ButtonLink
               href="/article/write"
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
             >
               아티클 쓰기
-            </Link>
+            </ButtonLink>
           ) : null}
         </header>
 
@@ -184,8 +184,11 @@ export default async function ArticleIndex({
               <div className="mt-12 flex justify-center gap-2">
                 <Link
                   href={page > 1 ? articleListHref(selectedCategory, page - 1) : "#"}
-                  className={`px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 ${page <= 1 ? "pointer-events-none opacity-50" : ""
-                    }`}
+                  className={buttonClass({
+                    variant: "secondary",
+                    size: "sm",
+                    className: cn("px-4 font-medium", page <= 1 && "pointer-events-none opacity-50"),
+                  })}
                 >
                   이전
                 </Link>
@@ -194,8 +197,11 @@ export default async function ArticleIndex({
                 </span>
                 <Link
                   href={page < totalPages ? articleListHref(selectedCategory, page + 1) : "#"}
-                  className={`px-4 py-2 rounded-xl border border-border bg-surface text-sm font-medium transition hover:bg-surface-2 ${page >= totalPages ? "pointer-events-none opacity-50" : ""
-                    }`}
+                  className={buttonClass({
+                    variant: "secondary",
+                    size: "sm",
+                    className: cn("px-4 font-medium", page >= totalPages && "pointer-events-none opacity-50"),
+                  })}
                 >
                   다음
                 </Link>

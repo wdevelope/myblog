@@ -12,6 +12,7 @@ import { resetUserProfile } from "@/lib/actions/profile";
 import { avatarSrc } from "@/lib/avatar";
 import { GUESTBOOK_CONTENT_MAX, type GuestbookEntry } from "@/lib/guestbook";
 import { formatPostDate, userDisplayName } from "@/lib/utils";
+import { Button, ButtonLink } from "@/app/_components/ui";
 
 const LOGIN_HREF = `/login?from=${encodeURIComponent("/guestbook")}`;
 
@@ -127,14 +128,13 @@ function GuestbookComposer({
           <span className="text-xs tabular-nums text-muted">
             {content.length}/{GUESTBOOK_CONTENT_MAX}
           </span>
-          <button
-            type="button"
+          <Button
             onClick={submit}
             disabled={isPending}
-            className="inline-flex h-8 items-center justify-center rounded-xl bg-primary px-4 text-xs font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
+            size="xs"
           >
             등록
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -287,12 +287,12 @@ export default function GuestbookThread({
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border px-4 py-3">
           <p className="text-sm text-muted">방명록은 로그인 후 남길 수 있어요.</p>
-          <Link
+          <ButtonLink
             href={LOGIN_HREF}
-            className="inline-flex h-8 items-center justify-center rounded-xl bg-primary px-4 text-xs font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+            size="xs"
           >
             로그인하기
-          </Link>
+          </ButtonLink>
         </div>
       )}
 

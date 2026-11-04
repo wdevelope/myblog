@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import ArticleListItem from "@/app/article/ArticleListItem";
 import { normalizeSearchQuery, SEARCH_QUERY_MAX_LENGTH } from "@/lib/search";
 import { SEARCH_RESULT_LIMIT, searchPublicArticles } from "@/lib/server/publicSearch";
+import { Button } from "@/app/_components/ui";
 
 export const metadata: Metadata = {
   title: "검색",
@@ -34,12 +35,12 @@ export default async function SearchPage({ searchParams }: Props) {
             className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-base text-foreground placeholder:text-muted outline-none transition focus:border-primary/60 sm:text-sm"
           />
         </label>
-        <button
+        <Button
           type="submit"
-          className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-primary px-5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+          size="lg" className="shrink-0"
         >
           검색
-        </button>
+        </Button>
       </form>
 
       {query ? (

@@ -14,6 +14,7 @@ import {
   createComment as createCommentAction,
   deleteComment as deleteCommentAction,
 } from "@/lib/actions/comments";
+import { Button, ButtonLink } from "@/app/_components/ui";
 
 function displayName(comment: Comment) {
   return userDisplayName(comment.authorId, comment.authorIsAdmin, comment.authorNickname);
@@ -46,8 +47,7 @@ function CommentComposer({
       />
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
       <div className="flex items-center justify-end">
-        <button
-          type="button"
+        <Button
           disabled={disabled || isPending}
           onClick={() => {
             const text = content.trim();
@@ -65,10 +65,10 @@ function CommentComposer({
                 })
             );
           }}
-          className="inline-flex h-8 items-center justify-center rounded-xl bg-primary px-4 text-xs font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
+          size="xs"
         >
           {submitLabel}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -184,12 +184,12 @@ export default function CommentsThread({
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border px-4 py-3">
           <p className="text-xs text-muted">댓글은 로그인 후 작성할 수 있어요.</p>
-          <Link
+          <ButtonLink
             href={`/login?from=${encodeURIComponent(`/article/${postSlug}`)}`}
-            className="inline-flex h-8 items-center justify-center rounded-xl bg-primary px-4 text-xs font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+            size="xs"
           >
             로그인하기
-          </Link>
+          </ButtonLink>
         </div>
       )}
 

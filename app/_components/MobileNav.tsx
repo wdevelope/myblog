@@ -8,6 +8,7 @@ import LogoutButton from "@/app/_components/LogoutButton";
 import { useSessionUser } from "@/app/_components/useSessionUser";
 import { SEARCH_QUERY_MAX_LENGTH } from "@/lib/search";
 import { cn } from "@/lib/utils";
+import { ButtonLink, buttonClass } from "@/app/_components/ui";
 
 export default function MobileNav() {
   const pathname = usePathname();
@@ -43,7 +44,7 @@ export default function MobileNav() {
       <button
         type="button"
         onClick={open}
-        className="inline-flex size-10 items-center justify-center rounded-xl border border-border bg-surface text-foreground md:hidden"
+        className={buttonClass({ variant: "secondary", size: "icon", className: "md:hidden" })}
         aria-label="메뉴 열기"
       >
         <Menu className="size-5" aria-hidden />
@@ -62,7 +63,7 @@ export default function MobileNav() {
             <button
               type="button"
               onClick={close}
-              className="inline-flex size-10 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition hover:bg-surface-2"
+              className={buttonClass({ variant: "secondary", size: "icon" })}
               aria-label="메뉴 닫기"
             >
               <X className="size-5" aria-hidden />
@@ -112,23 +113,23 @@ export default function MobileNav() {
           <div className="space-y-2 border-t border-border p-4">
             {loggedIn ? (
               <>
-                <Link
+                <ButtonLink
                   href="/mypage"
-                  className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-surface text-sm font-bold text-foreground transition hover:bg-surface-2"
+                  variant="secondary" size="lg" className="w-full"
                 >
                   마이페이지
-                </Link>
-                <LogoutButton className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-surface text-sm font-bold text-foreground transition hover:bg-surface-2">
+                </ButtonLink>
+                <LogoutButton className={buttonClass({ variant: "secondary", size: "lg", className: "w-full" })}>
                   로그아웃
                 </LogoutButton>
               </>
             ) : (
-              <Link
+              <ButtonLink
                 href="/login"
-                className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:brightness-110"
+                size="lg" className="w-full"
               >
                 로그인
-              </Link>
+              </ButtonLink>
             )}
           </div>
         </div>
