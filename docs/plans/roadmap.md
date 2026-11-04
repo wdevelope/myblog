@@ -14,7 +14,7 @@
 - [x] 4. 기반 정리와 테스트 안전망 — `getPostForRoute`·`loadPostForEdit`, `revalidatePublicPosts`, `formatPostDate`(KST)·`coverKeyOf`, `postHref`·`SITE_URL`, 로딩 route group, 행 매핑 분리(2026-10-22, 테스트 파일 15개·82개)
 - [x] 5. ISR 복구와 일시정지 방지 — 공개 화면 전부 정적·ISR(`next start`에서 HIT, TTFB 2~5ms), 관리자는 draft mode, `/article` 경로 기반, 댓글 공개, 일시정지 방지 Cron(2026-10-22). 배포 뒤 확인과 `CRON_SECRET` 설정이 남았다(5절)
 - [ ] 6. DB 타입과 쓰기 액션 정리
-- [x] 7. UI 통일과 큰 컴포넌트 분할 — 아이콘·버튼·색 토큰·내비 통일, `PostEditor`·`DiaryIndexClient`·`CommentsThread` 분할, framer-motion·react-icons 제거, 다크 모드·접근성, 발행 중복 저장과 다이어리 시간대 수정(2026-11-05, 7절). 운영 환경값으로 빌드 끝까지 돌리기와 실제 발행·삭제 확인이 남았다
+- [x] 7. UI 통일과 큰 컴포넌트 분할 — 아이콘·버튼·색 토큰·내비 통일, `PostEditor`·`DiaryIndexClient`·`CommentsThread` 분할, framer-motion·react-icons 제거, 다크 모드·접근성, 발행 중복 저장과 다이어리 시간대 수정(2026-11-05, 7절). 실제 발행·삭제 확인이 남았다
 - [x] 8. 에디터 교체와 본문 보안 (CKEditor → 마크다운) — 마크다운 렌더러·원문 편집 에디터, 기존 글 135개 변환, 비공개 이미지 `private, no-store`·SVG 차단, CKEditor 제거(2026-10-22)
 - [x] 9. 요청 왕복 줄이기 — `proxy.ts`를 `getClaims()`로(로그인 요청의 proxy 27~49ms → 1.5~3ms), 상세 댓글 조회의 글 재조회 제거. 아티클 목록 병렬화는 5단계로 넘김(2026-10-22, 9절)
 - [x] 10. 관리자 판정 단일화와 `public.users` 정리 — RLS `is_admin()`·`getViewer` 모두 `app_metadata.is_admin`, `public.users` 삭제(운영 DB 적용, 2026-10-22, 10절)
@@ -178,8 +178,8 @@
   - 단색 버튼 글자는 `text-white` 대신 `text-background`다. 어두운 모드 토큰이 밝아 흰 글자의 대비가 나오지 않는다.
   - 다이어리 탭 저장 키를 `diary_view` 하나로 합쳤다. 주소에 달이 없을 때만 이 값을 읽는다.
 - 브라우저 확인(개발 서버, 패널에 남아 있던 관리자 세션): 데스크톱 1280px·모바일 375px, 밝은·어두운 모드에서 다이어리 달력·날짜 선택(주소만 바뀌고 서버 요청 없음), 글 설정 패널 열기·ESC·배경 클릭, 피드 좋아요·저장 문구, 모바일 메뉴 `aria-current`, 카테고리 창, 마이페이지, 아티클 상세, 방명록을 봤고 콘솔 오류는 없다. 임시 화면은 쓰지 않았다. 쿠키 없는 요청으로 주요 경로 응답과 비공개 카테고리·관리 버튼이 없는 것을 확인했다.
+- 빌드: `main` 폴더에서 `npm run build` 통과(146쪽 생성). `/`·`/article`·`/diary`·`/feed`·`/guestbook`이 정적으로, 글 상세가 SSG로 남아 있다. 환경값이 없는 worktree에서는 페이지 데이터 수집에서 멈춘다.
 - 남은 확인
-  - `npm run build`: 컴파일과 타입 검사는 통과했고, 이 worktree에 운영 환경값이 없어 페이지 데이터 수집에서 `Missing env var: NEXT_PUBLIC_SUPABASE_URL`로 멈췄다.
   - 실제 발행·삭제는 개발 DB에도 누르지 않았다. 발행 버튼 막기는 컴포넌트 테스트로만 확인했다.
   - 움직임 줄이기 설정의 피드 저장 문구, 로그아웃 상태의 로그인 화면은 브라우저로 보지 못했다.
 
