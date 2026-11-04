@@ -1,5 +1,5 @@
 import type { Metadata, ResolvingMetadata } from "next";
-import { getPostForRoute, getCommentsDirectly } from "@/lib/server/posts";
+import { getArticleWithCommentsDirectly } from "@/lib/server/posts";
 import { getPublicComments, getPublicPost, getPublicPosts } from "@/lib/server/publicPosts";
 import PostImages from "@/app/_components/PostImages";
 import { ArticleListBackButton } from "@/app/article/ArticleListMemory";
@@ -57,12 +57,11 @@ export default async function BlogPostPage({ params }: Props) {
   const { isAdmin } = await getPreviewViewer();
 
   // 관리자는 draft mode에서 비공개 글과 그 댓글까지 본다. 방문자는 공개 글·댓글 캐시를 본다.
-  const post = isAdmin ? await getPostForRoute("blog", slug) : await getPublicPost("blog", slug);
+  const adminArticle = isAdmin ? await getArticleWithCommentsDirectly(slug) : null;
+  const post = isAdmin ? adminArticle?.post : await getPublicPost("blog", slug);
   if (!post) notFound();
 
-  const comments = isAdmin
-    ? await getCommentsDirectly(post)
-    : await getPublicComments("blog", post.id);
+  const comments = adminArticle?.comments ?? (await getPublicComments("blog", post.id));
 
   return (
     <article className="mx-auto max-w-4xl space-y-5">

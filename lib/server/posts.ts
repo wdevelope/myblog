@@ -126,34 +126,52 @@ export async function loadPostForEdit(type: PostType, slug: string): Promise<Pos
     return post;
 }
 
-// 호출부가 getPostForRoute로 이미 읽은 글을 넘긴다. 글을 다시 읽으면 상세마다 DB 왕복이 하나 더 생긴다.
-export async function getCommentsDirectly(post: Pick<Post, "id" | "type" | "visibility">): Promise<Comment[]> {
+type ArticleCommentRow = {
+    id: string;
+    post_id: string;
+    parent_id: string | null;
+    author_id: string | null;
+    author_is_admin: boolean;
+    content: string;
+    created_at: string;
+    author: { nickname: string | null; avatar_path: string | null } | null;
+};
+
+// 관리자 상세용. 글을 읽은 뒤 댓글을 또 기다리면 DB 왕복이 하나 늘어 한 요청으로 함께 읽는다.
+// 없는 글, 다른 타입 글, 볼 권한이 없는 글은 null이다. 호출부는 notFound()로 끝낸다.
+export async function getArticleWithCommentsDirectly(
+    slug: string
+): Promise<{ post: Post; comments: Comment[] } | null> {
     const { isAdmin } = await getViewer();
-    if (post.type === "diary") return [];
-    if (post.visibility === "private" && !isAdmin) return [];
-
     const supabase = await createSupabaseServerClient();
-    const { data: comments, error } = await supabase
-        .from("comments")
-        .select("id,post_id,parent_id,author_id,author_is_admin,content,created_at,author:profiles(nickname,avatar_path)")
-        .eq("post_id", post.id)
-        .order("created_at", { ascending: true });
 
+    let query = supabase
+        .from("posts")
+        .select(
+            "*, comment_list:comments(id,post_id,parent_id,author_id,author_is_admin,content,created_at,author:profiles(nickname,avatar_path))"
+        )
+        .eq("slug", slug)
+        .eq("type", "blog")
+        .order("created_at", { ascending: true, referencedTable: "comment_list" });
+
+    if (!isAdmin) query = query.eq("visibility", "public");
+
+    const { data, error } = await query.maybeSingle();
     if (error) throw new Error(`DB Error: ${error.message}`);
+    if (!data) return null;
 
-    return (comments ?? []).map((c) => {
-        // Database 타입이 없어(6단계) 다대일 관계도 배열로 추론되므로 두 모양을 모두 받는다.
-        const author = Array.isArray(c.author) ? c.author[0] : c.author;
-        return {
-            id: c.id,
-            postId: c.post_id,
-            parentId: c.parent_id,
-            authorId: c.author_id,
-            authorIsAdmin: c.author_is_admin,
-            authorNickname: author?.nickname ?? null,
-            authorAvatarPath: author?.avatar_path ?? null,
-            content: c.content,
-            createdAt: c.created_at,
-        };
-    });
+    const { comment_list, ...row } = data as PostRow & { comment_list: ArticleCommentRow[] };
+    const comments = comment_list.map((c) => ({
+        id: c.id,
+        postId: c.post_id,
+        parentId: c.parent_id,
+        authorId: c.author_id,
+        authorIsAdmin: c.author_is_admin,
+        authorNickname: c.author?.nickname ?? null,
+        authorAvatarPath: c.author?.avatar_path ?? null,
+        content: c.content,
+        createdAt: c.created_at,
+    }));
+
+    return { post: { ...mapPost(row), commentCount: comments.length }, comments };
 }

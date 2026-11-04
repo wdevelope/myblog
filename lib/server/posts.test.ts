@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getArticleListDirectly,
-  getCommentsDirectly,
+  getArticleWithCommentsDirectly,
   getDiaryIndexDirectly,
   getPostForRoute,
   loadPostForEdit,
@@ -306,7 +306,7 @@ describe("getArticleListDirectly", () => {
   });
 });
 
-describe("getCommentsDirectly", () => {
+describe("getArticleWithCommentsDirectly", () => {
   const commentRow = {
     id: "comment-1",
     post_id: "post-1",
@@ -315,22 +315,32 @@ describe("getCommentsDirectly", () => {
     author_is_admin: true,
     content: "댓글",
     created_at: "2026-01-02T00:00:00Z",
-    // Database 타입이 없어 supabase-js가 다대일 임베드도 배열로 추론한다. 배열로 와도 첫 행을 쓴다.
-    author: [{ nickname: "닉네임", avatar_path: null }],
+    author: { nickname: "닉네임", avatar_path: null },
   };
 
-  it("넘겨받은 글로 판정하고 글을 다시 읽지 않은 채 댓글만 한 번 조회한다", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
-    const posts = createQuery({ data: null, error: null });
-    const comments = createQuery({ data: [commentRow], error: null });
+  it("글과 댓글을 한 번의 조회로 읽고 댓글 표를 따로 읽지 않는다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
+    const posts = createQuery({
+      data: { ...privatePostRow, comment_list: [commentRow] },
+      error: null,
+    });
+    const comments = createQuery({ data: [], error: null });
     mocks.tables.posts = posts;
     mocks.tables.comments = comments;
 
-    const result = await getCommentsDirectly({ id: "post-1", type: "blog", visibility: "public" });
+    const result = await getArticleWithCommentsDirectly("secret");
 
-    expect(posts.calls).toEqual([]);
-    expect(comments.calls).toContainEqual(["eq", "post_id", "post-1"]);
-    expect(result).toEqual([
+    expect(comments.calls).toEqual([]);
+    expect(posts.calls).toContainEqual(["eq", "slug", "secret"]);
+    expect(posts.calls).toContainEqual(["eq", "type", "blog"]);
+    expect(posts.calls).not.toContainEqual(["eq", "visibility", "public"]);
+    expect(posts.calls).toContainEqual([
+      "order",
+      "created_at",
+      { ascending: true, referencedTable: "comment_list" },
+    ]);
+    expect(result?.post).toMatchObject({ slug: "secret", visibility: "private", commentCount: 1 });
+    expect(result?.comments).toEqual([
       {
         id: "comment-1",
         postId: "post-1",
@@ -345,35 +355,33 @@ describe("getCommentsDirectly", () => {
     ]);
   });
 
-  it("다이어리 글이면 댓글을 조회하지 않고 빈 배열을 돌려준다", async () => {
+  it("댓글이 없는 글은 빈 목록을 돌려준다", async () => {
     mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
-    const comments = createQuery({ data: [commentRow], error: null });
-    mocks.tables.comments = comments;
+    mocks.tables.posts = createQuery({
+      data: { ...privatePostRow, comment_list: [] },
+      error: null,
+    });
 
-    await expect(
-      getCommentsDirectly({ id: "post-1", type: "diary", visibility: "public" })
-    ).resolves.toEqual([]);
-    expect(comments.calls).toEqual([]);
+    const result = await getArticleWithCommentsDirectly("secret");
+
+    expect(result?.comments).toEqual([]);
+    expect(result?.post.commentCount).toBe(0);
   });
 
-  it("비관리자에게 비공개 글의 댓글은 조회하지 않는다", async () => {
+  it("없는 글이나 다른 타입 글이면 null을 돌려준다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
+    mocks.tables.posts = createQuery({ data: null, error: null });
+
+    await expect(getArticleWithCommentsDirectly("missing")).resolves.toBeNull();
+  });
+
+  it("관리자가 아니면 공개 글만 조회한다", async () => {
     mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
-    const comments = createQuery({ data: [commentRow], error: null });
-    mocks.tables.comments = comments;
+    const posts = createQuery({ data: null, error: null });
+    mocks.tables.posts = posts;
 
-    await expect(
-      getCommentsDirectly({ id: "post-1", type: "blog", visibility: "private" })
-    ).resolves.toEqual([]);
-    expect(comments.calls).toEqual([]);
-  });
+    await getArticleWithCommentsDirectly("secret");
 
-  it("관리자는 비공개 글의 댓글도 조회한다", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
-    const comments = createQuery({ data: [commentRow], error: null });
-    mocks.tables.comments = comments;
-
-    const result = await getCommentsDirectly({ id: "post-1", type: "blog", visibility: "private" });
-
-    expect(result).toHaveLength(1);
+    expect(posts.calls).toContainEqual(["eq", "visibility", "public"]);
   });
 });
