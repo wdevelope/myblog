@@ -146,7 +146,7 @@ export default function PostEditor({
     [type, visibility]
   );
 
-  async function submit() {
+  function submit() {
     setError(null);
     const trimmedContent = content.trim();
 
@@ -160,35 +160,38 @@ export default function PostEditor({
     if (type !== "feed" && !trimmedTitle)
       return setError("제목을 입력해주세요.");
 
-    const result = await createPost({
-      id: initial?.id,
-      slug: initial?.slug,
-      type,
-      visibility: type === "feed" ? "public" : visibility,
-      title: trimmedTitle,
-      content: trimmedContent,
-      categorySlug: type === "blog" ? categorySlug.trim() : null,
-      imageKeys,
-      thumbnailImageKey:
-        type === "blog" ? thumbnailImageKey.trim() || null : null,
-      createdAtYmd:
-        type === "diary" && !initial?.id && createdAtYmd
-          ? createdAtYmd
-          : undefined,
-    });
+    // 저장까지 transition에 넣어야 isPending이 켜져 발행 버튼이 막힌다. 막히지 않으면 두 번 눌러 새 글이 두 개 생긴다.
+    startTransition(async () => {
+      const result = await createPost({
+        id: initial?.id,
+        slug: initial?.slug,
+        type,
+        visibility: type === "feed" ? "public" : visibility,
+        title: trimmedTitle,
+        content: trimmedContent,
+        categorySlug: type === "blog" ? categorySlug.trim() : null,
+        imageKeys,
+        thumbnailImageKey:
+          type === "blog" ? thumbnailImageKey.trim() || null : null,
+        createdAtYmd:
+          type === "diary" && !initial?.id && createdAtYmd
+            ? createdAtYmd
+            : undefined,
+      }).catch(() => null);
 
-    if (!result.success) {
-      setError(result.error ?? "글 저장에 실패했어요.");
-      return;
-    }
+      if (!result?.success) {
+        setError(result?.error ?? "글 저장에 실패했어요.");
+        return;
+      }
 
-    clearDraft();
-    // 관리자 화면이 꺼진 채 비공개 글을 저장하면 상세가 404(다이어리는 안내 화면)라, 켜고 이동한다.
-    // 켜기에 실패해도 저장은 끝났으므로 그대로 이동한다.
-    await enableAdminMode();
-    startTransition(() => {
-      router.push(postHref(result.data.type, result.data.slug));
-      router.refresh();
+      clearDraft();
+      // 관리자 화면이 꺼진 채 비공개 글을 저장하면 상세가 404(다이어리는 안내 화면)라, 켜고 이동한다.
+      // 켜기에 실패해도 저장은 끝났으므로 그대로 이동한다.
+      await enableAdminMode();
+      startTransition(() => {
+        router.push(postHref(result.data.type, result.data.slug));
+        router.refresh();
+      });
     });
   }
 

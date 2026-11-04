@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { act } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import PostEditor from "@/app/_components/PostEditor";
+import { createPost } from "@/lib/actions/posts";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), back: vi.fn() }),
@@ -133,5 +134,65 @@ describe("글 에디터 기본 제목", () => {
     });
 
     expect(JSON.parse(localStorage.getItem(DIARY_DRAFT_KEY) ?? "{}").title).toBe("봄날");
+  });
+});
+
+describe("글 에디터 발행", () => {
+  const INITIAL = {
+    id: "post-1",
+    slug: "post-1",
+    title: "제목",
+    content: "본문",
+    visibility: "private" as const,
+  };
+
+  function openPanelAndGetPublishButton() {
+    render(<PostEditor type="diary" initial={INITIAL} />);
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+    return screen.getByRole("button", { name: "발행하기" }) as HTMLButtonElement;
+  }
+
+  afterEach(() => {
+    vi.mocked(createPost).mockReset();
+  });
+
+  it("저장을 기다리는 동안 발행 버튼을 막아 두 번 눌러도 한 번만 저장한다", async () => {
+    const save = Promise.withResolvers<Awaited<ReturnType<typeof createPost>>>();
+    vi.mocked(createPost).mockReturnValue(save.promise);
+    const publish = openPanelAndGetPublishButton();
+
+    fireEvent.click(publish);
+    await act(async () => {});
+    fireEvent.click(publish);
+
+    expect(createPost).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "발행 중..." })).toHaveProperty("disabled", true);
+
+    // React는 진행 중인 비동기 transition을 전역으로 묶어, 끝내지 않으면 다음 테스트의 isPending도 풀리지 않는다.
+    await act(async () => save.resolve({ success: false, error: "끝" }));
+  });
+
+  it("저장이 실패하면 이유를 보이고 다시 누를 수 있다", async () => {
+    vi.mocked(createPost).mockResolvedValue({ success: false, error: "저장 실패 이유" });
+    const publish = openPanelAndGetPublishButton();
+
+    await act(async () => {
+      fireEvent.click(publish);
+    });
+
+    expect(screen.getByText("저장 실패 이유")).toBeTruthy();
+    await waitFor(() => expect(publish.disabled).toBe(false));
+  });
+
+  it("저장 요청이 끊겨도 화면이 깨지지 않고 오류를 보인다", async () => {
+    vi.mocked(createPost).mockRejectedValue(new Error("network"));
+    const publish = openPanelAndGetPublishButton();
+
+    await act(async () => {
+      fireEvent.click(publish);
+    });
+
+    expect(screen.getByText("글 저장에 실패했어요.")).toBeTruthy();
+    await waitFor(() => expect(publish.disabled).toBe(false));
   });
 });
