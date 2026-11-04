@@ -1,6 +1,6 @@
 import { Skeleton } from "@/app/_components/ui";
 
-export default function DiaryLoading() {
+export default function DiaryListSkeleton() {
     return (
         <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
             {/* Sidebar/Calendar Skeleton */}

@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { isNavigationClick } from "@/lib/linkNavigation";
 
-// 관리자 화면에서는 상세가 요청마다 렌더링되는데, 상세에는 loading.tsx가 없어(두면 방문자 정적 이동에도
-// 스켈레톤이 뜬다) 응답을 기다리는 동안 화면이 그대로다. 그래서 링크 클릭부터 주소가 바뀔 때까지
-// 맨 위에 얇은 막대를 띄운다. SiteHeader가 관리자 화면일 때만 그린다.
+// 관리자 화면에서는 상세·목록이 요청마다 렌더링되는데, 여기에는 loading.tsx를 두지 않아 응답을 기다리는 동안
+// 화면이 그대로다. 두면 방문자 정적 이동에도 스켈레톤이 뜨고, React가 스켈레톤을 최소 300ms 남겨 도착한 내용이
+// 늦게 보인다(로드맵 23절). 그래서 링크 클릭부터 주소가 바뀔 때까지 맨 위에 얇은 막대를 띄운다.
+// SiteHeader가 관리자 화면일 때만 그린다.
 export default function AdminNavProgress() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
