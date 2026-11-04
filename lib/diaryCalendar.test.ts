@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { addMonths, buildCalendarGrid, isInMonth, kstDate, kstYmd } from "@/lib/diaryCalendar";
+import {
+  addMonths,
+  buildCalendarGrid,
+  diaryViewQuery,
+  isInMonth,
+  kstDate,
+  kstYmd,
+  parseDiaryView,
+} from "@/lib/diaryCalendar";
 
 const ORIGINAL_TZ = process.env.TZ;
 
@@ -66,5 +74,41 @@ describe("buildCalendarGrid", () => {
     process.env.TZ = "America/Los_Angeles";
 
     expect(buildCalendarGrid({ year: 2026, month: 3 })).toEqual(auckland);
+  });
+});
+
+describe("parseDiaryView", () => {
+  it("연·월·날짜를 읽는다", () => {
+    expect(parseDiaryView(new URLSearchParams("year=2026&month=3&date=2026-03-05"))).toEqual({
+      month: { year: 2026, month: 3 },
+      selectedYmd: "2026-03-05",
+    });
+  });
+
+  it("연·월이 없거나 범위를 벗어나면 없는 것으로 본다", () => {
+    expect(parseDiaryView(new URLSearchParams(""))).toBeNull();
+    expect(parseDiaryView(new URLSearchParams("year=2026"))).toBeNull();
+    expect(parseDiaryView(new URLSearchParams("year=2026&month=13"))).toBeNull();
+    expect(parseDiaryView(new URLSearchParams("year=abc&month=3"))).toBeNull();
+  });
+
+  it("날짜 형식이 틀리면 날짜만 버린다", () => {
+    expect(parseDiaryView(new URLSearchParams("year=2026&month=3&date=어제"))).toEqual({
+      month: { year: 2026, month: 3 },
+      selectedYmd: null,
+    });
+  });
+});
+
+describe("diaryViewQuery", () => {
+  it("읽은 값을 다시 주소로 만든다", () => {
+    const view = { month: { year: 2026, month: 3 }, selectedYmd: "2026-03-05" };
+
+    expect(diaryViewQuery(view)).toBe("year=2026&month=3&date=2026-03-05");
+    expect(parseDiaryView(new URLSearchParams(diaryViewQuery(view)))).toEqual(view);
+  });
+
+  it("날짜를 고르지 않았으면 연·월만 쓴다", () => {
+    expect(diaryViewQuery({ month: { year: 2026, month: 3 }, selectedYmd: null })).toBe("year=2026&month=3");
   });
 });

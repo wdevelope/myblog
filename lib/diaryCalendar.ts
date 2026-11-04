@@ -51,3 +51,25 @@ export function buildCalendarGrid({ year, month }: YearMonth) {
     };
   });
 }
+
+export type DiaryView = { month: YearMonth; selectedYmd: string | null };
+
+// 주소의 year·month·date를 읽는다. 맞지 않는 값은 주소에 없는 것으로 본다.
+export function parseDiaryView(params: URLSearchParams): DiaryView | null {
+  const year = Number(params.get("year"));
+  const month = Number(params.get("month"));
+  if (!Number.isInteger(year) || year < 1 || !Number.isInteger(month) || month < 1 || month > 12) {
+    return null;
+  }
+  const date = params.get("date");
+  return {
+    month: { year, month },
+    selectedYmd: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
+  };
+}
+
+export function diaryViewQuery({ month, selectedYmd }: DiaryView) {
+  const params = new URLSearchParams({ year: String(month.year), month: String(month.month) });
+  if (selectedYmd) params.set("date", selectedYmd);
+  return params.toString();
+}

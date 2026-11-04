@@ -1,14 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import { ChevronRight, CloudSun } from "lucide-react";
 import DiaryCalendar from "@/app/diary/DiaryCalendar";
 import DiaryList, { type DiaryPost } from "@/app/diary/DiaryList";
-import { useHydrated } from "@/app/_components/useHydrated";
 import { ButtonLink } from "@/app/_components/ui";
-import { isInMonth, kstDate, kstYmd, type YearMonth } from "@/lib/diaryCalendar";
+import {
+  diaryViewQuery,
+  isInMonth,
+  kstDate,
+  kstYmd,
+  parseDiaryView,
+  type DiaryView,
+} from "@/lib/diaryCalendar";
+
+const STORED_VIEW_KEY = "diary_view";
+
+const subscribe = () => () => {};
+
+function readStoredView() {
+  try {
+    return sessionStorage.getItem(STORED_VIEW_KEY);
+  } catch {
+    return null;
+  }
+}
 
 function buildWriteHref(selectedYmd: string | null) {
   if (!selectedYmd) return "/diary/write";
@@ -24,100 +42,35 @@ export default function DiaryIndexClient({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const storedView = useSyncExternalStore(subscribe, readStoredView, () => null);
+  const [today] = useState(() => kstDate(new Date()));
+  const [page, setPage] = useState(1);
 
-  const [month, setMonth] = useState<YearMonth>(() => {
-    const today = kstDate(new Date());
-    return { year: today.year, month: today.month };
-  });
-  const [selectedYmd, setSelectedYmd] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const hydrated = useHydrated();
+  // 보는 달과 날짜는 주소가 정한다. 주소에 없으면 이 탭에서 마지막으로 본 달, 그것도 없으면 이번 달이다.
+  const { month, selectedYmd } = parseDiaryView(searchParams) ??
+    parseDiaryView(new URLSearchParams(storedView ?? "")) ?? {
+      month: { year: today.year, month: today.month },
+      selectedYmd: null,
+    };
 
-  // sessionStorage는 브라우저에만 있어 서버 HTML과 맞추려고 hydration 뒤의 첫 렌더에서 한 번만 읽는다.
-  // effect에서 읽으면 렌더가 한 번 더 연쇄되므로 렌더 중에 state를 맞춘다.
-  if (hydrated && !isInitialized) {
-    setIsInitialized(true);
-
-    // 1. Check URL Params
-    const urlYear = searchParams.get("year");
-    const urlMonth = searchParams.get("month");
-    const urlDate = searchParams.get("date");
-
-    if (urlYear && urlMonth) {
-      const m = parseInt(urlMonth, 10);
-      const y = parseInt(urlYear, 10);
-      if (!isNaN(m) && !isNaN(y)) {
-        setMonth({ year: y, month: m });
-      }
-      if (urlDate) {
-        setSelectedYmd(urlDate);
-      }
-    } else {
-      // 2. Check LocalStorage
-      try {
-        const storedYm = sessionStorage.getItem("diary_view_ym"); // "YYYY-MM"
-        const storedDate = sessionStorage.getItem("diary_selected_date"); // "YYYY-MM-DD" or null
-
-        if (storedYm) {
-          const [y, m] = storedYm.split("-").map(Number);
-          if (!isNaN(y) && !isNaN(m)) {
-            setMonth({ year: y, month: m });
-          }
-        }
-        if (storedDate) {
-          setSelectedYmd(storedDate);
-        }
-      } catch {
-        // Ignore errors
-      }
+  function showView(view: DiaryView) {
+    const query = diaryViewQuery(view);
+    // router.replace는 같은 페이지라도 서버에 다시 요청한다(관리자면 다이어리 전체를 다시 읽는다).
+    // 주소만 바꾸면 되므로 history를 직접 쓴다. Next가 useSearchParams와 동기화한다.
+    window.history.replaceState(null, "", `${pathname}?${query}`);
+    try {
+      sessionStorage.setItem(STORED_VIEW_KEY, query);
+    } catch {
+      // 저장소를 막아도 주소로 동작한다.
     }
+    setPage(1);
   }
-
-  // Sync state to URL and LocalStorage
-  useEffect(() => {
-    if (!isInitialized) return;
-
-    // Save to SessionStorage
-    const ymStr = `${month.year}-${String(month.month).padStart(2, "0")}`;
-    sessionStorage.setItem("diary_view_ym", ymStr);
-    if (selectedYmd) {
-      sessionStorage.setItem("diary_selected_date", selectedYmd);
-    } else {
-      sessionStorage.removeItem("diary_selected_date");
-    }
-
-    // Update URL (Shallow) if changed
-    const currentParams = new URLSearchParams(searchParams.toString());
-    const newYear = month.year.toString();
-    const newMonth = month.month.toString();
-
-    const needsUpdate =
-      currentParams.get("year") !== newYear ||
-      currentParams.get("month") !== newMonth ||
-      currentParams.get("date") !== (selectedYmd ?? null);
-
-    if (needsUpdate) {
-      const params = new URLSearchParams(currentParams);
-      params.set("year", newYear);
-      params.set("month", newMonth);
-      if (selectedYmd) {
-        params.set("date", selectedYmd);
-      } else {
-        params.delete("date");
-      }
-      // router.replace는 같은 페이지라도 서버에 다시 요청한다(관리자면 다이어리 전체를 다시 읽는다).
-      // 주소만 바꾸면 되므로 history를 직접 쓴다. Next가 useSearchParams와 동기화한다.
-      window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
-    }
-  }, [month, selectedYmd, isInitialized, pathname, searchParams]);
 
   const entryDays = useMemo(() => {
     const set = new Set<string>();
     for (const p of posts) set.add(kstYmd(p.createdAt));
     return set;
   }, [posts]);
-
-  const [page, setPage] = useState(1);
 
   const visiblePosts = useMemo(() => {
     const filtered = posts.filter((p) => {
@@ -128,17 +81,6 @@ export default function DiaryIndexClient({
     return [...filtered].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [posts, selectedYmd, month]);
 
-  function changeMonth(next: YearMonth) {
-    setMonth(next);
-    setPage(1);
-    setSelectedYmd(null);
-  }
-
-  function toggleDay(ymd: string) {
-    setSelectedYmd((prev) => (prev === ymd ? null : ymd));
-    setPage(1);
-  }
-
   return (
     <div className="space-y-6">
       {/* Header Row - Moved outside to align grid items at the top */}
@@ -148,10 +90,7 @@ export default function DiaryIndexClient({
             {selectedYmd ? (
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedYmd(null);
-                  setPage(1);
-                }}
+                onClick={() => showView({ month, selectedYmd: null })}
                 className="text-sm font-semibold text-primary hover:opacity-80"
               >
                 전체 보기
@@ -178,8 +117,8 @@ export default function DiaryIndexClient({
               month={month}
               selectedYmd={selectedYmd}
               entryDays={entryDays}
-              onMonthChange={changeMonth}
-              onToggleDay={toggleDay}
+              onMonthChange={(next) => showView({ month: next, selectedYmd: null })}
+              onToggleDay={(ymd) => showView({ month, selectedYmd: selectedYmd === ymd ? null : ymd })}
             />
 
             {isAdmin ? (
