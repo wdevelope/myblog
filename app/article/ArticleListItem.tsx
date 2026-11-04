@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { MessageCircleMore } from "lucide-react";
-import { Skeleton } from "@/app/_components/ui";
 import VisibilityIcon from "@/app/_components/VisibilityIcon";
 import type { Post } from "@/lib/types";
 import { toExcerpt } from "@/lib/markdown";
@@ -68,20 +67,5 @@ export default function ArticleListItem({
         ) : null}
       </Link>
     </li>
-  );
-}
-
-export function ArticleListItemSkeleton() {
-  return (
-    <div className="flex items-center gap-4 py-5 sm:gap-6 sm:py-6">
-      <div className="min-w-0 flex-1 space-y-2">
-        <Skeleton className="h-4 w-16" />
-        <Skeleton className="h-6 w-3/4" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-2/3" />
-        <Skeleton className="h-3 w-20" />
-      </div>
-      <Skeleton className="aspect-square w-24 shrink-0 rounded-xl sm:aspect-4/3 sm:w-40" />
-    </div>
   );
 }

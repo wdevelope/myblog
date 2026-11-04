@@ -5,8 +5,6 @@ import { ButtonLink, Card, CardBody } from "@/app/_components/ui";
 import AuthButton from "@/app/_components/AuthButton";
 import ArticleListItem from "@/app/article/ArticleListItem";
 
-import { Suspense } from "react";
-import LatestArticlesSkeleton from "@/app/(home)/LatestArticlesSkeleton";
 import type { Metadata, ResolvingMetadata } from "next";
 import { RSS_ALTERNATE_TYPES, SITE_OPEN_GRAPH } from "@/lib/constants";
 
@@ -23,7 +21,7 @@ export async function generateMetadata(_: unknown, parent: ResolvingMetadata): P
 export default function Home() {
   return (
     <div className="space-y-10">
-      {/* Hero Section: 데이터 지연 없이 즉시 렌더링되는 영역 */}
+      {/* Hero Section */}
       <section className="grid items-center gap-8 md:grid-cols-2">
         <div className="space-y-5">
           <h1 className="text-4xl font-black leading-tight tracking-tight md:text-5xl">
@@ -55,10 +53,8 @@ export default function Home() {
         </Card>
       </section>
 
-      {/* Latest Articles Section: 데이터 로딩 중 Suspense 처리 */}
-      <Suspense fallback={<LatestArticlesSkeleton />}>
-        <LatestArticlesSection />
-      </Suspense>
+      {/* Suspense로 감싸면 관리자 이동에 스켈레톤이 뜨고 React가 최소 300ms 남겨 내용이 늦게 보인다(로드맵 23절). */}
+      <LatestArticlesSection />
     </div>
   );
 }
