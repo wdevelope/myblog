@@ -133,6 +133,33 @@ export default function MarkdownEditor({
   // 작성 칸은 처음 값으로 한 번 만들고, 그 뒤 바깥 값은 아래 동기화 효과가 반영한다.
   const [initialValue] = useState(value);
 
+  async function uploadImages(files: File[]) {
+    const view = viewRef.current;
+    const images = files.filter(isImage);
+    if (!view || !images.length) return;
+    uploadCount.current += 1;
+    const placeholderText = `[이미지 업로드 중… ${uploadCount.current}]`;
+    applyEdit(view, ({ start, end }) => ({
+      from: start,
+      to: end,
+      insert: placeholderText,
+      selectionStart: start + placeholderText.length,
+      selectionEnd: start + placeholderText.length,
+    }));
+    const keys = await onUploadImages(images);
+    // 업로드 중에도 글을 쓸 수 있으므로 지금 문서에서 자리표시자를 찾아 바꾼다. 실패하면 자리표시자만 지운다.
+    if (viewRef.current !== view) return;
+    const from = view.state.doc.toString().indexOf(placeholderText);
+    if (from < 0) return;
+    view.dispatch({
+      changes: {
+        from,
+        to: from + placeholderText.length,
+        insert: keys.map((key) => `![](${key})`).join("\n"),
+      },
+    });
+  }
+
   const emitChange = useEffectEvent((next: string) => onChange(next));
   const uploadDroppedImages = useEffectEvent((files: File[]) => {
     void uploadImages(files);
@@ -187,33 +214,6 @@ export default function MarkdownEditor({
 
   function run(action: EditAction) {
     if (viewRef.current) applyEdit(viewRef.current, action);
-  }
-
-  async function uploadImages(files: File[]) {
-    const view = viewRef.current;
-    const images = files.filter(isImage);
-    if (!view || !images.length) return;
-    uploadCount.current += 1;
-    const placeholderText = `[이미지 업로드 중… ${uploadCount.current}]`;
-    applyEdit(view, ({ start, end }) => ({
-      from: start,
-      to: end,
-      insert: placeholderText,
-      selectionStart: start + placeholderText.length,
-      selectionEnd: start + placeholderText.length,
-    }));
-    const keys = await onUploadImages(images);
-    // 업로드 중에도 글을 쓸 수 있으므로 지금 문서에서 자리표시자를 찾아 바꾼다. 실패하면 자리표시자만 지운다.
-    if (viewRef.current !== view) return;
-    const from = view.state.doc.toString().indexOf(placeholderText);
-    if (from < 0) return;
-    view.dispatch({
-      changes: {
-        from,
-        to: from + placeholderText.length,
-        insert: keys.map((key) => `![](${key})`).join("\n"),
-      },
-    });
   }
 
   return (
