@@ -3,7 +3,7 @@ import { act } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import PostEditor from "@/app/_components/PostEditor";
 import { createPost } from "@/lib/actions/posts";
 
@@ -21,6 +21,17 @@ vi.mock("@/lib/adminMode", () => ({
 }));
 
 const DRAFT_NOTICE = "임시저장된 글이 있습니다";
+
+// jsdom은 <dialog>의 showModal·close를 구현하지 않는다. 브라우저처럼 open 속성을 바꾸고 close 이벤트를 보낸다.
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute("open");
+    this.dispatchEvent(new Event("close"));
+  };
+});
 
 function saveDraft(key: string, overrides: Record<string, unknown> = {}) {
   localStorage.setItem(
@@ -130,6 +141,43 @@ describe("글 에디터 기본 제목", () => {
     });
 
     expect(JSON.parse(localStorage.getItem(DIARY_DRAFT_KEY) ?? "{}").title).toBe("봄날");
+  });
+});
+
+describe("글 설정 패널", () => {
+  it("발행 버튼으로 열고, 닫기로 닫는다", () => {
+    render(<PostEditor type="diary" />);
+    const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
+    expect(dialog.open).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+    expect(dialog.open).toBe(true);
+
+    fireEvent.click(dialog.querySelector("button") as HTMLButtonElement);
+    expect(dialog.open).toBe(false);
+  });
+
+  it("ESC로 브라우저가 닫아도 다시 열 수 있다", () => {
+    render(<PostEditor type="diary" />);
+    const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+
+    act(() => dialog.close());
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+
+    expect(dialog.open).toBe(true);
+  });
+
+  it("바깥(배경)을 누르면 닫고, 패널 안을 누르면 닫지 않는다", () => {
+    render(<PostEditor type="diary" />);
+    const dialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement;
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+
+    fireEvent.click(screen.getByText("글 설정"));
+    expect(dialog.open).toBe(true);
+
+    fireEvent.click(dialog);
+    expect(dialog.open).toBe(false);
   });
 });
 

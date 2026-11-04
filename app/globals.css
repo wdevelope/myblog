@@ -428,3 +428,43 @@ input[type="reset"]:not(:disabled),
     animation: none;
   }
 }
+
+/* 피드 저장 문구. 끝나면 animationend로 지우므로 움직임을 줄여도 애니메이션 자체는 남긴다. */
+@keyframes feed-save-toast {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.8);
+  }
+  40%,
+  60% {
+    opacity: 1;
+    transform: translateY(-45px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-60px) scale(1.1);
+  }
+}
+
+@keyframes feed-save-toast-fade {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateY(-45px);
+  }
+  30%,
+  70% {
+    opacity: 1;
+    transform: translateY(-45px);
+  }
+}
+
+.feed-save-toast {
+  animation: feed-save-toast 2s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feed-save-toast {
+    animation-name: feed-save-toast-fade;
+  }
+}

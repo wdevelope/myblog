@@ -3,7 +3,6 @@
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { Bookmark, FileText, Heart } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
 import { cn, formatPostDate } from "@/lib/utils";
 import type { Post } from "@/lib/types";
 import { Card, CardBody } from "@/app/_components/ui";
@@ -30,10 +29,7 @@ export function FeedCard({
   const handleSave = () => {
     const nextSaved = !isSaved;
     setIsSaved(nextSaved);
-    if (nextSaved) {
-      setShowSaveToast(true);
-      setTimeout(() => setShowSaveToast(false), 1200);
-    }
+    if (nextSaved) setShowSaveToast(true);
   };
 
   const coverKey = coverKeyOf(post);
@@ -93,10 +89,10 @@ export function FeedCard({
         {/* Row 1: Action Icons */}
         <div className="flex items-center justify-between -mx-1 text-foreground">
           <div className="flex items-center gap-4">
-            <motion.button
-              whileTap={{ scale: 0.8 }}
+            <button
+              type="button"
               onClick={() => setIsLiked(!isLiked)}
-              className="p-1 hover:opacity-60 transition outline-none"
+              className="p-1 hover:opacity-60 transition active:scale-80 outline-none"
             >
               <Heart
                 className={cn(
@@ -104,26 +100,21 @@ export function FeedCard({
                   isLiked ? "fill-red-500 text-red-500" : ""
                 )}
               />
-            </motion.button>
+            </button>
           </div>
           <div className="relative">
-            <AnimatePresence>
-              {showSaveToast && (
-                <motion.div
-                  initial={{ opacity: 0, y: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, y: -45, scale: 1 }}
-                  exit={{ opacity: 0, y: -60, scale: 1.1 }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                  className="absolute right-0 top-0 whitespace-nowrap text-[11px] font-black text-primary pointer-events-none drop-shadow-sm bg-surface/80 px-2 py-1 rounded-full border border-primary/20"
-                >
-                  내 마음속에 저장 ✨
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <motion.button
-              whileTap={{ scale: 0.8 }}
+            {showSaveToast && (
+              <div
+                onAnimationEnd={() => setShowSaveToast(false)}
+                className="feed-save-toast absolute right-0 top-0 whitespace-nowrap text-[11px] font-black text-primary pointer-events-none drop-shadow-sm bg-surface/80 px-2 py-1 rounded-full border border-primary/20"
+              >
+                내 마음속에 저장 ✨
+              </div>
+            )}
+            <button
+              type="button"
               onClick={handleSave}
-              className="p-1 hover:opacity-60 transition outline-none"
+              className="p-1 hover:opacity-60 transition active:scale-80 outline-none"
             >
               <Bookmark
                 className={cn(
@@ -131,7 +122,7 @@ export function FeedCard({
                   isSaved ? "fill-current" : ""
                 )}
               />
-            </motion.button>
+            </button>
           </div>
         </div>
 

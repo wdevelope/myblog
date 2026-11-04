@@ -1,7 +1,6 @@
 "use client";
 
-import { useId, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useId, useMemo, useRef } from "react";
 import { Globe, ImageIcon, Lock, Trash2, X } from "lucide-react";
 import type { PostType, Visibility } from "@/lib/types";
 import { coverSrcFromImageKey } from "@/lib/image";
@@ -48,7 +47,9 @@ export default function PostSettingsPanel({
   deleteSlug?: string;
   deleteRedirectTo?: string;
 }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const componentId = useId();
+  const titleId = `post-settings-title-${componentId}`;
   const fileInputId = `post-editor-files-${componentId}`;
   const thumbnailInputId = `post-editor-thumbnail-${componentId}`;
 
@@ -59,26 +60,26 @@ export default function PostSettingsPanel({
     return list;
   }, [categories, categorySlug]);
 
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (isOpen && !dialog.open) dialog.showModal();
+    if (!isOpen && dialog.open) dialog.close();
+  }, [isOpen]);
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 z-50 bg-black/20 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none"
-          />
-          <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute right-0 top-0 bottom-0 z-50 w-80 bg-surface border-l border-border shadow-2xl flex flex-col"
-          >
+    <dialog
+      ref={dialogRef}
+      aria-labelledby={titleId}
+      onClose={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-80 max-w-full translate-x-full border-l border-border bg-surface p-0 text-foreground shadow-2xl transition-[translate,display,overlay] transition-discrete duration-300 ease-out open:translate-x-0 motion-reduce:transition-none starting:open:translate-x-full backdrop:bg-black/20 backdrop:backdrop-blur-sm lg:backdrop:bg-transparent lg:backdrop:backdrop-blur-none"
+    >
+      <div className="flex h-full flex-col">
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <h3 className="font-bold">글 설정</h3>
+              <h3 id={titleId} className="font-bold">글 설정</h3>
               <button
                 type="button"
                 onClick={onClose}
@@ -274,9 +275,7 @@ export default function PostSettingsPanel({
                 </DeletePostButton>
               )}
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+      </div>
+    </dialog>
   );
 }
