@@ -20,6 +20,25 @@ function displayName(comment: Comment) {
   return userDisplayName(comment.authorId, comment.authorIsAdmin, comment.authorNickname);
 }
 
+function CommentItem({ comment, children }: { comment: Comment; children?: React.ReactNode }) {
+  const name = displayName(comment);
+
+  return (
+    <div className="flex items-start gap-4">
+      <UserAvatar isAdmin={comment.authorIsAdmin} label={name} src={avatarSrc(comment.authorAvatarPath)} />
+      <div className="min-w-0 flex-1 space-y-2">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="font-bold text-foreground">{name}</span>
+          <span className="text-muted">·</span>
+          <span className="text-muted">{formatPostDate(comment.createdAt, "ko")}</span>
+        </div>
+        <p className="whitespace-pre-wrap text-xs leading-5 text-foreground/90">{comment.content}</p>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function CommentComposer({
   placeholder,
   onSubmit,
@@ -154,6 +173,23 @@ export default function CommentsThread({
     router.refresh();
   }
 
+  function canDelete(comment: Comment) {
+    return Boolean(isAdmin || (currentUserId && currentUserId === comment.authorId));
+  }
+
+  function deleteButton(comment: Comment) {
+    if (!canDelete(comment)) return null;
+    return (
+      <button
+        type="button"
+        onClick={() => handleDelete(comment.id)}
+        className="inline-flex items-center gap-2 font-semibold text-red-500/80 hover:text-red-600 transition"
+      >
+        삭제
+      </button>
+    );
+  }
+
   function resetProfileButton(comment: Comment) {
     if (!canResetProfile(comment)) return null;
     return (
@@ -200,49 +236,24 @@ export default function CommentsThread({
             const openReply = replyTo === c.id;
             return (
               <div key={c.id} className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <UserAvatar isAdmin={c.authorIsAdmin} label={displayName(c)} src={avatarSrc(c.authorAvatarPath)} />
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <span className="font-bold text-foreground">
-                        {displayName(c)}
-                      </span>
-                      <span className="text-muted">·</span>
-                      <span className="text-muted">
-                        {formatPostDate(c.createdAt, "ko")}
-                      </span>
-                    </div>
-                    <p className="whitespace-pre-wrap text-xs leading-5 text-foreground/90">
-                      {c.content}
-                    </p>
-                    <div className="flex items-center gap-4 text-xs text-muted">
-                      {canWrite ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setReplyTo((prev) => (prev === c.id ? null : c.id))
-                          }
-                          className="inline-flex items-center gap-2 font-semibold hover:text-foreground transition"
-                        >
-                          <MessageCircle className="size-3.5" aria-hidden />
-                          대댓글
-                        </button>
-                      ) : null}
-
-                      {(isAdmin || (currentUserId && currentUserId === c.authorId)) && (
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(c.id)}
-                          className="inline-flex items-center gap-2 font-semibold text-red-500/80 hover:text-red-600 transition"
-                        >
-                          삭제
-                        </button>
-                      )}
-
-                      {resetProfileButton(c)}
-                    </div>
+                <CommentItem comment={c}>
+                  <div className="flex items-center gap-4 text-xs text-muted">
+                    {canWrite ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setReplyTo((prev) => (prev === c.id ? null : c.id))
+                        }
+                        className="inline-flex items-center gap-2 font-semibold hover:text-foreground transition"
+                      >
+                        <MessageCircle className="size-3.5" aria-hidden />
+                        대댓글
+                      </button>
+                    ) : null}
+                    {deleteButton(c)}
+                    {resetProfileButton(c)}
                   </div>
-                </div>
+                </CommentItem>
 
                 {openReply ? (
                   <div className="ml-14 border-l-2 border-border pl-5">
@@ -257,35 +268,14 @@ export default function CommentsThread({
                 {replies.length ? (
                   <div className="ml-14 space-y-4 border-l-2 border-border pl-5">
                     {replies.map((r) => (
-                      <div key={r.id} className="flex items-start gap-4">
-                        <UserAvatar isAdmin={r.authorIsAdmin} label={displayName(r)} src={avatarSrc(r.authorAvatarPath)} />
-                        <div className="min-w-0 flex-1 space-y-2">
-                          <div className="flex flex-wrap items-center gap-2 text-xs">
-                            <span className="font-bold text-foreground">
-                              {displayName(r)}
-                            </span>
-                            <span className="text-muted">·</span>
-                            <span className="text-muted">
-                              {formatPostDate(r.createdAt, "ko")}
-                            </span>
+                      <CommentItem key={r.id} comment={r}>
+                        {canDelete(r) && (
+                          <div className="flex items-center gap-4 text-xs text-muted">
+                            {deleteButton(r)}
+                            {resetProfileButton(r)}
                           </div>
-                          <p className="whitespace-pre-wrap text-xs leading-5 text-foreground/90">
-                            {r.content}
-                          </p>
-                          {(isAdmin || (currentUserId && currentUserId === r.authorId)) && (
-                            <div className="flex items-center gap-4 text-xs text-muted">
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(r.id)}
-                                className="inline-flex items-center gap-2 font-semibold text-red-500/80 hover:text-red-600 transition"
-                              >
-                                삭제
-                              </button>
-                              {resetProfileButton(r)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                        )}
+                      </CommentItem>
                     ))}
                   </div>
                 ) : null}
