@@ -3,7 +3,7 @@ import { getPreviewViewer } from "@/lib/server/admin";
 import { getDiaryIndexDirectly } from "@/lib/server/posts";
 import { getPublicDiaryIndex } from "@/lib/server/publicPosts";
 import DiaryIndexClient from "@/app/diary/DiaryIndexClient";
-import DiaryLoading from "@/app/diary/(list)/loading";
+import DiaryListSkeleton from "@/app/diary/DiaryListSkeleton";
 
 export const metadata = {
   title: "다이어리",
@@ -18,7 +18,7 @@ export default async function DiaryPage() {
 
   // DiaryIndexClient가 useSearchParams를 읽어, 정적 렌더링에서는 Suspense 경계가 있어야 한다.
   return (
-    <Suspense fallback={<DiaryLoading />}>
+    <Suspense fallback={<DiaryListSkeleton />}>
       <DiaryIndexClient posts={posts} isAdmin={isAdmin} />
     </Suspense>
   );
