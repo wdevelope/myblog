@@ -7,12 +7,10 @@ import PostActionMenu from "@/app/_components/PostActionMenu";
 import CommentsThread from "@/app/_components/CommentsThread";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import VisibilityIcon from "@/app/_components/VisibilityIcon";
+import PostMeta from "@/app/_components/PostMeta";
 import { CardBody } from "@/app/_components/ui";
 import { getPreviewViewer } from "@/lib/server/admin";
 import MarkdownContent from "@/app/_components/MarkdownContent";
-import { formatPostDate } from "@/lib/utils";
 import { toExcerpt } from "@/lib/markdown";
 import { articleListHref } from "@/lib/constants";
 import ViewCount from "@/app/article/[slug]/ViewCount";
@@ -107,31 +105,11 @@ export default async function BlogPostPage({ params }: Props) {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
-          <div className="flex items-center gap-4">
-            <Image
-              src="/logo.png"
-              alt="프로필"
-              width={40}
-              height={40}
-              className="size-10 rounded-full object-cover ring-1 ring-border"
-            />
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-foreground">오웬</p>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-                <span>
-                  {formatPostDate(post.createdAt, "ko")}
-                </span>
-                <span>·</span>
-                <span>
-                  <ViewCount slug={post.slug} initialCount={post.viewCount ?? 0} />
-                </span>
-                <span>·</span>
-                <span className="flex items-center gap-1.5 font-medium group">
-                  <VisibilityIcon visibility={post.visibility} className="size-3.5" />
-                </span>
-              </div>
-            </div>
-          </div>
+          <PostMeta
+            createdAt={post.createdAt}
+            visibility={post.visibility}
+            views={<ViewCount slug={post.slug} initialCount={post.viewCount ?? 0} />}
+          />
 
           <div className="flex items-center gap-4 text-sm text-muted" />
         </div>
