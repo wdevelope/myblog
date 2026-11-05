@@ -6,6 +6,12 @@ describe("로그인 뒤 돌아갈 경로", () => {
     ["//evil.example"],
     ["/\\evil.example"],
     ["/\t/evil.example"],
+    // URL 파서가 점 조각을 정리하면 `//evil.example`이 남는다
+    ["/.//evil.example"],
+    ["/..//evil.example"],
+    ["/a/..//evil.example"],
+    ["/%2e//evil.example"],
+    ["/./\\evil.example"],
     ["https://evil.example"],
     ["evil"],
     [""],
