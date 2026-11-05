@@ -108,6 +108,29 @@ describe("마크다운 에디터", () => {
     expect(text()).toBe("불러온 글");
   });
 
+  it("입력이 바깥 값으로 돌아오기 전에 다음 입력이 들어와도 글을 덮어쓰지 않는다", () => {
+    const onChange = vi.fn();
+    const upload = async () => [];
+    const { rerender } = render(<MarkdownEditor value="" onChange={onChange} onUploadImages={upload} />);
+    view().dispatch({ changes: { from: 0, insert: "가" }, selection: { anchor: 1 }, userEvent: "input.type" });
+    view().dispatch({ changes: { from: 1, insert: "나" }, selection: { anchor: 2 }, userEvent: "input.type" });
+
+    rerender(<MarkdownEditor value="가" onChange={onChange} onUploadImages={upload} />);
+
+    expect(text()).toBe("가나");
+    expect(view().state.selection.main.head).toBe(2);
+  });
+
+  it("보낸 값이 돌아온 뒤에 바깥에서 예전 글로 바꾸면 작성 칸도 바뀐다", async () => {
+    render(<Harness initial="불러온 글" />);
+    view().dispatch({ changes: { from: 5, insert: "!" }, userEvent: "input.type" });
+    await waitFor(() => expect(screen.getByLabelText("값").textContent).toBe("불러온 글!"));
+
+    fireEvent.click(screen.getByRole("button", { name: "임시저장 불러오기" }));
+
+    expect(text()).toBe("불러온 글");
+  });
+
   it("붙여넣은 이미지는 자리표시자를 거쳐 버킷 키로 들어간다", async () => {
     const upload = vi.fn(async () => ["post-images-public:2026-10-22/a.png"]);
     render(<Harness initial="앞 " upload={upload} />);

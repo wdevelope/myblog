@@ -129,6 +129,8 @@ export default function MarkdownEditor({
   const viewRef = useRef<EditorView | null>(null);
   const fileInputId = useId();
   const uploadCount = useRef(0);
+  // 작성 칸이 보낸 값이 value로 돌아오기 전에 다음 입력이 들어올 수 있어, 돌아올 값을 적어 둔다.
+  const sentValues = useRef<string[]>([]);
   const [headingLevel, setHeadingLevel] = useState<HeadingLevel>(0);
   // 작성 칸은 처음 값으로 한 번 만들고, 그 뒤 바깥 값은 아래 동기화 효과가 반영한다.
   const [initialValue] = useState(value);
@@ -160,7 +162,10 @@ export default function MarkdownEditor({
     });
   }
 
-  const emitChange = useEffectEvent((next: string) => onChange(next));
+  const emitChange = useEffectEvent((next: string) => {
+    sentValues.current.push(next);
+    onChange(next);
+  });
   const uploadDroppedImages = useEffectEvent((files: File[]) => {
     void uploadImages(files);
   });
@@ -205,8 +210,13 @@ export default function MarkdownEditor({
     };
   }, [initialValue, placeholder]);
 
-  // 임시저장 불러오기처럼 바깥에서 본문을 바꾸면 작성 칸에 반영한다. 입력으로 바뀐 값은 이미 같아서 건너뛴다.
+  // 임시저장 불러오기처럼 바깥에서 본문을 바꾸면 작성 칸에 반영한다. 작성 칸이 보낸 값이 돌아온 것이면 건너뛴다.
   useEffect(() => {
+    const sent = sentValues.current.lastIndexOf(value);
+    if (sent >= 0) {
+      sentValues.current.splice(0, sent + 1);
+      return;
+    }
     const view = viewRef.current;
     if (!view || view.state.doc.toString() === value) return;
     view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value } });
