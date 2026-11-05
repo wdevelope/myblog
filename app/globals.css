@@ -19,6 +19,9 @@
   --success: #047857;
   --warning: #b45309;
   --danger: #c81e1e;
+
+  --code-bg: var(--foreground);
+  --code-fg: var(--background);
 }
 
 @theme inline {
@@ -58,6 +61,9 @@
   --success: #34d399;
   --warning: #fbbf24;
   --danger: #f87171;
+
+  --code-bg: var(--surface-2);
+  --code-fg: var(--foreground);
 }
 
 body {
@@ -97,8 +103,8 @@ input[type="reset"]:not(:disabled),
   --tw-prose-quote-borders: var(--border) !important;
   --tw-prose-captions: var(--muted) !important;
   --tw-prose-code: var(--foreground) !important;
-  --tw-prose-pre-code: var(--background) !important;
-  --tw-prose-pre-bg: var(--foreground) !important;
+  --tw-prose-pre-code: var(--code-fg) !important;
+  --tw-prose-pre-bg: var(--code-bg) !important;
   --tw-prose-th-borders: var(--border) !important;
   --tw-prose-td-borders: var(--border) !important;
 }
@@ -118,21 +124,168 @@ input[type="reset"]:not(:disabled),
   --tw-prose-invert-quote-borders: var(--border) !important;
   --tw-prose-invert-captions: var(--muted) !important;
   --tw-prose-invert-code: var(--foreground) !important;
-  --tw-prose-invert-pre-code: var(--background) !important;
-  --tw-prose-invert-pre-bg: var(--foreground) !important;
+  --tw-prose-invert-pre-code: var(--code-fg) !important;
+  --tw-prose-invert-pre-bg: var(--code-bg) !important;
   --tw-prose-invert-th-borders: var(--border) !important;
   --tw-prose-invert-td-borders: var(--border) !important;
 }
 
-/* 마크다운 본문(MarkdownContent): prose가 다루지 않는 형광펜·밑줄·인라인 코드·블록 수식 */
+/* 본문 규격. 글 화면(.markdown-body)과 작성 칸(.markdown-editor)이 같은 값을 쓴다. 한쪽만 고치면 두 화면이 어긋난다.
+   블록 사이는 쓴 빈 줄만큼만 벌어지고 빈 줄 하나가 한 칸(--md-line)이다(lib/markdown.ts). */
 .markdown-body,
 .markdown-editor {
   --mark-bg: rgba(250, 204, 21, 0.4);
+  --md-size: 1rem;
+  --md-line: 1.75rem;
+  --md-h1-size: 1.375rem;
+  --md-h1-line: 2rem;
+  --md-h1-gap: 1.25rem;
+  --md-h2-size: 1.25rem;
+  --md-h2-line: 1.875rem;
+  --md-h2-gap: 1.25rem;
+  --md-h3-size: 1.125rem;
+  --md-h3-line: 1.75rem;
+  --md-h3-gap: 0.25rem;
+  --md-li-gap: 0.5rem;
+  --md-list-indent: 2em;
+  --md-marker-gap: 0.4em;
+  --md-code-size: 0.875em;
+  --md-code-line: 1.5rem;
+  --md-pre-x: 1rem;
+  --md-pre-y: 0.75rem;
+}
+
+@media (min-width: 48rem) {
+  .markdown-body,
+  .markdown-editor {
+    --md-size: 1.125rem;
+    --md-line: 2rem;
+    --md-h1-size: 1.75rem;
+    --md-h1-line: 2.5rem;
+    --md-h1-gap: 1.5rem;
+    --md-h2-size: 1.5rem;
+    --md-h2-line: 2.25rem;
+    --md-h2-gap: 1.5rem;
+    --md-h3-size: 1.25rem;
+    --md-h3-line: 2rem;
+    --md-h3-gap: 0.5rem;
+    --md-li-gap: 0.75rem;
+    --md-code-line: 1.75rem;
+    --md-pre-x: 1.5rem;
+    --md-pre-y: 1rem;
+  }
+}
+
+/* 피드 카드 글자 크기. 표 위젯처럼 작성 칸 안의 .markdown-body도 같은 값을 받아야 한다. */
+.markdown-compact,
+.markdown-compact .markdown-body {
+  --md-size: 0.875rem;
+  --md-line: 1.5rem;
+  --md-h1-size: 1.125rem;
+  --md-h1-line: 1.75rem;
+  --md-h1-gap: 0.75rem;
+  --md-h2-size: 1rem;
+  --md-h2-line: 1.5rem;
+  --md-h2-gap: 0.75rem;
+  --md-h3-size: 0.9375rem;
+  --md-h3-line: 1.5rem;
+  --md-h3-gap: 0.25rem;
+  --md-li-gap: 0.25rem;
+  --md-code-line: 1.25rem;
+  --md-pre-x: 0.75rem;
+  --md-pre-y: 0.5rem;
 }
 
 .dark .markdown-body,
 .dark .markdown-editor {
   --mark-bg: rgba(250, 204, 21, 0.3);
+}
+
+/* 마크다운 본문(MarkdownContent): prose의 크기·여백을 본문 규격으로 바꾸고, prose가 다루지 않는 서식을 더한다 */
+.markdown-body {
+  font-size: var(--md-size);
+  line-height: var(--md-line);
+}
+
+.markdown-body :is(p, h1, h2, h3, h4, h5, h6, ul, ol, li, blockquote, pre, table, img, hr) {
+  margin-block: 0;
+}
+
+.markdown-body h1 {
+  padding-top: var(--md-h1-gap);
+  font-size: var(--md-h1-size);
+  line-height: var(--md-h1-line);
+}
+
+.markdown-body h2 {
+  padding-top: var(--md-h2-gap);
+  font-size: var(--md-h2-size);
+  line-height: var(--md-h2-line);
+}
+
+.markdown-body h3 {
+  padding-top: var(--md-h3-gap);
+  font-size: var(--md-h3-size);
+  line-height: var(--md-h3-line);
+}
+
+.markdown-body :is(h4, h5, h6) {
+  padding-top: var(--md-h3-gap);
+  font-size: var(--md-size);
+  font-weight: 600;
+  line-height: var(--md-line);
+}
+
+.markdown-body > :is(h1, h2, h3, h4, h5, h6):first-child {
+  padding-top: 0;
+}
+
+.markdown-body :is(ul, ol) {
+  padding-left: calc(var(--md-list-indent) - var(--md-marker-gap));
+}
+
+.markdown-body li {
+  padding-left: var(--md-marker-gap);
+}
+
+.markdown-body li + li {
+  padding-top: var(--md-li-gap);
+}
+
+.markdown-body blockquote {
+  font-style: normal;
+  font-weight: 400;
+}
+
+.markdown-body blockquote p::before,
+.markdown-body blockquote p::after {
+  content: none;
+}
+
+/* 작성 칸은 긴 코드 줄을 접어 보이므로 글 화면도 접는다. */
+.markdown-body pre {
+  padding: var(--md-pre-y) var(--md-pre-x);
+  font-size: var(--md-code-size);
+  line-height: var(--md-code-line);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.markdown-body pre ::selection,
+.markdown-editor .cm-md-codeblock ::selection {
+  color: var(--code-fg);
+}
+
+/* 구분선은 작성 칸처럼 한 칸을 차지하고 가운데 선을 긋는다. */
+.markdown-body hr {
+  height: var(--md-line);
+  border: 0;
+  background: linear-gradient(var(--border), var(--border)) center / 100% 1px no-repeat;
+}
+
+/* 이미지는 블록이라 이미지 사이 줄바꿈이 빈 칸으로 남는다. 작성 칸에는 없는 칸이다. */
+.markdown-body img + br {
+  display: none;
 }
 
 .markdown-body mark {
@@ -151,6 +304,7 @@ input[type="reset"]:not(:disabled),
   background: var(--surface-2);
   padding: 0.15em 0.35em;
   border-radius: 0.3em;
+  font-size: var(--md-code-size);
   font-weight: 500;
 }
 
@@ -181,6 +335,11 @@ input[type="reset"]:not(:disabled),
   overflow-y: hidden;
 }
 
+/* 블록 위아래는 빈 줄로 띄우므로 KaTeX의 기본 여백을 뺀다. */
+:is(.markdown-body, .markdown-editor) .katex-display {
+  margin-block: 0;
+}
+
 /* 셀 안에서 어절을 끊지 않아야 표가 좁아질 때 글자 단위로 쪼개지는 대신 가로로 스크롤된다 */
 .markdown-body .table-scroll {
   overflow-x: auto;
@@ -195,8 +354,8 @@ input[type="reset"]:not(:disabled),
 .markdown-editor .cm-editor {
   background: transparent;
   color: var(--foreground);
-  font-size: 1rem;
-  line-height: 1.75rem;
+  font-size: var(--md-size);
+  line-height: var(--md-line);
 }
 
 .markdown-editor .cm-editor.cm-focused {
@@ -213,6 +372,11 @@ input[type="reset"]:not(:disabled),
   padding: 0;
 }
 
+/* CodeMirror 기본값(break-spaces)은 줄 끝 공백도 폭을 차지해 글 화면보다 한 글자 일찍 접는다. */
+.markdown-editor .cm-editor .cm-lineWrapping {
+  white-space: pre-wrap;
+}
+
 .markdown-editor .cm-editor .cm-line {
   padding: 0;
 }
@@ -222,7 +386,7 @@ input[type="reset"]:not(:disabled),
 }
 
 .markdown-editor .cm-md-strong {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .markdown-editor .cm-md-em {
@@ -240,6 +404,7 @@ input[type="reset"]:not(:disabled),
 
 .markdown-editor .cm-md-highlight {
   background: var(--mark-bg);
+  padding: 0 0.15em;
   border-radius: 0.2em;
 }
 
@@ -248,59 +413,123 @@ input[type="reset"]:not(:disabled),
   padding: 0.15em 0.35em;
   border-radius: 0.3em;
   font-family: var(--font-mono);
-  font-size: 0.875em;
+  font-size: var(--md-code-size);
+  font-weight: 500;
 }
 
 .markdown-editor .cm-md-link {
   color: var(--primary);
+  font-weight: 500;
   text-decoration: underline;
-  text-underline-offset: 0.2em;
 }
 
-.markdown-editor .cm-md-syntax,
-.markdown-editor .cm-md-bullet {
+.markdown-editor .cm-md-syntax {
   color: var(--muted);
 }
 
-.markdown-editor .cm-md-h1 {
-  font-size: 1.875rem;
-  line-height: 2.5rem;
+/* 줄 높이는 CodeMirror가 재므로 줄에는 바깥 여백 대신 안쪽 여백을 쓴다. */
+.markdown-editor .cm-editor .cm-line.cm-md-h1 {
+  padding-top: var(--md-h1-gap);
+  font-size: var(--md-h1-size);
+  font-weight: 800;
+  line-height: var(--md-h1-line);
+}
+
+.markdown-editor .cm-editor .cm-line.cm-md-h2 {
+  padding-top: var(--md-h2-gap);
+  font-size: var(--md-h2-size);
+  font-weight: 700;
+  line-height: var(--md-h2-line);
+}
+
+.markdown-editor .cm-editor .cm-line.cm-md-h3 {
+  padding-top: var(--md-h3-gap);
+  font-size: var(--md-h3-size);
+  font-weight: 600;
+  line-height: var(--md-h3-line);
+}
+
+.markdown-editor .cm-editor .cm-line:is(.cm-md-h4, .cm-md-h5, .cm-md-h6) {
+  padding-top: var(--md-h3-gap);
+  font-weight: 600;
+}
+
+.markdown-editor .cm-editor .cm-line:is(.cm-md-h1, .cm-md-h2, .cm-md-h3, .cm-md-h4, .cm-md-h5, .cm-md-h6):first-child {
+  padding-top: 0;
+}
+
+.markdown-editor .cm-md-h1 .cm-md-strong {
+  font-weight: 900;
+}
+
+.markdown-editor .cm-md-h2 .cm-md-strong {
   font-weight: 800;
 }
 
-.markdown-editor .cm-md-h2 {
-  font-size: 1.5rem;
-  line-height: 2.25rem;
+.markdown-editor :is(.cm-md-h3, .cm-md-h4) .cm-md-strong {
   font-weight: 700;
 }
 
-.markdown-editor .cm-md-h3 {
-  font-size: 1.25rem;
-  line-height: 2rem;
-  font-weight: 700;
+/* 줄 자체를 목록 항목으로 그려 점·번호가 글 화면과 같은 자리에 같은 모양으로 나온다. */
+.markdown-editor .cm-editor .cm-line:is(.cm-md-li, .cm-md-li-rest) {
+  margin-left: calc(var(--md-depth) * var(--md-list-indent) - var(--md-marker-gap));
+  padding-left: var(--md-marker-gap);
 }
 
-.markdown-editor :is(.cm-md-h4, .cm-md-h5, .cm-md-h6) {
-  font-weight: 700;
+.markdown-editor .cm-editor .cm-line.cm-md-li {
+  display: list-item;
+  list-style: disc outside;
+}
+
+.markdown-editor .cm-editor .cm-line.cm-md-ol {
+  list-style-type: decimal;
+}
+
+.markdown-editor .cm-editor .cm-line.cm-md-li::marker {
+  color: var(--muted);
+}
+
+.markdown-editor .cm-editor .cm-line.cm-md-li-next {
+  padding-top: var(--md-li-gap);
 }
 
 .markdown-editor .cm-editor .cm-line.cm-md-quote {
   border-left: 0.25rem solid var(--border);
-  padding-left: 1rem;
+  padding-left: 1em;
 }
 
 .markdown-editor .cm-editor .cm-line.cm-md-codeblock {
-  background: var(--surface-2);
-  padding: 0 1rem;
+  background: var(--code-bg);
+  color: var(--code-fg);
+  caret-color: var(--code-fg);
+  padding: 0 var(--md-pre-x);
   font-family: var(--font-mono);
-  font-size: 0.875em;
+  font-size: var(--md-code-size);
+  line-height: var(--md-code-line);
+}
+
+/* 펜스 줄의 높이가 글 화면 코드블록의 위아래 안쪽 여백과 같다. */
+.markdown-editor .cm-editor .cm-line:is(.cm-md-fence-open, .cm-md-fence-close) {
+  font-size: 0.625rem;
+  line-height: var(--md-pre-y);
+}
+
+.markdown-editor .cm-editor .cm-line.cm-md-fence-open {
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+}
+
+.markdown-editor .cm-editor .cm-line.cm-md-fence-close {
+  border-bottom-left-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
 }
 
 .markdown-editor .cm-md-rule {
   display: inline-block;
   width: 100%;
-  vertical-align: middle;
-  border-top: 1px solid var(--border);
+  height: var(--md-line);
+  vertical-align: top;
+  background: linear-gradient(var(--border), var(--border)) center / 100% 1px no-repeat;
 }
 
 /* 작성 칸 이미지(lib/markdown-image-widget). 정렬은 글 화면의 .img-align-*와 같게 그린다. */
@@ -309,33 +538,22 @@ input[type="reset"]:not(:disabled),
   position: relative;
   display: inline-block;
   max-width: 100%;
-  margin: 0.5rem 0;
   vertical-align: bottom;
   user-select: none;
 }
 
-/* 폭을 정하지 않은 정렬 이미지는 틀을 이미지 폭에 맞춰야 좌우 margin으로 움직인다. */
-.markdown-editor .cm-md-image-frame:is(.img-align-left, .img-align-center, .img-align-right) {
-  display: block;
-  width: fit-content;
+/* 정렬은 줄의 글자 정렬로 한다. 틀을 블록으로 두면 CodeMirror가 위젯 앞뒤에 넣는 요소가 위아래로 한 칸씩 더 차지한다. */
+.markdown-editor .cm-editor .cm-line:has(.cm-md-image-frame.img-align-center) {
+  text-align: center;
 }
 
-.markdown-editor .cm-md-image-frame.img-align-left {
-  margin-right: auto;
-}
-
-.markdown-editor .cm-md-image-frame.img-align-center {
-  margin-inline: auto;
-}
-
-.markdown-editor .cm-md-image-frame.img-align-right {
-  margin-left: auto;
+.markdown-editor .cm-editor .cm-line:has(.cm-md-image-frame.img-align-right) {
+  text-align: right;
 }
 
 .markdown-editor .cm-md-image {
   display: block;
   max-width: 100%;
-  border-radius: 0.5rem;
 }
 
 /* 바깥에 그리면 작성 칸 왼쪽 끝에 붙은 이미지에서 CodeMirror 스크롤 영역이 테두리를 자르므로 안쪽에 그린다. */
@@ -421,6 +639,13 @@ input[type="reset"]:not(:disabled),
 .markdown-editor .cm-md-math-display {
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+/* 표 위젯이 작성 칸의 글자 접기 규칙을 물려받으면 HTML의 줄바꿈이 빈 칸이 되고 열 폭도 달라진다. */
+.markdown-editor .markdown-body {
+  overflow-wrap: break-word;
+  white-space: normal;
+  word-break: normal;
 }
 
 /* 관리자 화면 이동 표시(AdminNavProgress). 진행률을 모르므로 막대가 왼쪽에서 오른쪽으로 계속 흐른다. */

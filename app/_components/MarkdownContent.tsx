@@ -17,7 +17,7 @@ export default function MarkdownContent({
     <div
       className={cn(
         "markdown-body prose max-w-none wrap-break-word dark:prose-invert",
-        compact ? "prose-sm" : "prose-base md:prose-lg",
+        compact && "markdown-compact",
         className
       )}
       dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}

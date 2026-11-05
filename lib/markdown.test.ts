@@ -110,10 +110,10 @@ describe("마크다운 렌더링", () => {
       ].join("\n"),
     );
     expect(html).toContain("<h1>제목</h1>");
-    expect(html).toContain("<ul>");
+    expect(html).toContain("<ul");
     expect(html).toContain("<ol>");
-    expect(html).toContain("<blockquote>");
-    expect(html).toContain("<hr>");
+    expect(html).toContain("<blockquote");
+    expect(html).toContain("<hr");
     expect(html).toContain('<code class="language-ts">const a = 1 &lt; 2;');
     expect(html).toContain("<table>");
   });
@@ -122,6 +122,53 @@ describe("마크다운 렌더링", () => {
     const html = renderMarkdown(["| 이름 | 값 |", "| --- | --- |", "| a | 1 |"].join("\n"));
     expect(html).toMatch(/^<div class="table-scroll"><table>/);
     expect(html).toMatch(/<\/table>\n?<\/div>\n?$/);
+  });
+});
+
+describe("빈 줄 간격", () => {
+  const gap = (rows: number) => `style="margin-top:calc(var(--md-line) * ${rows})"`;
+
+  it("빈 줄 수만큼 다음 블록을 띄운다", () => {
+    expect(renderMarkdown("하나\n\n둘\n\n\n셋")).toBe(`<p>하나</p>\n<p ${gap(1)}>둘</p>\n<p ${gap(2)}>셋</p>\n`);
+  });
+
+  it("공백만 있는 줄도 빈 줄로 센다", () => {
+    expect(renderMarkdown("하나\n   \n둘")).toBe(`<p>하나</p>\n<p ${gap(1)}>둘</p>\n`);
+  });
+
+  it("줄바꿈하지 않는 공백만 있는 줄은 문단이라 빈 줄로 세지 않는다", () => {
+    expect(renderMarkdown("하나\n\n\u00a0\n\n둘")).toBe(`<p>하나</p>\n<p ${gap(1)}>\u00a0</p>\n<p ${gap(1)}>둘</p>\n`);
+  });
+
+  it("빈 줄 없이 이어진 블록은 띄우지 않는다", () => {
+    expect(renderMarkdown("## 제목\n본문\n- 항목")).toBe("<h2>제목</h2>\n<p>본문</p>\n<ul>\n<li>항목</li>\n</ul>\n");
+  });
+
+  it("제목·인용·목록은 바깥 태그만 띄우고 첫 자식은 띄우지 않는다", () => {
+    expect(renderMarkdown("문단\n\n## 제목")).toContain(`<h2 ${gap(1)}>제목</h2>`);
+    expect(renderMarkdown("문단\n\n> 인용")).toContain(`<blockquote ${gap(1)}>\n<p>인용</p>`);
+    expect(renderMarkdown("문단\n\n- 항목")).toContain(`<ul ${gap(1)}>\n<li>항목</li>`);
+    expect(renderMarkdown("문단\n\n1. 항목")).toContain(`<ol ${gap(1)}>\n<li>항목</li>`);
+  });
+
+  it("코드블록·구분선·표·수식은 맨 바깥 태그를 띄운다", () => {
+    expect(renderMarkdown("문단\n\n```\n코드\n```")).toContain(`<pre ${gap(1)}><code>코드`);
+    expect(renderMarkdown("문단\n\n    코드")).toContain(`<pre ${gap(1)}><code>코드`);
+    expect(renderMarkdown("문단\n\n---")).toContain(`<hr ${gap(1)}>`);
+    expect(renderMarkdown("문단\n\n| a |\n| - |\n| b |")).toContain(`<div ${gap(1)} class="table-scroll"><table>`);
+    expect(renderMarkdown("문단\n\n$$\nx\n$$")).toContain(`<p ${gap(1)} class="katex-block">`);
+  });
+
+  it("인용 안에서는 `>`만 있는 줄을 빈 줄로 센다", () => {
+    expect(renderMarkdown("> 하나\n>\n> 둘")).toBe(`<blockquote>\n<p>하나</p>\n<p ${gap(1)}>둘</p>\n</blockquote>\n`);
+  });
+
+  it("항목 사이에 빈 줄이 있으면 항목을 띄운다", () => {
+    expect(renderMarkdown("- 하나\n\n- 둘")).toBe(`<ul>\n<li>\n<p>하나</p>\n</li>\n<li ${gap(1)}>\n<p>둘</p>\n</li>\n</ul>\n`);
+  });
+
+  it("글 맨 앞의 빈 줄은 띄우지 않는다", () => {
+    expect(renderMarkdown("\n\n하나")).toBe("<p>하나</p>\n");
   });
 });
 

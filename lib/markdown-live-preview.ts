@@ -4,12 +4,13 @@ import { Decoration, EditorView, WidgetType, type DecorationSet } from "@codemir
 import katex from "katex/dist/katex.js";
 import { PRIVATE_IMAGE_BUCKET, PUBLIC_IMAGE_BUCKET, coverSrcFromImageKey } from "@/lib/image";
 import { parseImageUrl } from "@/lib/image-options";
-import { hiddenMarkGuard, isHiddenMark, isLinkOpen, linkMarks } from "@/lib/markdown-hidden-marks";
+import { renderMarkdown } from "@/lib/markdown";
+import { hiddenMarkGuard, isHiddenMark, isLinkOpen, linkMarks, pastSpaces } from "@/lib/markdown-hidden-marks";
 import { ImageWidget } from "@/lib/markdown-image-widget";
 import { blogMarkdownParser } from "@/lib/markdown-syntax";
 
 // 작성 칸 라이브 프리뷰. 기호는 커서 위치와 상관없이 숨기거나 위젯으로 바꾼다. 쓰는 동안 줄이 바뀌지 않게 하려는 사용자 결정이다.
-// 원문을 드러내는 곳은 고치려면 봐야 하는 둘이다. 링크는 커서가 링크 안에 있을 때, 수식은 커서가 그 줄에 있을 때다.
+// 원문을 드러내는 곳은 고치려면 봐야 하는 셋이다. 링크는 커서가 링크 안에 있을 때, 수식과 표는 커서가 그 줄에 있을 때다.
 // 기호를 숨겨 생기는 커서·지우기 문제는 lib/markdown-hidden-marks가 다룬다.
 
 const IMAGE_KEY = new RegExp(`^(?:${PUBLIC_IMAGE_BUCKET}|${PRIVATE_IMAGE_BUCKET}):`);
@@ -52,6 +53,24 @@ class MathWidget extends EditableWidget {
   }
 }
 
+// 표는 글 화면 렌더러와 스타일을 그대로 써서 두 화면이 같게 보인다. 렌더러는 본문의 HTML을 글자로 내보낸다.
+class TableWidget extends EditableWidget {
+  constructor(readonly source: string) {
+    super();
+  }
+
+  eq(other: TableWidget) {
+    return other.source === this.source;
+  }
+
+  toDOM() {
+    const element = document.createElement("div");
+    element.className = "markdown-body prose max-w-none";
+    element.innerHTML = renderMarkdown(this.source);
+    return element;
+  }
+}
+
 class TextWidget extends EditableWidget {
   constructor(
     readonly text: string,
@@ -73,7 +92,6 @@ class TextWidget extends EditableWidget {
 }
 
 const hide = Decoration.replace({});
-const bullet = Decoration.replace({ widget: new TextWidget("•", "cm-md-bullet") });
 const rule = Decoration.replace({ widget: new TextWidget("", "cm-md-rule") });
 const marks = new Map<string, Decoration>();
 const lines = new Map<string, Decoration>();
@@ -96,6 +114,8 @@ function buildDecorations(state: EditorState): LivePreview {
   const { doc } = state;
   const ranges: Range<Decoration>[] = [];
   const atomic: Range<Decoration>[] = [];
+  // 안쪽 목록이 바깥 항목의 줄을 다시 쓰므로 줄마다 하나만 남긴다.
+  const listLines = new Map<number, Decoration>();
   const activeLines = state.selection.ranges.map((range) => ({
     from: doc.lineAt(range.from).from,
     to: doc.lineAt(range.to).to,
@@ -114,7 +134,7 @@ function buildDecorations(state: EditorState): LivePreview {
   const isTyping = (from: number, to: number) => doc.sliceString(to, to + 1) !== " " && isActive(from, to);
   const addPrefix = (from: number, to: number) => {
     if (isTyping(from, to)) ranges.push(markDecoration("cm-md-syntax").range(from, to));
-    else addHidden(from, doc.sliceString(to, to + 1) === " " ? to + 1 : to);
+    else addHidden(from, pastSpaces(state, to));
   };
   const addLines = (from: number, to: number, className: string) => {
     for (let pos = from; pos <= to; ) {
@@ -165,11 +185,31 @@ function buildDecorations(state: EditorState): LivePreview {
           addPrefix(from, to);
           return;
         case "ListMark": {
-          const isBullet = node.parent?.parent?.name === "BulletList";
-          const isTask = node.nextSibling?.name === "Task";
-          if (!isBullet || isTask || isTyping(from, to)) return;
-          ranges.push(bullet.range(from, to));
-          atomic.push(bullet.range(from, doc.sliceString(to, to + 1) === " " ? to + 1 : to));
+          const item = node.parent;
+          const list = item?.parent;
+          if (!item || !list || isTyping(from, to)) return;
+
+          let depth = 1;
+          for (let at = list.parent; at; at = at.parent) if (at.name === "ListItem") depth += 1;
+          const indent = `--md-depth:${depth}`;
+          const line = doc.lineAt(from);
+          addHidden(doc.sliceString(line.from, from).trim() ? from : line.from, pastSpaces(state, to));
+          for (let pos = line.to + 1; pos <= item.to; pos = doc.lineAt(pos).to + 1) {
+            listLines.set(pos, Decoration.line({ class: "cm-md-li-rest", attributes: { style: indent } }));
+          }
+
+          // 점·번호는 줄을 목록 항목으로 그려 글 화면과 같은 모양을 얻는다. 글 화면은 첫 번호부터 차례로 센다.
+          let className = "cm-md-li";
+          let style = indent;
+          let index = 0;
+          for (let at = item.prevSibling; at; at = at.prevSibling) index += 1;
+          if (list.name === "OrderedList") {
+            const start = list.firstChild?.getChild("ListMark") ?? node;
+            className += " cm-md-ol";
+            style += `;counter-set:list-item ${parseInt(doc.sliceString(start.from, start.to)) + index}`;
+          }
+          if (index) className += " cm-md-li-next";
+          listLines.set(line.from, Decoration.line({ class: className, attributes: { style } }));
           return;
         }
         case "HorizontalRule": {
@@ -186,9 +226,20 @@ function buildDecorations(state: EditorState): LivePreview {
           addLines(from, to, "cm-md-codeblock");
           return;
         case "CodeMark":
+          // 펜스 줄은 글 화면 코드블록의 위아래 여백 자리에 둔다.
+          ranges.push(lineDecoration(from === node.parent?.from ? "cm-md-fence-open" : "cm-md-fence-close").range(doc.lineAt(from).from));
+          ranges.push(markDecoration("cm-md-syntax").range(from, to));
+          return;
         case "CodeInfo":
           ranges.push(markDecoration("cm-md-syntax").range(from, to));
           return;
+        case "Table": {
+          if (isActive(from, to) || parent !== "Document") return;
+          // 줄 안에 넣으면 CodeMirror가 커서 자리로 위젯 앞뒤에 넣는 요소가 한 칸씩 더 차지해 줄 단위 블록으로 둔다.
+          const table = new TableWidget(doc.sliceString(from, to));
+          ranges.push(Decoration.replace({ widget: table, block: true }).range(doc.lineAt(from).from, doc.lineAt(to).to));
+          return false;
+        }
         case "Escape":
           // `\\*`는 보이는 글자 하나다. 백슬래시 뒤에 서서 쓰면 이스케이프가 풀려 백슬래시가 글자로 드러난다.
           ranges.push(hide.range(from, from + 1));
@@ -235,12 +286,15 @@ function buildDecorations(state: EditorState): LivePreview {
           const close = delimiters.length > 1 ? delimiters[delimiters.length - 1] : null;
           const tex = doc.sliceString(open.to, close ? close.from : to).trim();
           const display = name === "BlockMath" || open.to - open.from === 2;
-          ranges.push(Decoration.replace({ widget: new MathWidget(tex, display) }).range(from, to));
+          const block = name === "BlockMath" && parent === "Document";
+          ranges.push(Decoration.replace({ widget: new MathWidget(tex, display), block }).range(from, to));
           return false;
         }
       }
     },
   });
+
+  for (const [from, line] of listLines) ranges.push(line.range(from));
 
   return { decorations: Decoration.set(ranges, true), atomic: Decoration.set(atomic, true) };
 }

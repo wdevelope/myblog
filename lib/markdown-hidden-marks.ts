@@ -59,13 +59,21 @@ function pastMarks(state: EditorState, start: number, side: Side, leavingOnly = 
   return pos;
 }
 
+// 줄머리 기호 뒤 공백은 글 화면에 나오지 않아 기호와 한 덩어리다.
+export function pastSpaces(state: EditorState, start: number) {
+  const { to } = state.doc.lineAt(start);
+  let pos = start;
+  while (pos < to && state.sliceDoc(pos, pos + 1) === " ") pos += 1;
+  return pos;
+}
+
 function isLinePrefix(node: TreeNode) {
   if (node.name === "QuoteMark") return true;
   if (node.name === "HeaderMark") return node.from === node.parent?.from;
-  return node.name === "ListMark" && node.parent?.parent?.name === "BulletList" && node.nextSibling?.name !== "Task";
+  return node.name === "ListMark";
 }
 
-// pos가 걸친 줄머리 기호(제목 `#`·인용 `>`·글머리 `-`와 뒤 공백). 붙어 있는 기호는 한 덩어리다.
+// pos가 걸친 줄머리 기호(제목 `#`·인용 `>`·목록 `-`·`1.`과 뒤 공백). 붙어 있는 기호와 줄 앞 공백은 한 덩어리다.
 // 공백 없이 막 친 기호는 뒤에 글자가 이어지면 문법이 아니라 보통 글자로 둔다.
 function linePrefix(state: EditorState, pos: number) {
   const line = state.doc.lineAt(pos);
@@ -76,8 +84,9 @@ function linePrefix(state: EditorState, pos: number) {
     enter({ node }) {
       if (node.from < line.from || !isLinePrefix(node) || state.sliceDoc(node.to, node.to + 1) !== " ") return;
       const last = chunks.at(-1);
-      if (last?.to === node.from) last.to = node.to + 1;
-      else chunks.push({ from: node.from, to: node.to + 1 });
+      const to = pastSpaces(state, node.to);
+      if (last?.to === node.from) last.to = to;
+      else chunks.push({ from: state.sliceDoc(line.from, node.from).trim() ? node.from : line.from, to });
     },
   });
   return chunks.find((chunk) => chunk.from <= pos && pos < chunk.to) ?? null;

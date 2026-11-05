@@ -22,9 +22,13 @@ function preview(source: string) {
       const { width, align } = widget.options;
       label = `image:${widget.src}${width ? `:w${width}` : ""}${align ? `:${align}` : ""}${widget.selected ? ":선택" : ""}`;
     }
-    else if (from === to) label = `line:${value.spec.class}@${state.doc.lineAt(from).number}`;
+    else if (from === to) {
+      const style = value.spec.attributes?.style;
+      label = `line:${value.spec.class}${style ? `[${style}]` : ""}@${state.doc.lineAt(from).number}`;
+    }
     else if (!widget) label = value.spec.class ? `${value.spec.class}:${text}` : `hide:${text}`;
     else if (widget.tex) label = `math:${widget.tex}:${widget.display ? "display" : "inline"}`;
+    else if (widget.source) label = `table:${widget.source}`;
     else label = `${widget.className}:${text}`;
     found.push({ from, to, label });
   });
@@ -81,9 +85,50 @@ describe("작성 칸 라이브 프리뷰", () => {
     expect(preview("-‸")).toEqual([]);
   });
 
-  it("글머리 목록 기호는 점으로 바꾸고, 번호 목록과 체크리스트는 그대로 둔다", () => {
-    expect(preview("- 하나\n1. 둘\n\n- [ ] 셋\n‸")).toEqual(["cm-md-bullet:-"]);
-    expect(preview("- 하‸나")).toEqual(["cm-md-bullet:-"]);
+  it("글머리 목록은 기호를 숨기고 줄을 목록 항목으로 그린다", () => {
+    expect(preview("- 하나\n- 둘\n‸")).toEqual([
+      "hide:- ",
+      "line:cm-md-li[--md-depth:1]@1",
+      "hide:- ",
+      "line:cm-md-li cm-md-li-next[--md-depth:1]@2",
+    ]);
+    expect(preview("- 하‸나")).toEqual(["hide:- ", "line:cm-md-li[--md-depth:1]@1"]);
+  });
+
+  it("번호 목록은 글 화면처럼 첫 번호부터 차례로 센다", () => {
+    expect(preview("3. 하나\n3. 둘\n‸")).toEqual([
+      "hide:3. ",
+      "line:cm-md-li cm-md-ol[--md-depth:1;counter-set:list-item 3]@1",
+      "hide:3. ",
+      "line:cm-md-li cm-md-ol cm-md-li-next[--md-depth:1;counter-set:list-item 4]@2",
+    ]);
+  });
+
+  it("체크리스트는 글 화면처럼 점과 대괄호 글자로 둔다", () => {
+    expect(preview("- [ ] 하나\n‸")).toEqual(["hide:- ", "line:cm-md-li[--md-depth:1]@1"]);
+  });
+
+  it("들여쓴 목록은 줄 앞 공백까지 숨기고 깊이를 더한다", () => {
+    expect(preview("- 하나\n  - 둘\n‸")).toEqual([
+      "hide:- ",
+      "line:cm-md-li[--md-depth:1]@1",
+      "hide:  - ",
+      "line:cm-md-li[--md-depth:2]@2",
+    ]);
+  });
+
+  it("줄머리 기호 뒤 공백이 여럿이면 글 화면처럼 모두 숨긴다", () => {
+    expect(preview("-   하나\n‸")).toEqual(["hide:-   ", "line:cm-md-li[--md-depth:1]@1"]);
+    expect(preview("##   제목\n‸")).toEqual(["hide:##   ", "line:cm-md-h2@1"]);
+    expect(preview(">   인용\n\n‸")).toEqual(["hide:>   ", "line:cm-md-quote@1"]);
+  });
+
+  it("항목에 이어 쓴 줄은 점 없이 같은 들여쓰기만 받는다", () => {
+    expect(preview("- 하나\n이어서\n\n‸")).toEqual([
+      "hide:- ",
+      "line:cm-md-li[--md-depth:1]@1",
+      "line:cm-md-li-rest[--md-depth:1]@2",
+    ]);
   });
 
   it("인용은 `>`를 숨기고 줄마다 인용 선을 긋는다", () => {
@@ -145,10 +190,12 @@ describe("작성 칸 라이브 프리뷰", () => {
     expect(preview("```js\n**x**\n```\n‸")).toEqual([
       "cm-md-syntax:```",
       "line:cm-md-codeblock@1",
+      "line:cm-md-fence-open@1",
       "cm-md-syntax:js",
       "line:cm-md-codeblock@2",
       "cm-md-syntax:```",
       "line:cm-md-codeblock@3",
+      "line:cm-md-fence-close@3",
     ]);
   });
 
@@ -206,7 +253,12 @@ describe("작성 칸 라이브 프리뷰", () => {
     expect(state.field(livePreviewField).atomic.size).toBe(0);
   });
 
-  it("표는 장식하지 않는다", () => {
-    expect(preview("| a |\n| - |\n| b |\n‸")).toEqual([]);
+  it("표는 커서가 밖에 있으면 글 화면과 같은 표로 그린다", () => {
+    expect(preview("| a |\n| - |\n| b |\n\n‸")).toEqual(["table:| a |\n| - |\n| b |"]);
+  });
+
+  it("커서가 표 안에 있으면 고칠 수 있게 원문으로 둔다", () => {
+    expect(preview("| a‸ |\n| - |\n| b |")).toEqual([]);
+    expect(preview("| a |\n| - |\n| b |‸")).toEqual([]);
   });
 });

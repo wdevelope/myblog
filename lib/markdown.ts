@@ -50,6 +50,50 @@ md.renderer.rules.table_open = (tokens, idx, options, env, self) =>
 md.renderer.rules.table_close = (tokens, idx, options, env, self) =>
   `${renderTableClose(tokens, idx, options, env, self)}</div>\n`;
 
+// 쓰는 화면은 빈 줄 하나가 한 칸이다. 글 화면도 같은 높이로 띄우도록 블록 앞의 빈 줄 수를 적어 둔다.
+// 글 맨 앞과 부모의 첫 자식은 앞에 띄울 블록이 없다. 인용 안에서는 `>`만 있는 줄이 빈 줄이다.
+md.core.ruler.push("blank_lines", (state) => {
+  const lines = state.src.split("\n");
+  const blanksBefore = (line: number) => {
+    let rows = 0;
+    while (rows < line && !lines[line - rows - 1].replace(/^[ \t>]+/, "")) rows += 1;
+    return rows;
+  };
+  const blocksAtLevel: number[] = [];
+  for (const token of state.tokens) {
+    if (token.nesting < 0) blocksAtLevel.length = token.level + 1;
+    if (token.nesting < 0 || !token.block || !token.map || token.type === "inline") continue;
+    const seen = blocksAtLevel[token.level] ?? 0;
+    blocksAtLevel[token.level] = seen + 1;
+    if (seen) token.meta = { ...token.meta, blankLines: blanksBefore(token.map[0]) };
+  }
+});
+
+// 코드블록은 `<pre>`, 표는 감싼 `<div>`처럼 바깥 태그가 토큰 속성을 받지 않는 규칙이 있어 그려진 첫 태그에 넣는다.
+const withBlankLines =
+  (rule: RendererRule): RendererRule =>
+  (tokens, idx, options, env, self) => {
+    const html = rule(tokens, idx, options, env, self);
+    const rows = tokens[idx].meta?.blankLines;
+    return rows ? html.replace(/^\s*<\w+/, `$& style="margin-top:calc(var(--md-line) * ${rows})"`) : html;
+  };
+
+for (const type of [
+  "paragraph_open",
+  "heading_open",
+  "blockquote_open",
+  "bullet_list_open",
+  "ordered_list_open",
+  "list_item_open",
+  "hr",
+  "code_block",
+  "fence",
+  "math_block",
+  "table_open",
+]) {
+  md.renderer.rules[type] = withBlankLines(md.renderer.rules[type] ?? renderToken);
+}
+
 export function renderMarkdown(source: string): string {
   return md.render(source);
 }

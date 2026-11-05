@@ -276,6 +276,27 @@ describe("마크다운 에디터", () => {
     expect(upload).not.toHaveBeenCalled();
   });
 
+  it("커서가 밖에 있는 표는 글 화면과 같은 표로 그리고, 본문의 HTML은 글자로 둔다", () => {
+    render(<Harness initial={"앞\n\n| 이름 |\n| --- |\n| <b>값</b> |"} />);
+    expect(content().querySelector("table td")?.textContent).toBe("<b>값</b>");
+    expect(content().querySelector("td b")).toBeNull();
+
+    select(text().length);
+    expect(content().querySelector("table")).toBeNull();
+  });
+
+  it("제목은 한 줄이라 Enter를 막고 붙여넣은 줄바꿈은 공백으로 바꾼다", () => {
+    const onTitleChange = vi.fn();
+    render(
+      <MarkdownEditor value="" onChange={vi.fn()} onUploadImages={async () => []} title="" onTitleChange={onTitleChange} />
+    );
+    const title = screen.getByPlaceholderText("제목을 입력하세요.");
+
+    expect(fireEvent.keyDown(title, { key: "Enter" })).toBe(false);
+    fireEvent.change(title, { target: { value: "첫째 줄\n  둘째 줄" } });
+    expect(onTitleChange).toHaveBeenCalledWith("첫째 줄 둘째 줄");
+  });
+
   it("미리보기 패널 없이 작성 칸 하나만 그린다", () => {
     render(<Harness initial="**굵게**" />);
     expect(screen.queryByRole("button", { name: "미리보기" })).toBeNull();

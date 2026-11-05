@@ -117,6 +117,7 @@ export default function MarkdownEditor({
   onTitleChange,
   onUploadImages,
   placeholder = "내용을 입력하세요.",
+  compact = false,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -124,6 +125,7 @@ export default function MarkdownEditor({
   onTitleChange?: (title: string) => void;
   onUploadImages: (files: File[]) => Promise<string[]>;
   placeholder?: string;
+  compact?: boolean;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -309,17 +311,27 @@ export default function MarkdownEditor({
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-4xl px-4 pb-20 sm:px-6 lg:px-8">
-        {onTitleChange && (
-          <input
-            value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
-            placeholder="제목을 입력하세요."
-            className="mt-6 mb-6 w-full border-none bg-transparent text-2xl font-bold text-foreground outline-none placeholder:text-muted md:mt-12 md:text-4xl"
-          />
-        )}
+      {/* 글 화면과 폭이 같도록 안쪽 여백을 폭 바깥에 둔다. 피드는 카드의 본문 폭을 쓴다. */}
+      <div className="px-4 pb-20 sm:px-6 lg:px-8">
+        <div className={cn("mx-auto w-full", compact ? "max-w-xl px-4" : "max-w-4xl")}>
+          {onTitleChange && (
+            <textarea
+              value={title}
+              rows={1}
+              onChange={(e) => onTitleChange(e.target.value.replace(/\s*\n\s*/g, " "))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.preventDefault();
+              }}
+              placeholder="제목을 입력하세요."
+              className="mt-6 mb-6 block w-full resize-none border-none bg-transparent text-2xl font-black tracking-tight text-foreground outline-none [field-sizing:content] placeholder:text-muted md:mt-12 md:text-3xl"
+            />
+          )}
 
-        <div ref={editorRef} className={cn("markdown-editor", !onTitleChange && "mt-6 md:mt-12")} />
+          <div
+            ref={editorRef}
+            className={cn("markdown-editor", compact && "markdown-compact", !onTitleChange && "mt-6 md:mt-12")}
+          />
+        </div>
       </div>
     </div>
   );

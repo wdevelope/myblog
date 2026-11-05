@@ -193,28 +193,34 @@ describe("줄머리 기호와 커서", () => {
     expect(shown(view)).toBe("앞\n## ‸제목");
   });
 
-  it("들여쓴 글머리는 들여쓰기 칸에 설 수 있고 기호 앞에는 서지 못한다", () => {
-    const view = open("  - ‸안쪽");
-    click(view, 1);
-    expect(shown(view)).toBe(" ‸ - 안쪽");
-    click(view, 2);
-    expect(shown(view)).toBe("  - ‸안쪽");
-  });
-
   it("공백 없이 막 친 기호는 보통 글자처럼 커서가 앞에 설 수 있다", () => {
     const view = open("#‸");
     click(view, 0);
     expect(shown(view)).toBe("‸#");
   });
 
-  it("번호 목록과 체크리스트 기호는 보이는 글자라 앞에 설 수 있다", () => {
+  it("번호 목록과 체크리스트 기호도 숨기므로 앞에 서지 않는다", () => {
     const ordered = open("1. 하나‸");
     click(ordered, 0);
-    expect(shown(ordered)).toBe("‸1. 하나");
+    expect(shown(ordered)).toBe("1. ‸하나");
 
     const task = open("- [ ] 하나‸");
     click(task, 0);
-    expect(shown(task)).toBe("‸- [ ] 하나");
+    expect(shown(task)).toBe("- ‸[ ] 하나");
+  });
+
+  it("기호 뒤 공백이 여럿이어도 공백 사이에 서지 않는다", () => {
+    const view = open("-   하나‸");
+    click(view, 2);
+    expect(shown(view)).toBe("-   ‸하나");
+  });
+
+  it("들여쓴 목록은 줄 앞 공백 앞에도 서지 않는다", () => {
+    const view = open("- 하나\n  - 둘‸");
+    click(view, 5);
+    expect(shown(view)).toBe("- 하나\n  - ‸둘");
+    click(view, 6);
+    expect(shown(view)).toBe("- 하나\n  - ‸둘");
   });
 
   it("줄 앞으로 가는 키가 이스케이프 안쪽에 서면 이스케이프 앞으로 옮긴다", () => {
