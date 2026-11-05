@@ -38,6 +38,16 @@ describe("인라인 문법 토글", () => {
     expect(run("가[**나다**]라", (s) => toggleInline(s, "**"))).toBe("가[나다]라");
   });
 
+  it("선택 없이 닫는 기호 바로 앞에서 누르면 기호를 더 넣지 않고 서식 밖으로 나간다", () => {
+    expect(run("**나다|**라", (s) => toggleInline(s, "**"))).toBe("**나다**|라");
+    expect(run("==나다|==", (s) => toggleInline(s, "=="))).toBe("==나다==|");
+    expect(run("`나다|`", (s) => toggleInline(s, "`"))).toBe("`나다`|");
+  });
+
+  it("기울임은 굵게 기호의 절반을 닫는 기호로 보지 않는다", () => {
+    expect(run("**나다|**", (s) => toggleInline(s, "*"))).toBe("**나다*|***");
+  });
+
   it("선택이 없으면 문법 한 쌍을 넣고 커서를 가운데 둔다", () => {
     expect(run("가|라", (s) => toggleInline(s, "=="))).toBe("가==|==라");
   });

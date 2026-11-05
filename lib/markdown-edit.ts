@@ -32,6 +32,10 @@ export function toggleInline({ value, start, end }: TextSelection, marker: strin
   if (selected.length >= size * 2 && selected.startsWith(marker) && selected.endsWith(marker)) {
     return { from: start, to: end, insert: selected.slice(size, -size), selectionStart: start, selectionEnd: end - size * 2 };
   }
+  // 서식을 켜고 쓰다가 다시 누른 경우다. 기호를 또 넣으면 짝 없는 기호가 글자로 보인다.
+  if (start === end && after === marker && !halfOfLonger) {
+    return { from: start, to: start, insert: "", selectionStart: start + size, selectionEnd: start + size };
+  }
   return { from: start, to: end, insert: marker + selected + marker, selectionStart: start + size, selectionEnd: end + size };
 }
 
