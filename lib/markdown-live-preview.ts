@@ -4,6 +4,7 @@ import { Decoration, EditorView, WidgetType, type DecorationSet } from "@codemir
 import katex from "katex/dist/katex.js";
 import { PRIVATE_IMAGE_BUCKET, PUBLIC_IMAGE_BUCKET, coverSrcFromImageKey } from "@/lib/image";
 import { parseImageUrl } from "@/lib/image-options";
+import { hiddenMarkGuard, isHiddenMark } from "@/lib/markdown-hidden-marks";
 import { ImageWidget } from "@/lib/markdown-image-widget";
 import { blogMarkdownParser } from "@/lib/markdown-syntax";
 
@@ -21,7 +22,6 @@ const INLINE_STYLES: Record<string, string> = {
   Underline: "cm-md-underline",
   InlineCode: "cm-md-code",
 };
-const INLINE_MARKS = new Set(["EmphasisMark", "StrikethroughMark", "HighlightMark", "UnderlineMark"]);
 const HEADING_LEVEL = /^ATXHeading([1-6])$/;
 const SETEXT_LEVEL = /^SetextHeading([12])$/;
 
@@ -127,7 +127,7 @@ function buildDecorations(state: EditorState): LivePreview {
         ranges.push(markDecoration(inlineStyle).range(from, to));
         return;
       }
-      if (INLINE_MARKS.has(name) || (name === "CodeMark" && parent === "InlineCode")) {
+      if (isHiddenMark(name, parent)) {
         // 보이지 않는 `**` 사이에 커서가 멈추면 방향키가 먹지 않는 것처럼 보여 한 덩어리로 건너뛰게 한다.
         const mark = hide.range(from, to);
         ranges.push(mark);
@@ -242,4 +242,4 @@ export const livePreviewField = StateField.define<LivePreview>({
 
 const blogMarkdownLanguage = new Language(defineLanguageFacet(), blogMarkdownParser, [], "markdown");
 
-export const markdownLivePreview: Extension = [blogMarkdownLanguage.extension, livePreviewField];
+export const markdownLivePreview: Extension = [blogMarkdownLanguage.extension, livePreviewField, hiddenMarkGuard];

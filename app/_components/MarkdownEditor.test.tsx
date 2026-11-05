@@ -131,6 +131,20 @@ describe("마크다운 에디터", () => {
     expect(text()).toBe("불러온 글");
   });
 
+  it("줄 끝 서식 뒤에서 Enter를 눌러도 서식이 갈라지지 않는다", () => {
+    render(<Harness initial="끝 **굵게**" />);
+    select(6);
+    fireEvent.keyDown(content(), { key: "Enter", code: "Enter", keyCode: 13 });
+    expect(text()).toBe("끝 **굵게**\n");
+  });
+
+  it("서식 바로 뒤에서 지우기 키를 누르면 보이는 글자를 지운다", () => {
+    render(<Harness initial="**굵게** 뒤" />);
+    select(6);
+    fireEvent.keyDown(content(), { key: "Backspace", code: "Backspace", keyCode: 8 });
+    expect(text()).toBe("**굵** 뒤");
+  });
+
   it("붙여넣은 이미지는 자리표시자를 거쳐 버킷 키로 들어간다", async () => {
     const upload = vi.fn(async () => ["post-images-public:2026-10-22/a.png"]);
     render(<Harness initial="앞 " upload={upload} />);
