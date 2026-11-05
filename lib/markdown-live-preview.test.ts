@@ -59,11 +59,11 @@ describe("작성 칸 라이브 프리뷰", () => {
     expect(preview('**"중요"**는\n‸')).toEqual(['cm-md-strong:**"중요"**', "hide:**", "hide:**"]);
   });
 
-  it("선택이 여러 줄에 걸치면 그 줄 모두 제목·인용 기호를 드러낸다", () => {
+  it("선택이 여러 줄에 걸쳐도 제목·인용 기호를 숨긴다", () => {
     expect(preview("«## 가\n> 나»\n\n## 다")).toEqual([
-      "cm-md-syntax:## ",
+      "hide:## ",
       "line:cm-md-h2@1",
-      "cm-md-syntax:> ",
+      "hide:> ",
       "line:cm-md-quote@2",
       "hide:## ",
       "line:cm-md-h2@4",
@@ -72,15 +72,23 @@ describe("작성 칸 라이브 프리뷰", () => {
 
   it("제목은 `#`과 뒤 공백을 숨기고 줄에 제목 크기를 입힌다", () => {
     expect(preview("## 제목\n‸")).toEqual(["hide:## ", "line:cm-md-h2@1"]);
-    expect(preview("## 제‸목")).toEqual(["cm-md-syntax:## ", "line:cm-md-h2@1"]);
+    expect(preview("## 제‸목")).toEqual(["hide:## ", "line:cm-md-h2@1"]);
+  });
+
+  it("공백 없이 막 친 기호는 글자가 이어지면 문법이 아니므로 커서 줄에서 그대로 보인다", () => {
+    expect(preview("#‸")).toEqual(["cm-md-syntax:#", "line:cm-md-h1@1"]);
+    expect(preview(">‸")).toEqual(["cm-md-syntax:>", "line:cm-md-quote@1"]);
+    expect(preview("-‸")).toEqual([]);
   });
 
   it("글머리 목록 기호는 점으로 바꾸고, 번호 목록과 체크리스트는 그대로 둔다", () => {
     expect(preview("- 하나\n1. 둘\n\n- [ ] 셋\n‸")).toEqual(["cm-md-bullet:-"]);
+    expect(preview("- 하‸나")).toEqual(["cm-md-bullet:-"]);
   });
 
   it("인용은 `>`를 숨기고 줄마다 인용 선을 긋는다", () => {
     expect(preview("> 인용\n\n‸")).toEqual(["hide:> ", "line:cm-md-quote@1"]);
+    expect(preview("> 인‸용")).toEqual(["hide:> ", "line:cm-md-quote@1"]);
   });
 
   it("이미지는 커서 줄에서도 경로를 숨기고 키를 이미지 주소로 바꿔 그린다", () => {
@@ -100,14 +108,31 @@ describe("작성 칸 라이브 프리뷰", () => {
     expect(preview("«앞 ![](https://exa»mple.com/a.png)")).toEqual(["image:https://example.com/a.png"]);
   });
 
-  it("이미지와 숨긴 인라인 서식 기호만 커서가 건너뛰는 한 덩어리로 다룬다", () => {
-    const doc = "## **굵게** [a](b) ![](https://example.com/a.png)";
+  it("숨긴 기호와 이미지·구분선은 커서가 건너뛰는 한 덩어리로 다룬다", () => {
+    const doc = "## **굵게** [a](b) ![](https://example.com/a.png)\n\n> 인용\n\n- 항목 \\*\n\n---";
     const state = EditorState.create({ doc, extensions: markdownLivePreview });
     const atomic: string[] = [];
     state.field(livePreviewField).atomic.between(0, doc.length, (from, to) => {
       atomic.push(doc.slice(from, to));
     });
-    expect(atomic).toEqual(["**", "**", "![](https://example.com/a.png)"]);
+    expect(atomic).toEqual([
+      "## ",
+      "**",
+      "**",
+      "[",
+      "](b)",
+      "![](https://example.com/a.png)",
+      "> ",
+      "- ",
+      "\\*",
+      "---",
+    ]);
+  });
+
+  it("커서가 링크 안이면 링크 기호를 덩어리로 다루지 않아 주소를 고칠 수 있다", () => {
+    const doc = "[글자](b)";
+    const state = EditorState.create({ doc, selection: { anchor: 2 }, extensions: markdownLivePreview });
+    expect(state.field(livePreviewField).atomic.size).toBe(0);
   });
 
   it("커서가 `$$` 블록 안이면 블록 전체가 원문이고, 밖이면 수식 하나로 그린다", () => {
@@ -139,16 +164,46 @@ describe("작성 칸 라이브 프리뷰", () => {
     ]);
   });
 
+  it("커서가 같은 줄의 링크 밖에 있으면 주소를 숨긴다", () => {
+    const hidden = ["hide:[", "cm-md-link:블로그", "hide:](https://example.com)"];
+    expect(preview("앞‸ [블로그](https://example.com) 뒤")).toEqual(hidden);
+    expect(preview("‸[블로그](https://example.com)")).toEqual(hidden);
+    expect(preview("[블로그](https://example.com)‸")).toEqual(hidden);
+  });
+
+  it("커서나 선택이 링크 안에 있으면 주소를 고칠 수 있게 원문을 드러낸다", () => {
+    const shown = ["cm-md-syntax:[", "cm-md-link:블로그", "cm-md-syntax:](https://example.com)"];
+    expect(preview("[블‸로그](https://example.com)")).toEqual(shown);
+    expect(preview("[블로그](https://exa‸mple.com)")).toEqual(shown);
+    expect(preview("[«블로»그](https://example.com)")).toEqual(shown);
+  });
+
+  it("선택이 링크를 벗어나면 주소를 숨긴다", () => {
+    expect(preview("«앞 [블»로그](https://example.com)")).toEqual([
+      "hide:[",
+      "cm-md-link:블로그",
+      "hide:](https://example.com)",
+    ]);
+  });
+
   it("주소가 없는 대괄호 글자는 링크로 보지 않는다", () => {
     expect(preview("[공지] 안내\n‸")).toEqual([]);
   });
 
-  it("이스케이프 백슬래시는 커서 밖에서 숨긴다", () => {
+  it("이스케이프 백슬래시는 커서 줄에서도 숨긴다", () => {
     expect(preview("\\$5\n‸")).toEqual(["hide:\\"]);
+    expect(preview("\\$5‸")).toEqual(["hide:\\"]);
   });
 
-  it("구분선은 커서 밖에서 선으로 그린다", () => {
+  it("구분선은 커서가 올라가도 선으로 그린다", () => {
     expect(preview("앞\n\n---\n\n‸")).toEqual(["cm-md-rule:---"]);
+    expect(preview("앞\n\n---‸")).toEqual(["cm-md-rule:---"]);
+  });
+
+  it("선택 없이 굵게를 눌러 생긴 `****`는 구분선으로 읽혀도 안에 커서가 있으면 글자로 둔다", () => {
+    expect(preview("**‸**")).toEqual([]);
+    const state = EditorState.create({ doc: "****", selection: { anchor: 2 }, extensions: markdownLivePreview });
+    expect(state.field(livePreviewField).atomic.size).toBe(0);
   });
 
   it("표는 장식하지 않는다", () => {

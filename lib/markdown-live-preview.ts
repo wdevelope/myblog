@@ -4,13 +4,13 @@ import { Decoration, EditorView, WidgetType, type DecorationSet } from "@codemir
 import katex from "katex/dist/katex.js";
 import { PRIVATE_IMAGE_BUCKET, PUBLIC_IMAGE_BUCKET, coverSrcFromImageKey } from "@/lib/image";
 import { parseImageUrl } from "@/lib/image-options";
-import { hiddenMarkGuard, isHiddenMark } from "@/lib/markdown-hidden-marks";
+import { hiddenMarkGuard, isHiddenMark, isLinkOpen, linkMarks } from "@/lib/markdown-hidden-marks";
 import { ImageWidget } from "@/lib/markdown-image-widget";
 import { blogMarkdownParser } from "@/lib/markdown-syntax";
 
-// 작성 칸 라이브 프리뷰. 커서(선택 영역)가 걸친 줄은 기호를 흐리게 드러내고, 나머지 줄은 기호를 숨기거나 위젯으로 바꾼다.
-// 이미지와 인라인 서식(굵게·기울임 등) 기호는 커서 줄에서도 숨긴다. 서식을 넣자마자 기호 없이 보이게 하려는 사용자 결정이다.
-// 서식(굵게·제목 크기 등)은 커서 줄에도 입힌다. 한글 조합은 늘 커서 줄에서 일어나므로 조합 중에 기호가 숨었다 나타나지 않는다.
+// 작성 칸 라이브 프리뷰. 기호는 커서 위치와 상관없이 숨기거나 위젯으로 바꾼다. 쓰는 동안 줄이 바뀌지 않게 하려는 사용자 결정이다.
+// 원문을 드러내는 곳은 고치려면 봐야 하는 둘이다. 링크는 커서가 링크 안에 있을 때, 수식은 커서가 그 줄에 있을 때다.
+// 기호를 숨겨 생기는 커서·지우기 문제는 lib/markdown-hidden-marks가 다룬다.
 
 const IMAGE_KEY = new RegExp(`^(?:${PUBLIC_IMAGE_BUCKET}|${PRIVATE_IMAGE_BUCKET}):`);
 
@@ -25,7 +25,7 @@ const INLINE_STYLES: Record<string, string> = {
 const HEADING_LEVEL = /^ATXHeading([1-6])$/;
 const SETEXT_LEVEL = /^SetextHeading([12])$/;
 
-// 위젯은 누르면 그 자리에 커서를 두어 원문을 드러내야 하므로 이벤트를 에디터가 받게 한다.
+// 위젯을 눌러도 그 자리에 커서가 서야 하므로 이벤트를 에디터가 받게 한다.
 abstract class EditableWidget extends WidgetType {
   ignoreEvent() {
     return false;
@@ -103,10 +103,18 @@ function buildDecorations(state: EditorState): LivePreview {
   const isActive = (from: number, to: number) =>
     activeLines.some((line) => from <= line.to && to >= line.from);
 
-  // 커서 줄의 기호는 숨기지 않고 흐리게 보여 본문 글자와 구분한다.
+  // 보이지 않는 기호 사이에 커서가 멈추면 방향키가 먹지 않는 것처럼 보여 한 덩어리로 건너뛰게 한다.
   const addHidden = (from: number, to: number) => {
     if (from >= to) return;
-    ranges.push(isActive(from, to) ? markDecoration("cm-md-syntax").range(from, to) : hide.range(from, to));
+    const mark = hide.range(from, to);
+    ranges.push(mark);
+    atomic.push(mark);
+  };
+  // 막 친 기호는 뒤에 글자가 이어지면 문법이 아니므로, 공백이 붙기 전까지 커서 줄에서는 숨기지 않아 글자가 사라졌다 나타나지 않게 한다.
+  const isTyping = (from: number, to: number) => doc.sliceString(to, to + 1) !== " " && isActive(from, to);
+  const addPrefix = (from: number, to: number) => {
+    if (isTyping(from, to)) ranges.push(markDecoration("cm-md-syntax").range(from, to));
+    else addHidden(from, doc.sliceString(to, to + 1) === " " ? to + 1 : to);
   };
   const addLines = (from: number, to: number, className: string) => {
     for (let pos = from; pos <= to; ) {
@@ -128,10 +136,7 @@ function buildDecorations(state: EditorState): LivePreview {
         return;
       }
       if (isHiddenMark(name, parent)) {
-        // 보이지 않는 `**` 사이에 커서가 멈추면 방향키가 먹지 않는 것처럼 보여 한 덩어리로 건너뛰게 한다.
-        const mark = hide.range(from, to);
-        ranges.push(mark);
-        atomic.push(mark);
+        addHidden(from, to);
         return;
       }
 
@@ -147,7 +152,7 @@ function buildDecorations(state: EditorState): LivePreview {
           if (parent?.startsWith("Setext")) {
             ranges.push(markDecoration("cm-md-syntax").range(from, to));
           } else if (node.parent && from === node.parent.from) {
-            addHidden(from, doc.sliceString(to, to + 1) === " " ? to + 1 : to);
+            addPrefix(from, to);
           } else {
             addHidden(doc.sliceString(from - 1, from) === " " ? from - 1 : from, to);
           }
@@ -157,17 +162,25 @@ function buildDecorations(state: EditorState): LivePreview {
           addLines(from, to, "cm-md-quote");
           return;
         case "QuoteMark":
-          addHidden(from, doc.sliceString(to, to + 1) === " " ? to + 1 : to);
+          addPrefix(from, to);
           return;
         case "ListMark": {
           const isBullet = node.parent?.parent?.name === "BulletList";
           const isTask = node.nextSibling?.name === "Task";
-          if (isBullet && !isTask && !isActive(from, to)) ranges.push(bullet.range(from, to));
+          if (!isBullet || isTask || isTyping(from, to)) return;
+          ranges.push(bullet.range(from, to));
+          atomic.push(bullet.range(from, doc.sliceString(to, to + 1) === " " ? to + 1 : to));
           return;
         }
-        case "HorizontalRule":
-          if (!isActive(from, to)) ranges.push(rule.range(from, to));
+        case "HorizontalRule": {
+          // 선택 없이 굵게를 누르면 `****` 사이에 커서가 선다. 구분선으로 읽혀도 쓰는 중이므로 글자로 둔다.
+          const { head } = state.selection.main;
+          if (from < head && head < to) return;
+          const line = rule.range(from, to);
+          ranges.push(line);
+          atomic.push(line);
           return;
+        }
         case "FencedCode":
         case "CodeBlock":
           addLines(from, to, "cm-md-codeblock");
@@ -177,15 +190,22 @@ function buildDecorations(state: EditorState): LivePreview {
           ranges.push(markDecoration("cm-md-syntax").range(from, to));
           return;
         case "Escape":
-          addHidden(from, from + 1);
+          // `\\*`는 보이는 글자 하나다. 백슬래시 뒤에 서서 쓰면 이스케이프가 풀려 백슬래시가 글자로 드러난다.
+          ranges.push(hide.range(from, from + 1));
+          atomic.push(hide.range(from, to));
           return;
         case "Link": {
-          // `[공지]`처럼 주소가 없는 대괄호는 글 화면에서 글자로 나오므로 링크로 꾸미지 않는다.
-          const [open, close] = node.getChildren("LinkMark");
-          if (!open || !close || !node.getChild("URL")) return;
+          const marks = linkMarks(node);
+          if (!marks) return;
+          const { open, close } = marks;
           if (open.to < close.from) ranges.push(markDecoration("cm-md-link").range(open.to, close.from));
-          addHidden(open.from, open.to);
-          addHidden(close.from, to);
+          if (isLinkOpen(state, node)) {
+            ranges.push(markDecoration("cm-md-syntax").range(open.from, open.to));
+            ranges.push(markDecoration("cm-md-syntax").range(close.from, close.to));
+          } else {
+            addHidden(open.from, open.to);
+            addHidden(close.from, close.to);
+          }
           return;
         }
         case "URL":

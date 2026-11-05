@@ -157,6 +157,127 @@ describe("숨긴 서식 기호와 커서", () => {
   });
 });
 
+describe("줄머리 기호와 커서", () => {
+  it.each([
+    ["## 제목", 3],
+    ["> 인용", 2],
+    ["- 항목", 2],
+    ["> ## 제목", 5],
+  ])("%s의 줄 맨 앞을 누르면 기호 뒤에 선다", (line, inner) => {
+    const view = open(`앞‸\n\n${line}`);
+    click(view, 3);
+    expect(view.state.selection.main.head).toBe(3 + inner);
+  });
+
+  it("윗줄 끝에서 오른쪽 방향키를 누르면 기호 뒤로 들어간다", () => {
+    const view = open("앞‸\n## 제목");
+    cursorCharRight(view);
+    expect(shown(view)).toBe("앞\n## ‸제목");
+  });
+
+  it.each(["## ", "> ", "- ", "> ## "])("%s 뒤에서 왼쪽 방향키를 누르면 윗줄 끝으로 간다", (mark) => {
+    const view = open(`앞\n${mark}‸글자`);
+    cursorCharLeft(view);
+    expect(shown(view)).toBe(`앞‸\n${mark}글자`);
+  });
+
+  it("첫 줄의 기호 뒤에서 왼쪽 방향키를 눌러도 기호 앞으로 가지 않는다", () => {
+    const view = open("## ‸제목");
+    cursorCharLeft(view);
+    expect(shown(view)).toBe("## ‸제목");
+  });
+
+  it("줄 앞으로 가는 키를 눌러도 기호 앞으로 가지 않고 윗줄로도 넘어가지 않는다", () => {
+    const view = open("앞\n## ‸제목");
+    moveTo(view, 2, -1);
+    expect(shown(view)).toBe("앞\n## ‸제목");
+  });
+
+  it("들여쓴 글머리는 들여쓰기 칸에 설 수 있고 기호 앞에는 서지 못한다", () => {
+    const view = open("  - ‸안쪽");
+    click(view, 1);
+    expect(shown(view)).toBe(" ‸ - 안쪽");
+    click(view, 2);
+    expect(shown(view)).toBe("  - ‸안쪽");
+  });
+
+  it("공백 없이 막 친 기호는 보통 글자처럼 커서가 앞에 설 수 있다", () => {
+    const view = open("#‸");
+    click(view, 0);
+    expect(shown(view)).toBe("‸#");
+  });
+
+  it("번호 목록과 체크리스트 기호는 보이는 글자라 앞에 설 수 있다", () => {
+    const ordered = open("1. 하나‸");
+    click(ordered, 0);
+    expect(shown(ordered)).toBe("‸1. 하나");
+
+    const task = open("- [ ] 하나‸");
+    click(task, 0);
+    expect(shown(task)).toBe("‸- [ ] 하나");
+  });
+
+  it("줄 앞으로 가는 키가 이스케이프 안쪽에 서면 이스케이프 앞으로 옮긴다", () => {
+    const view = open("\\*가‸");
+    moveTo(view, 1, 1);
+    expect(shown(view)).toBe("‸\\*가");
+  });
+});
+
+describe("링크 기호와 커서", () => {
+  const url = "https://a.com";
+
+  it("링크로 끝나는 줄의 끝을 누르면 주소 뒤에 선다", () => {
+    const view = open(`‸끝 [글자](${url})`);
+    click(view, 5);
+    expect(shown(view)).toBe(`끝 [글자](${url})‸`);
+  });
+
+  it("줄 끝으로 가는 키도 주소 뒤에 멈춘다", () => {
+    const view = open(`끝‸ [글자](${url})`);
+    moveTo(view, 5, -1);
+    expect(shown(view)).toBe(`끝 [글자](${url})‸`);
+  });
+
+  it("링크 글자 앞을 누르면 여는 괄호 앞에 선다", () => {
+    const view = open(`앞‸ [글자](${url})`);
+    click(view, 3);
+    expect(shown(view)).toBe(`앞 ‸[글자](${url})`);
+  });
+
+  it("링크 글자 가운데를 누르면 그 자리에 선다", () => {
+    const view = open(`앞‸ [글자](${url})`);
+    click(view, 4);
+    expect(shown(view)).toBe(`앞 [글‸자](${url})`);
+  });
+
+  it("바깥에서 방향키로 한 칸 들어오면 링크 안쪽 끝에 머문다", () => {
+    const fromRight = open(`[글자](${url})‸ 뒤`);
+    cursorCharLeft(fromRight);
+    expect(shown(fromRight)).toBe(`[글자‸](${url}) 뒤`);
+
+    const fromLeft = open(`앞 ‸[글자](${url})`);
+    cursorCharRight(fromLeft);
+    expect(shown(fromLeft)).toBe(`앞 [‸글자](${url})`);
+  });
+
+  it("커서가 링크 안에 있으면 주소까지 한 글자씩 움직인다", () => {
+    const view = open(`[글‸자](${url})`);
+    cursorCharRight(view);
+    expect(shown(view)).toBe(`[글자‸](${url})`);
+    cursorCharRight(view);
+    expect(shown(view)).toBe(`[글자]‸(${url})`);
+    cursorCharRight(view);
+    expect(shown(view)).toBe(`[글자](‸${url})`);
+  });
+
+  it("주소가 없는 대괄호는 링크가 아니라 커서를 옮기지 않는다", () => {
+    const view = open("‸[공지] 안내");
+    click(view, 1);
+    expect(shown(view)).toBe("[‸공지] 안내");
+  });
+});
+
 describe("숨긴 서식 기호와 Enter", () => {
   it("닫는 기호 앞에서 줄을 바꾸면 기호 뒤에서 바뀐다", () => {
     const view = open("끝 **굵게‸**\n다음");
@@ -193,6 +314,26 @@ describe("숨긴 서식 기호와 Enter", () => {
     insertNewlineAndIndent(view);
     undo(view);
     expect(view.state.doc.toString()).toBe("끝 **굵게**");
+  });
+});
+
+describe("줄머리 기호와 Enter", () => {
+  it.each(["## ", "> ", "- "])("%s 바로 뒤에서 줄을 바꾸면 그 줄이 통째로 아래로 내려간다", (mark) => {
+    const view = open(`${mark}‸글자`);
+    insertNewlineAndIndent(view);
+    expect(shown(view)).toBe(`\n${mark}‸글자`);
+  });
+
+  it("글자가 없는 줄머리에서 줄을 바꾸면 다음 줄로 나간다", () => {
+    const view = open("## ‸");
+    insertNewlineAndIndent(view);
+    expect(shown(view)).toBe("## \n‸");
+  });
+
+  it("글자 뒤에서 줄을 바꾸면 그 자리에서 바뀐다", () => {
+    const view = open("## 제‸목");
+    insertNewlineAndIndent(view);
+    expect(shown(view)).toBe("## 제\n‸목");
   });
 });
 
@@ -318,5 +459,89 @@ describe("숨긴 서식 기호와 지우기", () => {
     const view = open("**![](https://example.com/a.png)**‸");
     deleteCharBackward(view);
     expect(shown(view)).toBe("‸");
+  });
+});
+
+describe("줄머리 기호와 지우기", () => {
+  it.each(["## ", "> ", "- "])("%s 바로 뒤에서 지우면 기호만 지워 보통 줄이 된다", (mark) => {
+    const view = open(`앞\n${mark}‸글자`);
+    deleteCharBackward(view);
+    expect(shown(view)).toBe("앞\n‸글자");
+  });
+
+  it.each(["## ", "> ", "- "])("윗줄 끝에서 앞으로 지우면 %s 없이 글자만 붙는다", (mark) => {
+    const view = open(`앞‸\n${mark}글자`);
+    deleteCharForward(view);
+    expect(shown(view)).toBe("앞‸글자");
+  });
+
+  it("빈 줄을 앞으로 지우면 아랫줄의 기호를 남기고 기호 뒤에 선다", () => {
+    const view = open("앞\n‸\n## 제목");
+    deleteCharForward(view);
+    expect(shown(view)).toBe("앞\n## ‸제목");
+  });
+
+  it("윗줄을 통째로 선택해 지우면 아랫줄의 기호를 남긴다", () => {
+    const view = open("«앞\n»## 제목");
+    deleteCharBackward(view);
+    expect(shown(view)).toBe("## ‸제목");
+  });
+
+  it("줄을 넘어 제목 가운데까지 선택해 지우면 기호도 함께 지워진다", () => {
+    const view = open("앞«\n## 제»목");
+    deleteCharBackward(view);
+    expect(shown(view)).toBe("앞‸목");
+  });
+
+  it("구분선은 한 번에 지운다", () => {
+    const view = open("앞\n\n---‸\n\n뒤");
+    deleteCharBackward(view);
+    expect(shown(view)).toBe("앞\n\n‸\n\n뒤");
+  });
+
+  it("이스케이프한 글자는 백슬래시까지 함께 지운다", () => {
+    const view = open("1\\.‸ 제목");
+    deleteCharBackward(view);
+    expect(shown(view)).toBe("1‸ 제목");
+  });
+});
+
+describe("링크 기호와 지우기", () => {
+  const url = "https://a.com";
+
+  it("링크 바로 뒤에서 지우면 주소 대신 보이는 글자를 지운다", () => {
+    const view = open(`[글자](${url})‸ 뒤`);
+    deleteCharBackward(view);
+    expect(shown(view)).toBe(`[글](${url})‸ 뒤`);
+  });
+
+  it("마지막 글자를 지우면 주소까지 함께 지운다", () => {
+    const view = open(`앞 [글](${url})‸ 뒤`);
+    deleteCharBackward(view);
+    expect(shown(view)).toBe("앞 ‸ 뒤");
+  });
+
+  it("링크 바로 앞에서 앞으로 지우면 보이는 글자를 지운다", () => {
+    const view = open(`앞 ‸[글자](${url})`);
+    deleteCharForward(view);
+    expect(shown(view)).toBe(`앞 ‸[자](${url})`);
+  });
+
+  it("앞에서 링크 가운데까지 선택해 지우면 남은 글자는 링크로 남는다", () => {
+    const view = open(`«앞 [글»자](${url})`);
+    deleteCharBackward(view);
+    expect(shown(view)).toBe(`‸[자](${url})`);
+  });
+
+  it("링크 글자를 모두 덮는 선택을 지우면 주소도 남기지 않는다", () => {
+    const view = open(`앞 [«글자](${url}) 뒤»`);
+    deleteCharBackward(view);
+    expect(shown(view)).toBe("앞 ‸");
+  });
+
+  it("커서가 링크 안에 있으면 주소를 원문대로 한 글자씩 지운다", () => {
+    const view = open(`[글자](https://a.c‸om)`);
+    deleteCharBackward(view);
+    expect(shown(view)).toBe("[글자](https://a.‸om)");
   });
 });
