@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assertAdmin } from "@/lib/server/admin";
-import { PRIVATE_IMAGE_BUCKET, PUBLIC_IMAGE_BUCKET } from "@/lib/image";
+import { isImageBucket, PRIVATE_IMAGE_BUCKET, PUBLIC_IMAGE_BUCKET, storageObjectPath } from "@/lib/image";
 
 export const runtime = "nodejs";
 
@@ -26,6 +26,11 @@ export async function GET(request: Request) {
     );
   }
 
+  const objectPath = storageObjectPath(path);
+  if (!isImageBucket(bucket) || !objectPath) {
+    return NextResponse.json({ error: "invalid_image_key" }, { status: 400 });
+  }
+
   if (bucket !== PUBLIC_IMAGE_BUCKET && !(await assertAdmin())) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
@@ -34,7 +39,7 @@ export async function GET(request: Request) {
   const service = createSupabaseServiceClient();
   const { data: blob, error: downloadError } = await service.storage
     .from(bucket)
-    .download(path);
+    .download(objectPath);
 
   if (downloadError || !blob) {
     return NextResponse.json({ error: "image_fetch_failed" }, { status: 404 });
