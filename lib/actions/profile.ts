@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { assertAdmin, getViewer } from "@/lib/server/admin";
 import { getCommentedPosts, listAvatarPaths, revalidateCommentedPosts } from "@/lib/server/account";
+import { dbFailure } from "@/lib/server/dbFailure";
 import { revalidateGuestbook } from "@/lib/server/guestbook";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
@@ -55,7 +56,7 @@ export async function updateNickname(input: unknown): Promise<ProfileResult> {
   if (error) {
     if (error.code === "23505") return { success: false, error: NICKNAME_MESSAGES.taken };
     if (error.code === "23514") return { success: false, error: NICKNAME_MESSAGES.invalid };
-    return { success: false, error: `DB Error: ${error.message}` };
+    return dbFailure("닉네임 저장", error);
   }
 
   await refreshCommentedPosts(user.id);
@@ -82,7 +83,7 @@ export async function updateAvatar(path: unknown): Promise<ProfileResult> {
   try {
     paths = await listAvatarPaths(supabase, user.id);
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Storage Error" };
+    return dbFailure("프로필 사진 목록 조회", e as Error);
   }
   if (!paths.includes(parsed.data)) {
     return { success: false, error: "올린 사진을 찾지 못했어요. 다시 올려 주세요." };
@@ -92,9 +93,7 @@ export async function updateAvatar(path: unknown): Promise<ProfileResult> {
     .from("profiles")
     .update({ avatar_path: parsed.data })
     .eq("id", user.id);
-  if (error) {
-    return { success: false, error: `DB Error: ${error.message}` };
-  }
+  if (error) return dbFailure("프로필 사진 저장", error);
 
   // 이전 사진(과 저장하지 못하고 남은 파일)을 지운다. 실패해도 사진 바꾸기는 끝났다.
   const stale = paths.filter((p) => p !== parsed.data);
@@ -118,9 +117,7 @@ export async function removeAvatar(): Promise<ProfileResult> {
     .from("profiles")
     .update({ avatar_path: null })
     .eq("id", user.id);
-  if (error) {
-    return { success: false, error: `DB Error: ${error.message}` };
-  }
+  if (error) return dbFailure("프로필 사진 삭제", error);
 
   try {
     const paths = await listAvatarPaths(supabase, user.id);
@@ -148,9 +145,7 @@ export async function resetUserProfile(userId: unknown): Promise<ProfileResult> 
     .from("profiles")
     .update({ nickname: null, avatar_path: null })
     .eq("id", parsed.data);
-  if (error) {
-    return { success: false, error: `DB Error: ${error.message}` };
-  }
+  if (error) return dbFailure("프로필 초기화", error);
 
   try {
     const paths = await listAvatarPaths(service, parsed.data);

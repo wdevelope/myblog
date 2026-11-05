@@ -2,7 +2,7 @@ import Link from "next/link";
 import CategorySettingsModal from "@/app/article/CategorySettingsModal";
 import ArticleListItem from "@/app/article/ArticleListItem";
 import VisibilityIcon from "@/app/_components/VisibilityIcon";
-import type { Post } from "@/lib/types";
+import type { Category, Post } from "@/lib/types";
 import {
   getPublicCategories,
   getPublicPostCounts,
@@ -19,8 +19,6 @@ import { RememberArticleList } from "@/app/article/ArticleListMemory";
 import { ButtonLink, buttonClass } from "@/app/_components/ui";
 
 const LIMIT = 12;
-
-type Category = { slug: string; visibility: "public" | "private"; sortOrder: number };
 
 // /article, /article/page/[page], /article/category/[slug](/page/[page])가 함께 쓰는 목록 화면.
 // 방문자는 쿠키 없는 공개 캐시만 읽어 정적으로 남고, 관리자는 draft mode에서 비공개 글·카테고리까지 본다.
@@ -230,7 +228,7 @@ async function getAdminCategories(): Promise<Category[]> {
 
   return (data ?? []).map((row) => ({
     slug: row.slug,
-    visibility: row.visibility as "public" | "private",
-    sortOrder: Number(row.sort_order ?? 0),
+    visibility: row.visibility,
+    sortOrder: row.sort_order,
   }));
 }

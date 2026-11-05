@@ -37,10 +37,7 @@ export async function GET(request: Request) {
     .download(path);
 
   if (downloadError || !blob) {
-    return NextResponse.json(
-      { error: "image_fetch_failed", details: downloadError?.message },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "image_fetch_failed" }, { status: 404 });
   }
 
   // 비공개 이미지가 CDN 같은 공유 캐시에 남으면 관리자 확인 없이 다시 나갈 수 있다.
@@ -116,10 +113,8 @@ export async function POST(request: Request) {
       .upload(path, buffer, { contentType: file.type, upsert: false });
 
     if (error) {
-      return NextResponse.json(
-        { error: "upload_failed", details: error.message },
-        { status: 500 }
-      );
+      console.error("이미지 업로드:", error.message);
+      return NextResponse.json({ error: "이미지를 올리지 못했어요." }, { status: 500 });
     }
 
     keys.push(`${bucket}:${path}`);

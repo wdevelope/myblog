@@ -90,7 +90,7 @@ describe("회원 탈퇴", () => {
     mocks.getUser.mockResolvedValue({ data: { user: member }, error: null });
     mocks.comments = [
       { posts: { slug: "a", type: "blog" } },
-      { posts: [{ slug: "b", type: "blog" }] },
+      { posts: { slug: "b", type: "blog" } },
       { posts: { slug: "f", type: "feed" } },
       { posts: null },
     ];

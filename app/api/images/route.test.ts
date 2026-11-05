@@ -78,6 +78,15 @@ describe("GET /api/images 권한", () => {
     expect(mocks.download).not.toHaveBeenCalled();
   });
 
+  it("이미지를 받지 못해도 Storage 오류 원문을 돌려주지 않는다", async () => {
+    mocks.download.mockResolvedValue({ data: null, error: { message: "bucket secret-name not found" } });
+
+    const res = await GET(new Request(imageUrl("post-images-public")));
+
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "image_fetch_failed" });
+  });
+
   it("공개 버킷 이미지는 비로그인도 받는다", async () => {
     signedIn(null);
 
@@ -152,6 +161,18 @@ describe("POST /api/images 파일 검사", () => {
 
     expect(res.status).toBe(400);
     expect(mocks.upload).not.toHaveBeenCalled();
+  });
+
+  it("올리지 못하면 Storage 오류 원문 대신 안내 문구를 돌려주고 원문은 서버 로그에 남긴다", async () => {
+    signedIn(admin);
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.upload.mockResolvedValue({ error: { message: "bucket secret-name not found" } });
+
+    const res = await POST(uploadRequest([new File(["image"], "a.png", { type: "image/png" })]));
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: "이미지를 올리지 못했어요." });
+    expect(logged.mock.calls.flat().join(" ")).toContain("bucket secret-name not found");
   });
 
   it("관리자가 올린 이미지는 날짜 폴더 키로 돌려준다", async () => {

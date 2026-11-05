@@ -103,6 +103,26 @@ describe("댓글 액션 권한", () => {
   });
 });
 
+describe("댓글 입력", () => {
+  it("내용이 공백뿐이면 쓰지 않는다", async () => {
+    mocks.tables.posts = { id: "post-1", type: "blog", visibility: "public", slug: "hello", title: "안녕" };
+
+    expect(await createComment({ postSlug: "hello", content: "   " })).toEqual({
+      success: false,
+      error: "내용을 입력해주세요.",
+    });
+    expect(mocks.writes).toEqual([]);
+  });
+
+  it("문자열이 아닌 값은 DB까지 보내지 않는다", async () => {
+    const input = { postSlug: "hello", content: { evil: true } } as never;
+
+    expect(await createComment(input)).toEqual({ success: false, error: "내용을 입력해주세요." });
+    expect(await deleteComment(1)).toEqual({ success: false, error: "commentId is required" });
+    expect(mocks.writes).toEqual([]);
+  });
+});
+
 describe("댓글 공개 캐시 무효화", () => {
   const author = { id: "user-1", app_metadata: {}, user_metadata: {} };
 

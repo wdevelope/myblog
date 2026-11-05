@@ -1,24 +1,29 @@
 "use server";
 
 import { after } from "next/server";
+import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/server/admin";
+import { COMMENT_COLUMNS, mapComment } from "@/lib/server/commentRow";
+import { dbFailure } from "@/lib/server/dbFailure";
 import { notifyNewComment } from "@/lib/server/notify";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 import type { Comment } from "@/lib/types";
 
-export type CreateCommentInput = {
-  postSlug: string;
-  content: string;
-  parentId?: string;
-};
+const createCommentSchema = z.object({
+  postSlug: z.string({ error: "postSlug is required" }).trim().min(1, "postSlug is required"),
+  content: z.string({ error: "내용을 입력해주세요." }).trim().min(1, "내용을 입력해주세요."),
+  parentId: z.string().trim().optional(),
+});
+
+export type CreateCommentInput = z.input<typeof createCommentSchema>;
 
 export type CreateCommentResult =
   | { success: true; comment: Comment }
   | { success: false; error: string };
 
 export async function createComment(
-  input: CreateCommentInput
+  rawInput: CreateCommentInput
 ): Promise<CreateCommentResult> {
   const supabase = await createSupabaseServerClient();
   const { user, isAdmin } = await getViewer();
@@ -26,12 +31,11 @@ export async function createComment(
     return { success: false, error: "unauthorized" };
   }
 
-  if (!input.postSlug?.trim()) {
-    return { success: false, error: "postSlug is required" };
+  const parsed = createCommentSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "입력을 확인해주세요." };
   }
-  if (!input.content?.trim()) {
-    return { success: false, error: "내용을 입력해주세요." };
-  }
+  const input = parsed.data;
 
   const { data: post, error: postError } = await supabase
     .from("posts")
@@ -39,9 +43,7 @@ export async function createComment(
     .eq("slug", input.postSlug)
     .maybeSingle();
 
-  if (postError) {
-    return { success: false, error: `DB Error: ${postError.message}` };
-  }
+  if (postError) return dbFailure("댓글 대상 글 조회", postError);
   if (!post) {
     return { success: false, error: "not_found" };
   }
@@ -53,7 +55,7 @@ export async function createComment(
     return { success: false, error: "forbidden" };
   }
 
-  const parentId = input.parentId?.trim() ? input.parentId.trim() : null;
+  const parentId = input.parentId || null;
   if (parentId) {
     const { data: parent, error: parentError } = await supabase
       .from("comments")
@@ -61,9 +63,7 @@ export async function createComment(
       .eq("id", parentId)
       .maybeSingle();
 
-    if (parentError) {
-      return { success: false, error: `DB Error: ${parentError.message}` };
-    }
+    if (parentError) return dbFailure("답글 대상 댓글 조회", parentError);
     if (!parent) {
       return { success: false, error: "parent comment not found" };
     }
@@ -80,15 +80,13 @@ export async function createComment(
     .insert({
       post_id: post.id,
       author_id: user.id,
-      content: input.content.trim(),
+      content: input.content,
       parent_id: parentId,
     })
-    .select("*")
+    .select(COMMENT_COLUMNS)
     .single();
 
-  if (error) {
-    return { success: false, error: `DB Error: ${error.message}` };
-  }
+  if (error) return dbFailure("댓글 저장", error);
 
   // 댓글은 정적 HTML에 들어 있으므로 그 글의 상세와 목록(댓글 수)을 다시 만든다.
   revalidatePublicPosts({ type: post.type, slugs: [post.slug] });
@@ -106,29 +104,21 @@ export async function createComment(
     );
   }
 
-  return {
-    success: true,
-    comment: {
-      id: created.id,
-      postId: created.post_id,
-      parentId: created.parent_id,
-      authorId: created.author_id,
-      authorIsAdmin: created.author_is_admin,
-      content: created.content,
-      createdAt: created.created_at,
-    },
-  };
+  return { success: true, comment: mapComment(created) };
 }
+
 export type DeleteCommentResult =
   | { success: true }
   | { success: false; error: string };
 
 export async function deleteComment(
-  commentId: string
+  rawCommentId: unknown
 ): Promise<DeleteCommentResult> {
-  if (!commentId) {
+  const parsed = z.string().min(1).safeParse(rawCommentId);
+  if (!parsed.success) {
     return { success: false, error: "commentId is required" };
   }
+  const commentId = parsed.data;
 
   const supabase = await createSupabaseServerClient();
   const { user, isAdmin } = await getViewer();
@@ -143,9 +133,7 @@ export async function deleteComment(
     .eq("id", commentId)
     .maybeSingle();
 
-  if (fetchError) {
-    return { success: false, error: `DB Error: ${fetchError.message}` };
-  }
+  if (fetchError) return dbFailure("삭제할 댓글 조회", fetchError);
   if (!comment) {
     return { success: false, error: "not_found" };
   }
@@ -161,12 +149,10 @@ export async function deleteComment(
     .delete()
     .eq("id", commentId);
 
-  if (deleteError) {
-    return { success: false, error: `DB Error: ${deleteError.message}` };
-  }
+  if (deleteError) return dbFailure("댓글 삭제", deleteError);
 
-  // Database 타입이 없어(6단계) 다대일 관계도 배열로 추론되므로 두 모양을 모두 받는다.
-  const post = Array.isArray(comment.posts) ? comment.posts[0] : comment.posts;
+  // 생성 타입은 외래 키만 보고 null이 없다고 하지만, RLS가 글을 가리면 임베드는 null로 온다.
+  const post = comment.posts as typeof comment.posts | null;
   if (post) {
     revalidatePublicPosts({ type: post.type, slugs: [post.slug] });
   }

@@ -1,9 +1,12 @@
 "use server";
 
 import { draftMode } from "next/headers";
-import type { PostType, Visibility } from "@/lib/types";
+import { z } from "zod";
+import type { PostType } from "@/lib/types";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assertAdmin } from "@/lib/server/admin";
+import { ensureCategory } from "@/lib/server/categories";
+import { dbFailure } from "@/lib/server/dbFailure";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 import { toAutoTitle } from "@/lib/markdown";
 import {
@@ -16,187 +19,119 @@ import {
   replaceImageBucket,
 } from "@/lib/image";
 
-export type CreatePostInput = {
-  id?: string;
-  slug?: string;
-  type: PostType;
-  visibility?: Visibility;
-  title?: string;
-  content: string;
-  categorySlug?: string | null;
-  imageKeys?: string[];
-  thumbnailImageKey?: string | null;
-  createdAtYmd?: string;
-};
+// 새 글 slug는 임의 값이라 거의 겹치지 않는다. 겹치면 unique 제약이 막으므로 미리 조회하지 않고 막혔을 때 다시 만든다.
+const SLUG_RETRIES = 5;
+const UNIQUE_VIOLATION = "23505";
 
-export type CreatePostResult =
-  | {
-      success: true;
-      data: {
-        id: string;
-        slug: string;
-        type: PostType;
-        visibility: Visibility;
-        title: string;
-        content: string;
-        categorySlug: string | null;
-        createdAt: string;
-        updatedAt: string;
-        imageKeys: string[];
-        thumbnailImageKey: string | null;
-      };
+function randomSlug(base: string) {
+  return `${base}-${Math.random().toString(16).slice(2, 8)}`;
+}
+
+const savePostSchema = z
+  .object({
+    id: z.string().min(1).optional(),
+    slug: z.string().optional(),
+    type: z.enum(["blog", "feed", "diary"], { error: "type must be one of: blog, feed, diary" }),
+    visibility: z.enum(["public", "private"]).optional(),
+    title: z.string().optional(),
+    content: z
+      .string({ error: "내용을 입력해주세요." })
+      .refine((content) => content.trim(), "내용을 입력해주세요."),
+    categorySlug: z.string().nullish(),
+    imageKeys: z.array(z.string()).optional(),
+    thumbnailImageKey: z.string().nullish(),
+    createdAtYmd: z.iso.date({ error: "createdAtYmd 형식이 올바르지 않아요. (YYYY-MM-DD)" }).optional(),
+  })
+  .transform((input, ctx) => {
+    const reject = (message: string) => {
+      ctx.addIssue({ code: "custom", message });
+      return z.NEVER;
+    };
+
+    // 피드는 항상 공개다. 타입마다 쓰지 않는 값은 여기서 버려 뒤에서는 타입을 다시 보지 않는다.
+    const visibility = input.type === "feed" ? "public" : input.visibility;
+    if (!visibility) return reject("visibility must be public|private");
+
+    const categorySlug = input.type === "blog" ? input.categorySlug?.trim() || null : null;
+    if (input.type === "blog" && !categorySlug) return reject("아티클은 카테고리가 필요해요.");
+
+    const title =
+      input.type === "feed" ? input.title?.trim() || toAutoTitle(input.content) : input.title?.trim();
+    if (!title) return reject("제목을 입력해주세요.");
+
+    if (input.createdAtYmd) {
+      if (input.type !== "diary") return reject("createdAtYmd는 다이어리에만 사용할 수 있어요.");
+      if (input.id) return reject("createdAtYmd는 신규 다이어리 작성에서만 사용할 수 있어요.");
     }
+
+    return {
+      id: input.id,
+      baseSlug: (input.id ? input.slug?.trim() : null) || "post",
+      type: input.type,
+      visibility,
+      title,
+      content: input.content,
+      categorySlug,
+      imageKeys: input.imageKeys ?? [],
+      thumbnailImageKey: input.type === "blog" ? input.thumbnailImageKey?.trim() || null : null,
+      createdAt: input.createdAtYmd
+        ? new Date(`${input.createdAtYmd}T12:00:00+09:00`).toISOString()
+        : null,
+    };
+  });
+
+export type SavePostInput = z.input<typeof savePostSchema>;
+
+export type SavePostResult =
+  | { success: true; data: { slug: string; type: PostType } }
   | { success: false; error: string };
 
-export async function createPost(
-  input: CreatePostInput
-): Promise<CreatePostResult> {
+// 새 글과 수정을 한 upsert로 저장한다. id가 있으면 그 글을 고친다.
+export async function savePost(rawInput: SavePostInput): Promise<SavePostResult> {
   const user = await assertAdmin();
   if (!user) return { success: false, error: "unauthorized" };
 
-  if (!input.type || !["blog", "feed", "diary"].includes(input.type)) {
-    return { success: false, error: "type must be one of: blog, feed, diary" };
+  const parsed = savePostSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "입력을 확인해주세요." };
   }
-  if (input.type !== "feed") {
-    if (
-      !input.visibility ||
-      !["public", "private"].includes(input.visibility)
-    ) {
-      return { success: false, error: "visibility must be public|private" };
-    }
-  }
-  if (!input.content?.trim()) {
-    return { success: false, error: "내용을 입력해주세요." };
-  }
-  if (input.type === "blog" && !input.categorySlug?.trim()) {
-    return { success: false, error: "아티클은 카테고리가 필요해요." };
-  }
-
-  const finalVisibility: Visibility =
-    input.type === "feed" ? "public" : input.visibility!;
-
-  const finalTitle =
-    input.type === "feed"
-      ? input.title?.trim() || toAutoTitle(input.content)
-      : input.title?.trim() ?? "";
-  if (!finalTitle) {
-    return { success: false, error: "제목을 입력해주세요." };
-  }
-
-  const createdAtYmd = input.createdAtYmd?.trim();
-  let createdAtIso: string | null = null;
-  if (createdAtYmd) {
-    if (input.type !== "diary") {
-      return {
-        success: false,
-        error: "createdAtYmd는 다이어리에만 사용할 수 있어요.",
-      };
-    }
-    if (input.id) {
-      return {
-        success: false,
-        error: "createdAtYmd는 신규 다이어리 작성에서만 사용할 수 있어요.",
-      };
-    }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(createdAtYmd)) {
-      return {
-        success: false,
-        error: "createdAtYmd 형식이 올바르지 않아요. (YYYY-MM-DD)",
-      };
-    }
-    const createdAt = new Date(`${createdAtYmd}T12:00:00+09:00`);
-    if (Number.isNaN(createdAt.getTime())) {
-      return { success: false, error: "createdAtYmd 날짜가 올바르지 않아요." };
-    }
-    createdAtIso = createdAt.toISOString();
-  }
-
-  const isNew = !input.id;
-  const baseSlug = (input.id ? input.slug?.trim() : null) || "post";
+  const input = parsed.data;
   const service = createSupabaseServiceClient();
 
-  const categorySlug =
-    input.type === "blog" ? input.categorySlug?.trim() ?? null : null;
-  let slug = isNew ? `${baseSlug}-${Math.random().toString(16).slice(2, 8)}` : baseSlug;
-  const findPostBySlug = (candidate: string) =>
-    service.from("posts").select("id").eq("slug", candidate).maybeSingle();
-
-  // 저장 앞의 조회는 서로의 결과가 필요 없다. 차례로 기다리면 저장마다 DB 왕복이 둘 더 붙는다.
+  // 저장 앞의 조회는 서로의 결과가 필요 없다. 차례로 기다리면 저장마다 DB 왕복이 하나 더 붙는다.
   // 수정으로 slug·카테고리가 바뀌면 이전 값의 공개 캐시도 무효화해야 하고, 새 버전에서 뺀 이미지는 저장 뒤에 지운다.
-  const [{ data: previous }, { data: existingCategory, error: categoryLookupError }, slugLookup] =
-    await Promise.all([
-      input.id
-        ? service
-            .from("posts")
-            .select("slug,category_slug,content,image_keys,thumbnail_image_key")
-            .eq("id", input.id)
-            .maybeSingle()
-        : { data: null },
-      categorySlug
-        ? service.from("categories").select("slug").eq("slug", categorySlug).maybeSingle()
-        : { data: null, error: null },
-      findPostBySlug(slug),
-    ]);
+  const [previousLookup, categoryLookup] = await Promise.all([
+    input.id
+      ? service
+          .from("posts")
+          .select("slug,category_slug,content,image_keys,thumbnail_image_key")
+          .eq("id", input.id)
+          .maybeSingle()
+      : { data: null, error: null },
+    input.categorySlug
+      ? service.from("categories").select("slug").eq("slug", input.categorySlug).maybeSingle()
+      : { data: null, error: null },
+  ]);
 
-  // 카테고리 자동 생성
-  if (categorySlug) {
-    if (categoryLookupError) {
-      return {
-        success: false,
-        error: `DB Error: ${categoryLookupError.message}`,
-      };
-    }
+  // 이전 글을 모른 채 저장하면 작성자를 덮어쓰고 옛 캐시·이미지를 남긴다.
+  if (previousLookup.error) return dbFailure("글 저장 전 이전 글 조회", previousLookup.error);
+  if (categoryLookup.error) return dbFailure("글 저장 전 카테고리 조회", categoryLookup.error);
+  const previous = previousLookup.data;
 
-    if (!existingCategory) {
-      const { data: maxRow, error: maxError } = await service
-        .from("categories")
-        .select("sort_order")
-        .order("sort_order", { ascending: false })
-        .order("slug", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (maxError) {
-        return { success: false, error: `DB Error: ${maxError.message}` };
-      }
-
-      const nextSortOrder = Math.max(0, Number(maxRow?.sort_order ?? 0)) + 1;
-      const { error: insertError } = await service.from("categories").insert({
-        slug: categorySlug,
-        visibility: "public",
-        sort_order: nextSortOrder,
-      });
-
-      if (insertError) {
-        const isConflict =
-          typeof insertError.code === "string" && insertError.code === "23505";
-        if (!isConflict) {
-          return { success: false, error: `DB Error: ${insertError.message}` };
-        }
-      }
-    }
-  }
-
-  // 슬러그 유니크 보장
-  let existing = slugLookup.data;
-  for (let i = 0; i < 5; i++) {
-    if (!existing || (input.id && existing.id === input.id)) break;
-    slug = `${baseSlug}-${Math.random().toString(16).slice(2, 8)}`;
-    ({ data: existing } = await findPostBySlug(slug));
+  if (input.categorySlug && !categoryLookup.data) {
+    const ensured = await ensureCategory(service, input.categorySlug);
+    if (!ensured.success) return ensured;
   }
 
   // 이미지 버킷은 올리는 순간 에디터의 공개 범위로 정해진다. 저장하기 전에 글 공개 범위와 다른 버킷의 파일을 옮겨,
   // 비공개 글 이미지가 공개 주소로 열리거나 공개 글 이미지가 방문자에게 깨지지 않게 한다(로드맵 19절).
   // 옮긴 뒤 저장해야 공개 → 비공개에서 뒤의 단계가 실패해도 공개 주소가 이미 닫혀 있다.
-  const targetBucket = imageBucketFor(finalVisibility);
+  const targetBucket = imageBucketFor(input.visibility);
   const otherBucket = targetBucket === PUBLIC_IMAGE_BUCKET ? PRIVATE_IMAGE_BUCKET : PUBLIC_IMAGE_BUCKET;
   const images = {
     content: input.content,
-    imageKeys: input.imageKeys ?? [],
-    thumbnailImageKey:
-      input.type === "blog" && input.thumbnailImageKey?.trim()
-        ? input.thumbnailImageKey.trim()
-        : null,
+    imageKeys: input.imageKeys,
+    thumbnailImageKey: input.thumbnailImageKey,
   };
   const misplaced = imagePathsInBucket(images, otherBucket);
   const failedMoves = await moveImages(service, otherBucket, targetBucket, misplaced);
@@ -214,30 +149,39 @@ export async function createPost(
   }
   const placed = replaceImageBucket(images, otherBucket, targetBucket, misplaced);
 
-  const payload = {
-    id: input.id,
-    slug,
-    type: input.type,
-    visibility: finalVisibility,
-    title: finalTitle,
-    content: placed.content,
-    category_slug: categorySlug,
-    image_keys: placed.imageKeys,
-    thumbnail_image_key: placed.thumbnailImageKey,
-    author_id: user.id,
-    ...(createdAtIso ? { created_at: createdAtIso } : null),
-  };
+  const upsertPost = (slug: string) =>
+    service
+      .from("posts")
+      .upsert(
+        {
+          id: input.id,
+          slug,
+          type: input.type,
+          visibility: input.visibility,
+          title: input.title,
+          content: placed.content,
+          category_slug: input.categorySlug,
+          image_keys: placed.imageKeys,
+          thumbnail_image_key: placed.thumbnailImageKey,
+          // 고칠 때는 처음 쓴 사람을 그대로 둔다.
+          ...(previous ? null : { author_id: user.id }),
+          ...(input.createdAt ? { created_at: input.createdAt } : null),
+        },
+        { onConflict: "id" }
+      )
+      .select("slug,type,category_slug")
+      .single();
 
-  const { data: saved, error } = await service
-    .from("posts")
-    .upsert(payload, { onConflict: "id" })
-    .select("*")
-    .single();
+  let result = await upsertPost(input.id ? input.baseSlug : randomSlug(input.baseSlug));
+  for (let i = 0; i < SLUG_RETRIES && result.error?.code === UNIQUE_VIOLATION; i++) {
+    result = await upsertPost(randomSlug(input.baseSlug));
+  }
+  const { data: saved, error } = result;
 
   if (error) {
     // 저장하지 못했으므로 파일을 원래 버킷으로 돌려 이전 글의 키와 맞춘다.
     const stuck = await moveImages(service, targetBucket, otherBucket, misplaced);
-    return { success: false, error: `DB Error: ${error.message}${stuckNotice(targetBucket, stuck)}` };
+    return dbFailure("글 저장", error, stuckNotice(targetBucket, stuck));
   }
 
   revalidatePublicPosts({
@@ -256,22 +200,7 @@ export async function createPost(
   // 저장 응답의 쿠키로 켜면 브라우저가 상세를 받기 전에 왕복을 한 번 더 기다리지 않는다.
   (await draftMode()).enable();
 
-  return {
-    success: true,
-    data: {
-      id: saved.id,
-      slug: saved.slug,
-      type: saved.type,
-      visibility: saved.visibility,
-      title: saved.title,
-      content: saved.content,
-      categorySlug: saved.category_slug,
-      createdAt: saved.created_at,
-      updatedAt: saved.updated_at ?? saved.created_at,
-      imageKeys: saved.image_keys ?? [],
-      thumbnailImageKey: saved.thumbnail_image_key,
-    },
-  };
+  return { success: true, data: { slug: saved.slug, type: saved.type } };
 }
 
 // 같은 경로로 버킷만 옮기고, 옮기지 못한 경로를 돌려준다.
@@ -343,8 +272,12 @@ export type DeletePostResult =
   | { success: true }
   | { success: false; error: string };
 
-export async function deletePost(slug: string): Promise<DeletePostResult> {
+export async function deletePost(rawSlug: unknown): Promise<DeletePostResult> {
   if (!(await assertAdmin())) return { success: false, error: "unauthorized" };
+
+  const parsed = z.string().min(1).safeParse(rawSlug);
+  if (!parsed.success) return { success: false, error: "not_found" };
+  const slug = parsed.data;
 
   const service = createSupabaseServiceClient();
   const { data: deleted, error } = await service
@@ -354,9 +287,7 @@ export async function deletePost(slug: string): Promise<DeletePostResult> {
     .select("type,category_slug,content,image_keys,thumbnail_image_key")
     .maybeSingle();
 
-  if (error) {
-    return { success: false, error: `DB Error: ${error.message}` };
-  }
+  if (error) return dbFailure("글 삭제", error);
   if (!deleted) {
     return { success: false, error: "not_found" };
   }

@@ -8,13 +8,20 @@ export type Post = {
   visibility: Visibility;
   title: string;
   content: string;
-  categorySlug?: string | null;
+  categorySlug: string | null;
   createdAt: string;
   updatedAt: string;
-  imageKeys?: string[];
-  thumbnailImageKey?: string | null;
-  viewCount?: number;
-  commentCount?: number;
+  imageKeys: string[];
+  thumbnailImageKey: string | null;
+  viewCount: number;
+  commentCount: number;
+};
+
+export type Category = {
+  slug: string;
+  visibility: Visibility;
+  sortOrder: number;
+  inUse?: number;
 };
 
 export type Comment = {

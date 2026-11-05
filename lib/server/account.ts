@@ -18,8 +18,8 @@ export async function getCommentedPosts(userId: string): Promise<Map<PostType, s
 
   const slugsByType = new Map<PostType, string[]>();
   for (const comment of data ?? []) {
-    // Database 타입이 없어(6단계) 다대일 관계도 배열로 추론되므로 두 모양을 모두 받는다.
-    const post = Array.isArray(comment.posts) ? comment.posts[0] : comment.posts;
+    // 생성 타입은 외래 키만 보고 null이 없다고 하지만, RLS가 글을 가리면 임베드는 null로 온다.
+    const post = comment.posts as typeof comment.posts | null;
     if (!post) continue;
     slugsByType.set(post.type, [...(slugsByType.get(post.type) ?? []), post.slug]);
   }
@@ -44,17 +44,13 @@ export async function getMyComments(userId: string): Promise<MyComment[]> {
 
   if (error) throw new Error(`DB Error: ${error.message}`);
 
-  return (data ?? []).map((row) => {
-    // Database 타입이 없어(6단계) 다대일 관계도 배열로 추론되므로 두 모양을 모두 받는다.
-    const post = Array.isArray(row.posts) ? row.posts[0] : row.posts;
-    return {
-      id: row.id,
-      content: row.content,
-      createdAt: row.created_at,
-      isReply: Boolean(row.parent_id),
-      post: post ?? null,
-    };
-  });
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    content: row.content,
+    createdAt: row.created_at,
+    isReply: Boolean(row.parent_id),
+    post: row.posts,
+  }));
 }
 
 export async function getMyProfile(userId: string): Promise<MyProfile> {

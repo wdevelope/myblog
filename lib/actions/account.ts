@@ -2,6 +2,7 @@
 
 import { getViewer } from "@/lib/server/admin";
 import { getCommentedPosts, listAvatarPaths, revalidateCommentedPosts } from "@/lib/server/account";
+import { dbFailure } from "@/lib/server/dbFailure";
 import { revalidateGuestbook } from "@/lib/server/guestbook";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { AVATAR_BUCKET } from "@/lib/avatar";
@@ -25,7 +26,7 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
   try {
     commentedPosts = await getCommentedPosts(user.id);
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "DB Error" };
+    return dbFailure("탈퇴 전 댓글 조회", e as Error);
   }
 
   const service = createSupabaseServiceClient();

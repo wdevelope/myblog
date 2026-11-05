@@ -2,7 +2,8 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getViewer, requireAdmin } from "@/lib/server/admin";
-import { mapPost, type PostRow } from "@/lib/server/postRow";
+import { COMMENT_COLUMNS, mapComment } from "@/lib/server/commentRow";
+import { mapPost } from "@/lib/server/postRow";
 import { postHref } from "@/lib/constants";
 import type { Post, PostType, Comment } from "@/lib/types";
 
@@ -65,7 +66,7 @@ export async function getArticleListDirectly(params: {
     }
 
     return {
-        data: (posts ?? []).map((p) => mapPost(p as PostRow)),
+        data: (posts ?? []).map(mapPost),
         count: params.category ? (counts[params.category] ?? 0) : slugs.length,
         counts,
         total: slugs.length,
@@ -109,7 +110,7 @@ export async function getCategorySlugsDirectly() {
         .order("sort_order", { ascending: true })
         .order("slug", { ascending: true });
 
-    return (data ?? []).map((row) => row.slug as string);
+    return (data ?? []).map((row) => row.slug);
 }
 
 export async function getPostForRoute(type: PostType, slug: string): Promise<Post | null> {
@@ -127,7 +128,7 @@ export async function getPostForRoute(type: PostType, slug: string): Promise<Pos
     const { data: post, error } = await query.maybeSingle();
     if (error) throw new Error(`DB Error: ${error.message}`);
 
-    return post ? mapPost(post as PostRow) : null;
+    return post ? mapPost(post) : null;
 }
 
 export async function loadPostForEdit(type: PostType, slug: string): Promise<Post> {
@@ -137,17 +138,6 @@ export async function loadPostForEdit(type: PostType, slug: string): Promise<Pos
     if (!post) notFound();
     return post;
 }
-
-type ArticleCommentRow = {
-    id: string;
-    post_id: string;
-    parent_id: string | null;
-    author_id: string | null;
-    author_is_admin: boolean;
-    content: string;
-    created_at: string;
-    author: { nickname: string | null; avatar_path: string | null } | null;
-};
 
 // 관리자 상세용. 글을 읽은 뒤 댓글을 또 기다리면 DB 왕복이 하나 늘어 한 요청으로 함께 읽는다.
 // 없는 글, 다른 타입 글, 볼 권한이 없는 글은 null이다. 호출부는 notFound()로 끝낸다.
@@ -159,9 +149,7 @@ export async function getArticleWithCommentsDirectly(
 
     let query = supabase
         .from("posts")
-        .select(
-            "*, comment_list:comments(id,post_id,parent_id,author_id,author_is_admin,content,created_at,author:profiles(nickname,avatar_path))"
-        )
+        .select(`*, comment_list:comments(${COMMENT_COLUMNS})` as const)
         .eq("slug", slug)
         .eq("type", "blog")
         .order("created_at", { ascending: true, referencedTable: "comment_list" });
@@ -172,18 +160,8 @@ export async function getArticleWithCommentsDirectly(
     if (error) throw new Error(`DB Error: ${error.message}`);
     if (!data) return null;
 
-    const { comment_list, ...row } = data as PostRow & { comment_list: ArticleCommentRow[] };
-    const comments = comment_list.map((c) => ({
-        id: c.id,
-        postId: c.post_id,
-        parentId: c.parent_id,
-        authorId: c.author_id,
-        authorIsAdmin: c.author_is_admin,
-        authorNickname: c.author?.nickname ?? null,
-        authorAvatarPath: c.author?.avatar_path ?? null,
-        content: c.content,
-        createdAt: c.created_at,
-    }));
+    const { comment_list, ...row } = data;
+    const comments = comment_list.map(mapComment);
 
     return { post: { ...mapPost(row), commentCount: comments.length }, comments };
 }

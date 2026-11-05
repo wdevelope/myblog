@@ -5,6 +5,7 @@ import type { Comment, Post, PostType } from "@/lib/types";
 import { postHref } from "@/lib/constants";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { COMMENT_COLUMNS, mapComment, type CommentRow } from "@/lib/server/commentRow";
 import { mapPost, type PostRow } from "@/lib/server/postRow";
 
 type NextRequestInit = RequestInit & {
@@ -178,10 +179,7 @@ export async function getPublicComments(
   postId: string
 ): Promise<Comment[]> {
   const search = new URLSearchParams();
-  search.set(
-    "select",
-    "id,post_id,parent_id,author_id,author_is_admin,content,created_at,author:profiles(nickname,avatar_path)",
-  );
+  search.set("select", COMMENT_COLUMNS);
   search.set("post_id", `eq.${postId}`);
   search.set("order", "created_at.asc");
 
@@ -190,27 +188,8 @@ export async function getPublicComments(
     throw new Error(`Supabase REST ${response.status}: ${await response.text()}`);
   }
 
-  const rows = (await response.json()) as {
-    id: string;
-    post_id: string;
-    parent_id: string | null;
-    author_id: string | null;
-    author_is_admin: boolean;
-    content: string;
-    created_at: string;
-    author: { nickname: string | null; avatar_path: string | null } | null;
-  }[];
-  return rows.map((row) => ({
-    id: row.id,
-    postId: row.post_id,
-    parentId: row.parent_id,
-    authorId: row.author_id,
-    authorIsAdmin: row.author_is_admin,
-    authorNickname: row.author?.nickname ?? null,
-    authorAvatarPath: row.author?.avatar_path ?? null,
-    content: row.content,
-    createdAt: row.created_at,
-  }));
+  const rows = (await response.json()) as CommentRow[];
+  return rows.map(mapComment);
 }
 
 // 카테고리를 바꾸는 액션은 아티클 태그를 무효화하므로 같은 태그를 단다.
@@ -257,9 +236,10 @@ async function loadDiaryIndex(): Promise<Post[]> {
     content: "",
     categorySlug: null,
     createdAt: row.created_at,
-    updatedAt: row.updated_at ?? row.created_at,
+    updatedAt: row.updated_at,
     imageKeys: [],
     thumbnailImageKey: row.thumbnail_image_key,
+    viewCount: 0,
     commentCount: 0,
   }));
 }

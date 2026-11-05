@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { revalidatePath, updateTag } from "next/cache";
-import { createPost, deletePost } from "@/lib/actions/posts";
+import { savePost, deletePost } from "@/lib/actions/posts";
+import { DB_FAILURE_MESSAGE } from "@/lib/server/dbFailure";
 
 type QueryResult = { data: unknown; error: { message: string } | null };
 
@@ -101,13 +102,13 @@ beforeEach(() => {
   });
 });
 
-describe("createPost 권한", () => {
+describe("savePost 권한", () => {
   it("세션 없이 위조한 관리자 헤더만 있으면 저장하지 않고 실패를 돌려준다", async () => {
     mocks.requestHeaders.set("x-user-id", "attacker");
     mocks.requestHeaders.set("x-user-is-admin", "true");
     signedIn(null);
 
-    expect(await createPost(blogInput)).toEqual({ success: false, error: "unauthorized" });
+    expect(await savePost(blogInput)).toEqual({ success: false, error: "unauthorized" });
     expect(mocks.writes).toEqual([]);
     expect(mocks.createServiceClient).not.toHaveBeenCalled();
   });
@@ -115,7 +116,7 @@ describe("createPost 권한", () => {
   it("user_metadata.is_admin만 있는 사용자는 저장하지 못한다", async () => {
     signedIn(user({ user: { is_admin: true } }));
 
-    expect(await createPost(blogInput)).toEqual({ success: false, error: "unauthorized" });
+    expect(await savePost(blogInput)).toEqual({ success: false, error: "unauthorized" });
     expect(mocks.writes).toEqual([]);
   });
 });
@@ -159,12 +160,12 @@ class RoutedQuery {
   async single() { return { data: savedRow, error: null }; }
 }
 
-describe("createPost 캐시 무효화", () => {
+describe("savePost 캐시 무효화", () => {
   it("글 수정으로 카테고리가 바뀌면 옛 카테고리와 새 카테고리 목록 캐시를 모두 무효화한다", async () => {
     signedIn(user({ app: { is_admin: true } }));
     mocks.createServiceClient.mockReturnValue({ from: (table: string) => new RoutedQuery(table) });
 
-    const result = await createPost({ ...blogInput, id: "post-1", slug: "post-abc" });
+    const result = await savePost({ ...blogInput, id: "post-1", slug: "post-abc" });
 
     expect(result.success).toBe(true);
     expect(updateTag).toHaveBeenCalledWith("posts:public:blog:category:old");
@@ -175,7 +176,7 @@ describe("createPost 캐시 무효화", () => {
     signedIn(user({ app: { is_admin: true } }));
     mocks.createServiceClient.mockReturnValue({ from: (table: string) => new RoutedQuery(table) });
 
-    await createPost({ ...blogInput, id: "post-1", slug: "post-abc" });
+    await savePost({ ...blogInput, id: "post-1", slug: "post-abc" });
 
     const paths = vi.mocked(revalidatePath).mock.calls.map(([path]) => path);
     expect(paths).not.toContain("/blog");
@@ -184,11 +185,11 @@ describe("createPost 캐시 무효화", () => {
   });
 });
 
-describe("createPost 관리자 화면", () => {
+describe("savePost 관리자 화면", () => {
   it("저장에 성공하면 관리자 화면을 켠다", async () => {
     signedIn(user({ app: { is_admin: true } }));
 
-    const result = await createPost(blogInput);
+    const result = await savePost(blogInput);
 
     expect(result.success).toBe(true);
     expect(mocks.enableDraftMode).toHaveBeenCalledTimes(1);
@@ -197,7 +198,7 @@ describe("createPost 관리자 화면", () => {
   it("관리자가 아니면 관리자 화면을 켜지 않는다", async () => {
     signedIn(user());
 
-    await createPost(blogInput);
+    await savePost(blogInput);
 
     expect(mocks.enableDraftMode).not.toHaveBeenCalled();
   });
@@ -208,32 +209,23 @@ describe("createPost 관리자 화면", () => {
       from: () => new FakeQuery({ data: null, error: { message: "저장 실패" } }, mocks.writes),
     });
 
-    const result = await createPost({ ...blogInput, type: "diary" });
+    const result = await savePost({ ...blogInput, type: "diary" });
 
     expect(result.success).toBe(false);
     expect(mocks.enableDraftMode).not.toHaveBeenCalled();
   });
 });
 
-describe("createPost 저장 전 조회", () => {
-  // 조회마다 시작한 값을 남기고, 시작한 뒤에도 풀어 줄 때까지 답하지 않는다. 슬러그 조회만 값으로 구분한다.
-  function pendingService(slugOwners: (string | null)[] = []) {
+describe("savePost 저장 전 조회", () => {
+  // 조회마다 시작한 값을 남기고, 시작한 뒤에도 풀어 줄 때까지 답하지 않는다.
+  function pendingService() {
     const started: string[] = [];
-    const slugs: string[] = [];
     const payloads: Record<string, unknown>[] = [];
     const release = Promise.withResolvers<void>();
     const from = (table: string) => {
-      let selected = "";
-      let matched = "";
       const query = {
-        select: (columns = "") => {
-          selected = columns;
-          return query;
-        },
-        eq: (_: string, value: string) => {
-          matched = value;
-          return query;
-        },
+        select: () => query,
+        eq: () => query,
         order: () => query,
         limit: () => query,
         insert: () => query,
@@ -242,58 +234,40 @@ describe("createPost 저장 전 조회", () => {
           return query;
         },
         maybeSingle: async () => {
-          const name = table === "categories" ? "category" : selected === "id" ? "slug" : "previous";
+          const name = table === "categories" ? "category" : "previous";
           started.push(name);
           await release.promise;
           if (name === "category") return { data: { slug: "dev" }, error: null };
-          if (name === "previous") return { data: { slug: "post-abc", category_slug: "dev" }, error: null };
-          slugs.push(matched);
-          const owner = slugOwners.shift() ?? null;
-          return { data: owner ? { id: owner } : null, error: null };
+          return { data: { slug: "post-abc", category_slug: "dev" }, error: null };
         },
         single: async () => ({ data: savedRow, error: null }),
       };
       return query;
     };
-    return { service: { from }, started, slugs, payloads, release };
+    return { service: { from }, started, payloads, release };
   }
 
-  it("이전 글·카테고리·slug 조회를 서로 기다리지 않고 한 번에 보낸다", async () => {
+  it("이전 글·카테고리 조회를 서로 기다리지 않고 한 번에 보낸다", async () => {
     signedIn(user({ app: { is_admin: true } }));
     const { service, started, release } = pendingService();
     mocks.createServiceClient.mockReturnValue(service);
 
-    const saving = createPost({ ...blogInput, id: "post-1", slug: "post-abc" });
-    await vi.waitFor(() => expect(started).toHaveLength(3));
+    const saving = savePost({ ...blogInput, id: "post-1", slug: "post-abc" });
+    await vi.waitFor(() => expect(started).toHaveLength(2));
     release.resolve();
 
     expect((await saving).success).toBe(true);
-    expect([...started].sort()).toEqual(["category", "previous", "slug"]);
+    expect([...started].sort()).toEqual(["category", "previous"]);
   });
 
-  it("새 글 slug를 다른 글이 쓰면 비어 있는 slug로 저장한다", async () => {
+  it("글을 고칠 때는 받은 slug를 그대로 저장한다", async () => {
     signedIn(user({ app: { is_admin: true } }));
-    const { service, slugs, payloads, release } = pendingService(["other-post"]);
+    const { service, payloads, release } = pendingService();
     release.resolve();
     mocks.createServiceClient.mockReturnValue(service);
 
-    const result = await createPost(blogInput);
+    await savePost({ ...blogInput, id: "post-1", slug: "post-abc" });
 
-    expect(result.success).toBe(true);
-    expect(slugs).toHaveLength(2);
-    expect(slugs[1]).not.toBe(slugs[0]);
-    expect(payloads[0].slug).toBe(slugs[1]);
-  });
-
-  it("글을 고칠 때 slug의 주인이 그 글이면 slug를 바꾸지 않는다", async () => {
-    signedIn(user({ app: { is_admin: true } }));
-    const { service, slugs, payloads, release } = pendingService(["post-1"]);
-    release.resolve();
-    mocks.createServiceClient.mockReturnValue(service);
-
-    await createPost({ ...blogInput, id: "post-1", slug: "post-abc" });
-
-    expect(slugs).toEqual(["post-abc"]);
     expect(payloads[0].slug).toBe("post-abc");
   });
 });
@@ -396,7 +370,159 @@ const privateInputWithPublicImages = {
   thumbnailImageKey: "post-images-public:2026-01-03/a.png",
 };
 
-describe("createPost 이미지 버킷", () => {
+describe("savePost 저장 규칙", () => {
+  // 표마다 답을 정하고 upsert·insert에 넘긴 값을 남긴다.
+  function savingService(options: {
+    category?: { slug: string } | null;
+    previous?: object | null;
+    upsertErrors?: ({ code?: string; message: string } | null)[];
+  } = {}) {
+    const upserts: Record<string, unknown>[] = [];
+    const inserts: Record<string, unknown>[] = [];
+    const errors = [...(options.upsertErrors ?? [])];
+    const from = (table: string) => {
+      let selected = "";
+      const query = {
+        select: (columns = "") => {
+          selected = columns;
+          return query;
+        },
+        eq: () => query,
+        order: () => query,
+        limit: () => query,
+        insert: (row: Record<string, unknown>) => {
+          inserts.push(row);
+          return query;
+        },
+        upsert: (row: Record<string, unknown>) => {
+          upserts.push(row);
+          return query;
+        },
+        maybeSingle: async () => {
+          if (table === "categories") {
+            return { data: selected === "slug" ? (options.category ?? null) : { sort_order: 3 }, error: null };
+          }
+          if (selected.startsWith("slug,category_slug")) return { data: options.previous ?? null, error: null };
+          return { data: null, error: null };
+        },
+        single: async () => {
+          const error = errors.shift() ?? null;
+          return error ? { data: null, error } : { data: savedRow, error: null };
+        },
+        then: (resolve: (value: { data: null; error: null }) => unknown) =>
+          Promise.resolve({ data: null, error: null }).then(resolve),
+      };
+      return query;
+    };
+    return { service: { from }, upserts, inserts };
+  }
+
+  const dev = { slug: "dev" };
+  const previous = { slug: "post-abc", category_slug: "dev", content: "", image_keys: [], thumbnail_image_key: null };
+
+  it("글을 고쳐도 처음 쓴 사람을 덮어쓰지 않는다", async () => {
+    signedIn(user({ app: { is_admin: true } }));
+    const { service, upserts } = savingService({ category: dev, previous });
+    mocks.createServiceClient.mockReturnValue(service);
+
+    await savePost({ ...blogInput, id: "post-1", slug: "post-abc" });
+
+    expect(upserts[0]).not.toHaveProperty("author_id");
+  });
+
+  it("새 글에는 쓴 사람을 남긴다", async () => {
+    signedIn(user({ app: { is_admin: true } }));
+    const { service, upserts } = savingService({ category: dev });
+    mocks.createServiceClient.mockReturnValue(service);
+
+    await savePost(blogInput);
+
+    expect(upserts[0].author_id).toBe("user-1");
+  });
+
+  it.each([["/가 든 이름", "a/b"], ["50자가 넘는 이름", "가".repeat(51)]])(
+    "%s은 카테고리를 새로 만들지 않고 저장을 멈춘다",
+    async (_, categorySlug) => {
+      signedIn(user({ app: { is_admin: true } }));
+      const { service, upserts, inserts } = savingService();
+      mocks.createServiceClient.mockReturnValue(service);
+
+      const result = await savePost({ ...blogInput, categorySlug });
+
+      expect(result).toEqual({ success: false, error: "카테고리 이름을 확인해주세요." });
+      expect(inserts).toEqual([]);
+      expect(upserts).toEqual([]);
+    },
+  );
+
+  it("규칙을 지킨 새 카테고리는 맨 뒤에 공개로 만든다", async () => {
+    signedIn(user({ app: { is_admin: true } }));
+    const { service, inserts } = savingService();
+    mocks.createServiceClient.mockReturnValue(service);
+
+    await savePost({ ...blogInput, categorySlug: "새 이름" });
+
+    expect(inserts).toEqual([{ slug: "새 이름", visibility: "public", sort_order: 4 }]);
+  });
+
+  it("저장이 실패하면 DB 오류 원문 대신 일반 문구를 돌려주고 원문은 서버 로그에 남긴다", async () => {
+    signedIn(user({ app: { is_admin: true } }));
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { service } = savingService({
+      category: dev,
+      upsertErrors: [{ message: 'relation "posts" does not exist' }],
+    });
+    mocks.createServiceClient.mockReturnValue(service);
+
+    const result = await savePost(blogInput);
+
+    expect(result).toEqual({ success: false, error: DB_FAILURE_MESSAGE });
+    expect(logged.mock.calls.flat().join(" ")).toContain('relation "posts" does not exist');
+  });
+
+  it("slug가 겹쳐 저장이 막히면 새 slug로 다시 저장한다", async () => {
+    signedIn(user({ app: { is_admin: true } }));
+    const { service, upserts } = savingService({
+      category: dev,
+      upsertErrors: [{ code: "23505", message: "duplicate key" }],
+    });
+    mocks.createServiceClient.mockReturnValue(service);
+
+    const result = await savePost(blogInput);
+
+    expect(result.success).toBe(true);
+    expect(upserts).toHaveLength(2);
+    expect(upserts[1].slug).not.toBe(upserts[0].slug);
+  });
+
+  it("이전 글을 읽지 못하면 새 글로 착각해 저장하지 않는다", async () => {
+    signedIn(user({ app: { is_admin: true } }));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { service, upserts } = savingService({ category: dev });
+    const from = service.from;
+    mocks.createServiceClient.mockReturnValue({
+      from: (table: string) => {
+        const query = from(table);
+        const select = query.select;
+        query.select = (columns = "") => {
+          const selected = select(columns);
+          if (columns.startsWith("slug,category_slug")) {
+            query.maybeSingle = async () => ({ data: null, error: { message: "boom" } }) as never;
+          }
+          return selected;
+        };
+        return query;
+      },
+    });
+
+    const result = await savePost({ ...blogInput, id: "post-1", slug: "post-abc" });
+
+    expect(result).toEqual({ success: false, error: DB_FAILURE_MESSAGE });
+    expect(upserts).toEqual([]);
+  });
+});
+
+describe("savePost 이미지 버킷", () => {
   beforeEach(() => {
     signedIn(user({ app: { is_admin: true } }));
   });
@@ -404,7 +530,7 @@ describe("createPost 이미지 버킷", () => {
   it("비공개로 저장하면 공개 버킷의 본문·첨부·썸네일 이미지를 먼저 비공개 버킷으로 옮기고 키를 바꿔 저장한다", async () => {
     const { log, payloads } = imageService();
 
-    const result = await createPost(privateInputWithPublicImages);
+    const result = await savePost(privateInputWithPublicImages);
 
     expect(log).toEqual([
       "post-images-public:2026-01-03/a.png → post-images-private:2026-01-03/a.png",
@@ -423,7 +549,7 @@ describe("createPost 이미지 버킷", () => {
   it("피드는 항상 공개라 비공개 버킷 이미지를 공개 버킷으로 옮긴다", async () => {
     const { log, payloads } = imageService();
 
-    await createPost({ type: "feed", content: "오늘\n![](post-images-private:2026-01-03/a.png)" });
+    await savePost({ type: "feed", content: "오늘\n![](post-images-private:2026-01-03/a.png)" });
 
     expect(log).toEqual([
       "post-images-private:2026-01-03/a.png → post-images-public:2026-01-03/a.png",
@@ -438,7 +564,7 @@ describe("createPost 이미지 버킷", () => {
   it("버킷이 맞는 이미지만 있으면 Storage를 부르지 않는다", async () => {
     const { log } = imageService();
 
-    await createPost({ ...blogInput, content: "![](post-images-public:2026-01-03/a.png)" });
+    await savePost({ ...blogInput, content: "![](post-images-public:2026-01-03/a.png)" });
 
     expect(log).toEqual(["upsert"]);
   });
@@ -446,7 +572,7 @@ describe("createPost 이미지 버킷", () => {
   it("하나라도 못 옮기면 옮긴 이미지를 되돌리고 글을 저장하지 않는다", async () => {
     const { log } = imageService({ failMoves: ["post-images-public:2026-01-03/c.png"] });
 
-    const result = await createPost(privateInputWithPublicImages);
+    const result = await savePost(privateInputWithPublicImages);
 
     expect(log).toEqual([
       "post-images-public:2026-01-03/a.png → post-images-private:2026-01-03/a.png",
@@ -465,7 +591,7 @@ describe("createPost 이미지 버킷", () => {
       failMoves: ["post-images-public:2026-01-03/c.png", "post-images-private:2026-01-03/a.png"],
     });
 
-    const result = await createPost(privateInputWithPublicImages);
+    const result = await savePost(privateInputWithPublicImages);
 
     expect(result).toEqual({
       success: false,
@@ -477,14 +603,14 @@ describe("createPost 이미지 버킷", () => {
   it("글 저장이 실패하면 옮긴 이미지를 원래 버킷으로 되돌린다", async () => {
     const { log } = imageService({ failSave: true });
 
-    const result = await createPost(privateInputWithPublicImages);
+    const result = await savePost(privateInputWithPublicImages);
 
     expect(log.slice(2)).toEqual([
       "upsert",
       "post-images-private:2026-01-03/a.png → post-images-public:2026-01-03/a.png",
       "post-images-private:2026-01-03/c.png → post-images-public:2026-01-03/c.png",
     ]);
-    expect(result).toEqual({ success: false, error: "DB Error: 저장 실패" });
+    expect(result).toEqual({ success: false, error: DB_FAILURE_MESSAGE });
   });
 });
 
@@ -582,7 +708,7 @@ describe("deletePost 이미지 정리", () => {
   });
 });
 
-describe("createPost 수정 때 뺀 이미지 정리", () => {
+describe("savePost 수정 때 뺀 이미지 정리", () => {
   const previous = {
     content: "![](post-images-public:2026-01-03/a.png)\n![](post-images-public:2026-01-03/b.png)",
     image_keys: ["post-images-public:2026-01-03/c.png"],
@@ -598,7 +724,7 @@ describe("createPost 수정 때 뺀 이미지 정리", () => {
   it("저장한 뒤 이전 버전이 쓰던 이미지 중 새 버전에 없는 것만 지운다", async () => {
     const { log } = imageService({ previous });
 
-    const result = await createPost(edit);
+    const result = await savePost(edit);
 
     expect(result.success).toBe(true);
     expect(log).toEqual(["upsert", "remove post-images-public:2026-01-03/b.png post-images-public:2026-01-03/c.png"]);
@@ -607,7 +733,7 @@ describe("createPost 수정 때 뺀 이미지 정리", () => {
   it("비공개로 바꾸며 버킷만 옮긴 이미지는 지우지 않고, 뺀 이미지만 지금 위치에서 지운다", async () => {
     const { log } = imageService({ previous });
 
-    const result = await createPost({ ...edit, visibility: "private" });
+    const result = await savePost({ ...edit, visibility: "private" });
 
     expect(result.success).toBe(true);
     expect(log).toEqual([
@@ -622,7 +748,7 @@ describe("createPost 수정 때 뺀 이미지 정리", () => {
       previous: { content: "![](post-images-private:2026-01-03/a.png)", image_keys: [], thumbnail_image_key: null },
     });
 
-    await createPost({ ...edit, content: "![](post-images-private:2026-01-03/a.png)" });
+    await savePost({ ...edit, content: "![](post-images-private:2026-01-03/a.png)" });
 
     expect(log).toEqual(["post-images-private:2026-01-03/a.png → post-images-public:2026-01-03/a.png", "upsert"]);
   });
@@ -633,7 +759,7 @@ describe("createPost 수정 때 뺀 이미지 정리", () => {
       usedBy: [{ content: "", image_keys: null, thumbnail_image_key: "post-images-public:2026-01-03/c.png" }],
     });
 
-    await createPost(edit);
+    await savePost(edit);
 
     expect(log).toEqual(["upsert", "remove post-images-public:2026-01-03/b.png"]);
   });
@@ -641,16 +767,16 @@ describe("createPost 수정 때 뺀 이미지 정리", () => {
   it("저장이 실패하면 이전 이미지를 지우지 않는다", async () => {
     const { log } = imageService({ previous, failSave: true });
 
-    const result = await createPost(edit);
+    const result = await savePost(edit);
 
-    expect(result).toEqual({ success: false, error: "DB Error: 저장 실패" });
+    expect(result).toEqual({ success: false, error: DB_FAILURE_MESSAGE });
     expect(log).toEqual(["upsert"]);
   });
 
   it("파일을 지우지 못해도 저장은 성공으로 돌려준다", async () => {
     imageService({ previous, failRemove: true });
 
-    const result = await createPost(edit);
+    const result = await savePost(edit);
 
     expect(result.success).toBe(true);
     expect(console.error).toHaveBeenCalled();

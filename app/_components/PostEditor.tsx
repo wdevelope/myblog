@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import type { PostType, Visibility } from "@/lib/types";
 import { toAutoTitle } from "@/lib/markdown";
 import { postHref } from "@/lib/constants";
-import { createPost } from "@/lib/actions/posts";
+import { savePost } from "@/lib/actions/posts";
 import MarkdownEditor from "@/app/_components/MarkdownEditor";
 import PostSettingsPanel from "@/app/_components/PostSettingsPanel";
 import { useHydrated } from "@/app/_components/useHydrated";
@@ -107,11 +107,8 @@ export default function PostEditor({
         body: form,
       });
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          error?: string;
-          details?: string;
-        } | null;
-        setError(payload?.details ?? payload?.error ?? "업로드에 실패했어요.");
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        setError(payload?.error ?? "업로드에 실패했어요.");
         return [];
       }
 
@@ -141,7 +138,7 @@ export default function PostEditor({
 
     // 저장까지 transition에 넣어야 isPending이 켜져 발행 버튼이 막힌다. 막히지 않으면 두 번 눌러 새 글이 두 개 생긴다.
     startTransition(async () => {
-      const result = await createPost({
+      const result = await savePost({
         id: initial?.id,
         slug: initial?.slug,
         type,

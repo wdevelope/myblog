@@ -3,6 +3,7 @@ import "server-only";
 import { revalidatePath, updateTag } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { fetchPublicRest } from "@/lib/server/publicPosts";
+import type { TableRow } from "@/lib/supabase/database";
 import type { GuestbookEntry } from "@/lib/guestbook";
 
 // 쓰기·삭제·프로필 변경은 이 태그로 바로 무효화한다(캐시 주기는 공개 글과 같은 하루).
@@ -12,29 +13,18 @@ export const GUESTBOOK_TAG = "guestbook";
 const ENTRY_COLUMNS =
   "id,parent_id,author_id,author_is_admin,is_secret,content,created_at,author:profiles(nickname,avatar_path)";
 
-type AuthorRow = { nickname: string | null; avatar_path: string | null };
-
-type EntryRow = {
-  id: string;
-  parent_id: string | null;
-  author_id: string;
-  author_is_admin: boolean;
-  is_secret: boolean;
-  content: string | null;
-  created_at: string;
-  author: AuthorRow | AuthorRow[] | null;
+type EntryRow = TableRow<"guestbook_entries"> & {
+  author: Pick<TableRow<"profiles">, "nickname" | "avatar_path"> | null;
 };
 
 function mapEntry(row: EntryRow, secretContent: string | null = null): GuestbookEntry {
-  // Database 타입이 없어(6단계) 다대일 관계도 배열로 추론되므로 두 모양을 모두 받는다.
-  const author = Array.isArray(row.author) ? row.author[0] : row.author;
   return {
     id: row.id,
     parentId: row.parent_id,
     authorId: row.author_id,
     authorIsAdmin: row.author_is_admin,
-    authorNickname: author?.nickname ?? null,
-    authorAvatarPath: author?.avatar_path ?? null,
+    authorNickname: row.author?.nickname ?? null,
+    authorAvatarPath: row.author?.avatar_path ?? null,
     isSecret: row.is_secret,
     // 표 구조가 바뀌어 비밀글 content가 실려 와도 비밀 내용 표에서 읽은 값 말고는 옮기지 않는다.
     content: row.is_secret ? secretContent : row.content,
@@ -65,13 +55,10 @@ export async function getGuestbookDirectly(): Promise<GuestbookEntry[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("guestbook_entries")
-    .select(`${ENTRY_COLUMNS},secret:guestbook_secret_contents(content)`)
+    .select(`${ENTRY_COLUMNS},secret:guestbook_secret_contents(content)` as const)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`DB Error: ${error.message}`);
 
-  return (data ?? []).map((row) => {
-    const secret = Array.isArray(row.secret) ? row.secret[0] : row.secret;
-    return mapEntry(row, secret?.content ?? null);
-  });
+  return (data ?? []).map((row) => mapEntry(row, row.secret?.content ?? null));
 }

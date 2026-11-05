@@ -59,7 +59,7 @@ const secretRow = {
   is_secret: true,
   content: null,
   created_at: "2026-10-22T01:00:00Z",
-  author: [{ nickname: null, avatar_path: "u2/a.jpg" }],
+  author: { nickname: null, avatar_path: "u2/a.jpg" },
 };
 
 describe("방명록 공개 조회", () => {
@@ -84,7 +84,7 @@ describe("방명록 공개 조회", () => {
     });
   });
 
-  it("비밀글은 content가 null인 채로, 작성자 프로필은 두 모양 모두 매핑한다", async () => {
+  it("비밀글은 content가 null인 채로 작성자 프로필과 함께 매핑한다", async () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify([secretRow, publicRow])));
 
     expect(await getPublicGuestbook()).toEqual([

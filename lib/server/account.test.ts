@@ -37,7 +37,7 @@ describe("getMyComments", () => {
         content: "댓글",
         created_at: "2026-01-01T00:00:00Z",
         parent_id: null,
-        posts: [{ slug: "daily", type: "feed", title: "피드" }],
+        posts: { slug: "daily", type: "feed", title: "피드" },
       },
     ];
 

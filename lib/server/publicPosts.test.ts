@@ -69,7 +69,8 @@ const row = {
   content: "<p>본문</p>",
   category_slug: "dev",
   created_at: "2026-01-01T00:00:00Z",
-  updated_at: null,
+  updated_at: "2026-01-01T00:00:00Z",
+  view_count: 0,
   image_keys: null,
   thumbnail_image_key: null,
   comments: [{ count: 3 }],
@@ -178,6 +179,7 @@ describe("공개 글 목록 조회", () => {
         updatedAt: "2026-01-01T00:00:00Z",
         imageKeys: [],
         thumbnailImageKey: null,
+        viewCount: 0,
         commentCount: 3,
       },
       {
@@ -192,6 +194,7 @@ describe("공개 글 목록 조회", () => {
         updatedAt: "2026-01-02T00:00:00Z",
         imageKeys: ["post-images-public:a.png"],
         thumbnailImageKey: "post-images-public:a.png",
+        viewCount: 0,
         commentCount: 0,
       },
     ]);

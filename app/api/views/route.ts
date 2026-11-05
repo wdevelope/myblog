@@ -8,7 +8,7 @@ import { isBotUserAgent } from "@/lib/userAgent";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// 글 slug는 createPost가 `post-<16진수>`로 만든다. 다른 문자는 조회·RPC에 넘기기 전에 거른다.
+// 글 slug는 savePost가 `post-<16진수>`로 만든다. 다른 문자는 조회·RPC에 넘기기 전에 거른다.
 const bodySchema = z.object({
   slug: z.string().max(100).regex(/^[A-Za-z0-9_-]+$/),
 });

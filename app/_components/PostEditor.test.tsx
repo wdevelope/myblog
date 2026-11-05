@@ -5,7 +5,7 @@ import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import PostEditor from "@/app/_components/PostEditor";
-import { createPost } from "@/lib/actions/posts";
+import { savePost } from "@/lib/actions/posts";
 import { enableAdminMode } from "@/lib/adminMode";
 
 const router = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn(), back: vi.fn() }));
@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/lib/actions/posts", () => ({
-  createPost: vi.fn(),
+  savePost: vi.fn(),
   deletePost: vi.fn(),
 }));
 
@@ -238,19 +238,19 @@ describe("글 에디터 발행", () => {
   }
 
   afterEach(() => {
-    vi.mocked(createPost).mockReset();
+    vi.mocked(savePost).mockReset();
   });
 
   it("저장을 기다리는 동안 발행 버튼을 막아 두 번 눌러도 한 번만 저장한다", async () => {
-    const save = Promise.withResolvers<Awaited<ReturnType<typeof createPost>>>();
-    vi.mocked(createPost).mockReturnValue(save.promise);
+    const save = Promise.withResolvers<Awaited<ReturnType<typeof savePost>>>();
+    vi.mocked(savePost).mockReturnValue(save.promise);
     const publish = openPanelAndGetPublishButton();
 
     fireEvent.click(publish);
     await act(async () => {});
     fireEvent.click(publish);
 
-    expect(createPost).toHaveBeenCalledTimes(1);
+    expect(savePost).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("button", { name: "발행 중..." })).toHaveProperty("disabled", true);
 
     // React는 진행 중인 비동기 transition을 전역으로 묶어, 끝내지 않으면 다음 테스트의 isPending도 풀리지 않는다.
@@ -258,21 +258,9 @@ describe("글 에디터 발행", () => {
   });
 
   it("저장에 성공하면 관리자 화면을 따로 켜지 않고 상세를 한 번만 받는다", async () => {
-    vi.mocked(createPost).mockResolvedValue({
+    vi.mocked(savePost).mockResolvedValue({
       success: true,
-      data: {
-        id: "post-1",
-        slug: "post-abc",
-        type: "diary",
-        visibility: "private",
-        title: "제목",
-        content: "본문",
-        categorySlug: null,
-        createdAt: "2026-01-01T00:00:00Z",
-        updatedAt: "2026-01-01T00:00:00Z",
-        imageKeys: [],
-        thumbnailImageKey: null,
-      },
+      data: { slug: "post-abc", type: "diary" },
     });
     vi.mocked(enableAdminMode).mockClear();
     router.push.mockClear();
@@ -290,7 +278,7 @@ describe("글 에디터 발행", () => {
   });
 
   it("저장이 실패하면 이유를 보이고 다시 누를 수 있다", async () => {
-    vi.mocked(createPost).mockResolvedValue({ success: false, error: "저장 실패 이유" });
+    vi.mocked(savePost).mockResolvedValue({ success: false, error: "저장 실패 이유" });
     const publish = openPanelAndGetPublishButton();
 
     await act(async () => {
@@ -302,7 +290,7 @@ describe("글 에디터 발행", () => {
   });
 
   it("저장 요청이 끊겨도 화면이 깨지지 않고 오류를 보인다", async () => {
-    vi.mocked(createPost).mockRejectedValue(new Error("network"));
+    vi.mocked(savePost).mockRejectedValue(new Error("network"));
     const publish = openPanelAndGetPublishButton();
 
     await act(async () => {

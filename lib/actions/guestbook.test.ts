@@ -105,7 +105,7 @@ describe("방명록 쓰기", () => {
     });
 
     expect(mocks.calls).toEqual([
-      ["rpc", "create_guestbook_entry", { p_content: "비밀 이야기", p_is_secret: true, p_parent_id: null }],
+      ["rpc", "create_guestbook_entry", { p_content: "비밀 이야기", p_is_secret: true, p_parent_id: undefined }],
     ]);
     expect(updateTag).toHaveBeenCalledWith("guestbook");
     expect(revalidatePath).toHaveBeenCalledWith("/guestbook");

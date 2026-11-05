@@ -44,7 +44,8 @@ const row = {
   content: "본문",
   category_slug: "dev",
   created_at: "2026-01-01T00:00:00Z",
-  updated_at: null,
+  updated_at: "2026-01-01T00:00:00Z",
+  view_count: 0,
   image_keys: ["post-images-public:a.png"],
   thumbnail_image_key: null,
   comments: [{ count: 2 }],
@@ -119,6 +120,7 @@ describe("공개 아티클 검색", () => {
         updatedAt: "2026-01-01T00:00:00Z",
         imageKeys: ["post-images-public:a.png"],
         thumbnailImageKey: null,
+        viewCount: 0,
         commentCount: 2,
       },
     ]);

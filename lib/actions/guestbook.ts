@@ -45,7 +45,7 @@ export async function createGuestbookEntry(input: unknown): Promise<GuestbookRes
   const { error } = await supabase.rpc("create_guestbook_entry", {
     p_content: content,
     p_is_secret: isSecret,
-    p_parent_id: parentId ?? null,
+    p_parent_id: parentId ?? undefined,
   });
 
   if (error) {

@@ -10,8 +10,8 @@ import {
   updateCategory,
   deleteCategory,
   reorderCategory,
-  type Category,
 } from "@/lib/actions/categories";
+import type { Category } from "@/lib/types";
 import VisibilityIcon from "@/app/_components/VisibilityIcon";
 import { cn } from "@/lib/utils";
 import { Button } from "@/app/_components/ui";
