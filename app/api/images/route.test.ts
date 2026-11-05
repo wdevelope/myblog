@@ -96,6 +96,56 @@ describe("GET /api/images 권한", () => {
   });
 });
 
+describe("GET /api/images 경로 검사", () => {
+  // storage-js는 경로를 그대로 `object/<버킷>/<경로>` 주소에 붙이고, URL 파서가 `..`를 풀어 버린다.
+  // 그래서 Storage로 보내는 경로가 요청한 버킷 밖을 가리키지 않는지를 주소 해석 결과로 확인한다.
+  function staysInBucket(bucket: string, sentPath: string) {
+    const base = `https://project.supabase.co/storage/v1/object/${bucket}/`;
+    return new URL(base + sentPath).pathname.startsWith(new URL(base).pathname);
+  }
+
+  it.each([
+    "../post-images-private/2026-01-01/a.png",
+    "2026-01-01/../../post-images-private/2026-01-01/a.png",
+    "%2e%2e/post-images-private/2026-01-01/a.png",
+    "%2E%2E%2Fpost-images-private%2F2026-01-01%2Fa.png",
+    "..\\post-images-private\\2026-01-01\\a.png",
+    "./../avatars/user-1/a.jpg",
+  ])("공개 버킷을 거쳐 다른 버킷 파일을 받을 수 없다: %s", async (path) => {
+    signedIn(null);
+    const url = `${ORIGIN}/api/images?bucket=post-images-public&path=${encodeURIComponent(path)}`;
+
+    const res = await GET(new Request(url));
+
+    if (res.status === 400) {
+      expect(mocks.download).not.toHaveBeenCalled();
+    } else {
+      const [sentPath] = mocks.download.mock.calls[0] ?? [];
+      expect(staysInBucket("post-images-public", sentPath)).toBe(true);
+    }
+  });
+
+  it("글 이미지 버킷이 아닌 버킷은 관리자여도 400이다", async () => {
+    signedIn({ id: "admin-1", app_metadata: { is_admin: true } });
+
+    const res = await GET(new Request(imageUrl("avatars")));
+
+    expect(res.status).toBe(400);
+    expect(mocks.download).not.toHaveBeenCalled();
+  });
+
+  it("한글·공백이 든 옛 파일 이름도 같은 객체를 가리키게 인코딩해 받는다", async () => {
+    signedIn(null);
+    const path = "2025-12-28/1a2b-사진 1.png";
+    const url = `${ORIGIN}/api/images?bucket=post-images-public&path=${encodeURIComponent(path)}`;
+
+    const res = await GET(new Request(url));
+
+    expect(res.status).toBe(200);
+    expect(mocks.download).toHaveBeenCalledWith("2025-12-28/1a2b-%EC%82%AC%EC%A7%84%201.png");
+  });
+});
+
 describe("POST /api/images 권한", () => {
   it("관리자가 아니면 업로드하지 않고 401을 돌려준다", async () => {
     signedIn(nonAdmin);

@@ -7,6 +7,19 @@ export function imageBucketFor(visibility: Visibility) {
   return visibility === "private" ? PRIVATE_IMAGE_BUCKET : PUBLIC_IMAGE_BUCKET;
 }
 
+export function isImageBucket(bucket: string) {
+  return bucket === PUBLIC_IMAGE_BUCKET || bucket === PRIVATE_IMAGE_BUCKET;
+}
+
+// storage-js는 경로를 그대로 `object/<버킷>/<경로>` 주소에 붙이고 URL 파서가 `..`·`%2e%2e`·`\`를 상위 경로로 푼다.
+// 점 조각을 거절하고 조각마다 인코딩해, 서비스 키로 받는 경로가 요청한 버킷 밖을 가리키지 못하게 한다.
+// 옛 업로드는 원래 파일 이름(한글·공백)을 경로에 썼으므로 글자를 막지 않고 인코딩만 한다.
+export function storageObjectPath(path: string): string | null {
+  const segments = path.split("/");
+  if (segments.some((segment) => segment === "" || segment === "." || segment === "..")) return null;
+  return segments.map(encodeURIComponent).join("/");
+}
+
 type PostImageFields = { content: string; imageKeys: string[]; thumbnailImageKey: string | null };
 
 // 업로드가 만드는 경로(`날짜/uuid.확장자`)에는 공백·괄호·#이 없다. 본문은 이미지 문법 `](` 바로 뒤의 키만 본다.

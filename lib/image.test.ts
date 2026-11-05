@@ -7,6 +7,7 @@ import {
   imageKeysUnusedBy,
   imagePathsInBucket,
   replaceImageBucket,
+  storageObjectPath,
 } from "@/lib/image";
 
 const SUPABASE_URL = "https://project.supabase.co";
@@ -154,5 +155,21 @@ describe("어느 글도 쓰지 않는 이미지 키", () => {
     expect(imageKeysUnusedBy(["post-images-public:2026-01-03/a.png"], posts)).toEqual([
       "post-images-public:2026-01-03/a.png",
     ]);
+  });
+});
+
+describe("storageObjectPath", () => {
+  it("업로드가 만드는 경로는 그대로 쓴다", () => {
+    expect(storageObjectPath("2026-01-01/3f2a.png")).toBe("2026-01-01/3f2a.png");
+  });
+
+  it("상위 경로로 풀리는 조각과 빈 조각은 거절한다", () => {
+    for (const path of ["../x.png", "a/./b.png", "/a.png", "a//b.png", "a/.."]) {
+      expect(storageObjectPath(path)).toBeNull();
+    }
+  });
+
+  it("%·역슬래시·? 같은 주소 문자는 인코딩해 글자 그대로의 이름으로 보낸다", () => {
+    expect(storageObjectPath("%2e%2e/a\\b?.png")).toBe("%252e%252e/a%5Cb%3F.png");
   });
 });
