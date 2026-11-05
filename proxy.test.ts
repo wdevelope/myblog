@@ -109,8 +109,8 @@ describe("옛 /article 쿼리 주소 리다이렉트", () => {
 });
 
 describe("proxy 실행 범위(matcher)", () => {
-  function runs(url: string, cookies: Record<string, string> = {}) {
-    return unstable_doesMiddlewareMatch({ config, url: `http://localhost:2025${url}`, cookies });
+  function runs(url: string, cookies: Record<string, string> = {}, headers: Record<string, string> = {}) {
+    return unstable_doesMiddlewareMatch({ config, url: `http://localhost:2025${url}`, cookies, headers });
   }
   const session = { "sb-project-auth-token": "token" };
 
@@ -123,6 +123,14 @@ describe("proxy 실행 범위(matcher)", () => {
   it("세션 쿠키가 있으면 페이지 요청에서 돈다", () => {
     expect(runs("/feed", session)).toBe(true);
     expect(runs("/feed", { theme: "dark", ...session })).toBe(true);
+  });
+
+  it("세션 쿠키가 있어도 화면 전환 요청에는 돌지 않는다", () => {
+    expect(runs("/article", session, { rsc: "1" })).toBe(false);
+  });
+
+  it("세션 쿠키가 있는 서버 액션 요청은 토큰을 갱신하도록 돈다", () => {
+    expect(runs("/article", session, { "next-action": "abc" })).toBe(true);
   });
 
   it("쪼개진 세션 쿠키(.0)만 있어도 돈다", () => {

@@ -57,12 +57,15 @@ function legacyArticleListRedirect(request: NextRequest) {
 
 // Vercel은 proxy를 CDN 캐시보다 먼저 함수로 실행해, 캐시된 정적 페이지 요청에도 약 80ms(콜드 스타트면 더)가 붙는다.
 // 그래서 세션 쿠키(sb-<ref>-auth-token, 크면 .0·.1로 쪼개짐)가 있는 요청과 옛 /article 쿼리 주소에서만 돌린다.
+// 화면 전환(rsc 헤더)도 뺀다. 관리자 클릭마다 약 90ms가 붙는데, 토큰은 열린 탭의 브라우저 클라이언트가 미리 갱신한다.
+// 페이지를 새로 열 때와 서버 액션은 응답에 쿠키를 쓸 수 있어 그대로 돈다.
 // matcher는 빌드 때 정적으로 읽으므로 경로 패턴을 변수로 빼지 않는다.
 export const config: ProxyConfig = {
   matcher: [
     {
       source: "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
       has: [{ type: "header", key: "cookie", value: "(.*;\\s*)?sb-[^=;\\s]+-auth-token(\\.\\d+)?=.*" }],
+      missing: [{ type: "header", key: "rsc" }],
     },
     { source: "/article", has: [{ type: "query", key: "category" }] },
     { source: "/article", has: [{ type: "query", key: "page" }] },
