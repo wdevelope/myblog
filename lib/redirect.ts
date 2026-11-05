@@ -7,7 +7,8 @@ export function safeRedirectPath(value: string | null | undefined): string {
   if (!value?.startsWith("/")) return "/";
   try {
     const url = new URL(value, BASE);
-    if (url.origin !== BASE) return "/";
+    // `/.//x`처럼 점 조각이 정리되면 `//x`가 남고, 이 경로로 이동하면 다시 프로토콜 상대 주소가 된다.
+    if (url.origin !== BASE || url.pathname.startsWith("//")) return "/";
     return `${url.pathname}${url.search}${url.hash}`;
   } catch {
     return "/";
