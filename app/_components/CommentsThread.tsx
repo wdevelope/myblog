@@ -33,7 +33,7 @@ function CommentItem({ comment, children }: { comment: Comment; children?: React
           <span className="text-muted">·</span>
           <span className="text-muted">{formatPostDate(comment.createdAt, "ko")}</span>
         </div>
-        <p className="whitespace-pre-wrap text-xs leading-5 text-foreground/90">{comment.content}</p>
+        <p className="whitespace-pre-wrap break-words text-xs leading-5 text-foreground/90">{comment.content}</p>
         {children}
       </div>
     </div>
@@ -64,7 +64,7 @@ function CommentComposer({
         rows={3}
         maxLength={COMMENT_CONTENT_MAX}
         disabled={disabled || isPending}
-        className="w-full rounded-2xl border border-border bg-transparent px-4 py-3 text-base text-foreground outline-none transition focus:border-primary/60 disabled:opacity-60 sm:text-xs"
+        className="w-full rounded-2xl border border-border bg-transparent px-4 py-3 text-base text-foreground outline-none transition focus:border-primary disabled:opacity-60 sm:text-xs"
         placeholder={placeholder}
       />
       {error ? <p className="text-xs text-danger">{error}</p> : null}
@@ -186,7 +186,7 @@ export default function CommentsThread({
       <button
         type="button"
         onClick={() => handleDelete(comment.id)}
-        className="inline-flex items-center gap-2 font-semibold text-danger/80 hover:text-danger transition"
+        className="inline-flex items-center gap-2 font-semibold text-danger transition hover:opacity-90"
       >
         삭제
       </button>

@@ -45,11 +45,11 @@ export default function MyCommentList({ comments }: { comments: MyComment[] }) {
             {c.isReply ? <span>· 대댓글</span> : null}
             <span>· {formatPostDate(c.createdAt, "ko")}</span>
           </div>
-          <p className="whitespace-pre-wrap text-xs leading-5 text-foreground/90">{c.content}</p>
+          <p className="whitespace-pre-wrap break-words text-xs leading-5 text-foreground/90">{c.content}</p>
           <button
             type="button"
             onClick={() => void handleDelete(c.id)}
-            className="text-xs font-semibold text-danger/80 transition hover:text-danger"
+            className="text-xs font-semibold text-danger transition hover:opacity-90"
           >
             삭제
           </button>
