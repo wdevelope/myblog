@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
+import { EditorView } from "@codemirror/view";
 import { act } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
+import { toast } from "sonner";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import PostEditor from "@/app/_components/PostEditor";
 import { savePost } from "@/lib/actions/posts";
@@ -22,6 +24,8 @@ vi.mock("@/lib/actions/posts", () => ({
 vi.mock("@/lib/adminMode", () => ({
   enableAdminMode: vi.fn(),
 }));
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), promise: vi.fn() } }));
 
 const DRAFT_NOTICE = "임시저장된 글이 있습니다";
 
@@ -315,6 +319,154 @@ describe("다이어리 날짜별 임시저장", () => {
 
     expect(screen.queryByText(DRAFT_NOTICE)).toBeNull();
     expect(storedTitle(keyOf("2026-11-04"))).toBe("옛 일기");
+  });
+});
+
+describe("글 에디터 이미지 업로드", () => {
+  const INITIAL = { id: "p1", slug: "post-1", title: "제목", content: "본문", visibility: "private" as const };
+  const fetchMock = vi.fn<typeof fetch>();
+
+  function image(name: string, bytes = 3) {
+    return new File([new Uint8Array(bytes)], name, { type: "image/png" });
+  }
+
+  function uploaded(...keys: string[]) {
+    return new Response(JSON.stringify({ keys }), { status: 200 });
+  }
+
+  function refused(error: string) {
+    return new Response(JSON.stringify({ error }), { status: 400 });
+  }
+
+  function editorText() {
+    const editor = screen.getByLabelText("본문").closest(".cm-editor") as HTMLElement;
+    return EditorView.findFromDOM(editor)?.state.doc.toString();
+  }
+
+  async function pasteIntoBody(...files: File[]) {
+    await act(async () => {
+      fireEvent.paste(screen.getByLabelText("본문"), { clipboardData: { files } });
+    });
+  }
+
+  async function chooseInPanel(input: Element, ...files: File[]) {
+    await act(async () => {
+      fireEvent.change(input, { target: { files } });
+    });
+  }
+
+  function panelFileInputs() {
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+    return Array.from(document.querySelectorAll('dialog input[type="file"]'));
+  }
+
+  function sentFileNames() {
+    return fetchMock.mock.calls.map(([, init]) => (init?.body as FormData).getAll("files").map((file) => (file as File).name));
+  }
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    vi.mocked(toast.error).mockClear();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.mocked(savePost).mockReset();
+  });
+
+  it("여러 장을 넣으면 파일마다 따로 보내고 넣은 순서대로 본문에 붙인다", async () => {
+    fetchMock.mockResolvedValueOnce(uploaded("post-images-private:a")).mockResolvedValueOnce(uploaded("post-images-private:b"));
+    render(<PostEditor type="diary" defaultVisibility="private" />);
+
+    await pasteIntoBody(image("a.png"), image("b.png"));
+
+    expect(sentFileNames()).toEqual([["a.png"], ["b.png"]]);
+    expect(editorText()).toBe("![](post-images-private:a)\n![](post-images-private:b)");
+  });
+
+  it("본문 업로드를 서버가 거절하면 이유를 토스트로 보이고 자리표시자를 지운다", async () => {
+    fetchMock.mockResolvedValue(refused("SVG 이미지는 올릴 수 없어요."));
+    render(<PostEditor type="diary" defaultVisibility="private" />);
+
+    await pasteIntoBody(image("a.png"));
+
+    expect(toast.error).toHaveBeenCalledWith("SVG 이미지는 올릴 수 없어요.");
+    expect(editorText()).toBe("");
+  });
+
+  it("연결이 끊겨 본문 업로드가 실패해도 자리표시자를 남기지 않고 알린다", async () => {
+    fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<PostEditor type="diary" defaultVisibility="private" />);
+
+    await pasteIntoBody(image("a.png"));
+
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(editorText()).toBe("");
+  });
+
+  it("4MB가 넘는 파일은 보내지 않고 이유를 알리며, 나머지 파일은 올린다", async () => {
+    fetchMock.mockResolvedValue(uploaded("post-images-private:small"));
+    render(<PostEditor type="diary" defaultVisibility="private" />);
+
+    await pasteIntoBody(image("big.png", 4 * 1024 * 1024 + 1), image("small.png"));
+
+    expect(sentFileNames()).toEqual([["small.png"]]);
+    expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("big.png"));
+    expect(editorText()).toBe("![](post-images-private:small)");
+  });
+
+  it("한 장이 거절돼도 다른 장은 올라간다", async () => {
+    fetchMock.mockResolvedValueOnce(refused("거절")).mockResolvedValueOnce(uploaded("post-images-private:b"));
+    render(<PostEditor type="diary" defaultVisibility="private" />);
+
+    await pasteIntoBody(image("a.png"), image("b.png"));
+
+    expect(toast.error).toHaveBeenCalledWith("거절");
+    expect(editorText()).toBe("![](post-images-private:b)");
+  });
+
+  it("글 설정 창의 첨부 실패는 창 안에 보인다. 토스트는 열린 창 아래에 깔린다", async () => {
+    fetchMock.mockResolvedValue(refused("첨부 거절"));
+    render(<PostEditor type="diary" defaultVisibility="private" />);
+
+    await chooseInPanel(panelFileInputs()[0], image("a.png"));
+
+    expect(screen.getByRole("alert", { hidden: true }).textContent).toBe("첨부 거절");
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("글 설정 창의 썸네일 실패도 창 안에 보인다", async () => {
+    fetchMock.mockResolvedValue(refused("썸네일 거절"));
+    render(<PostEditor type="blog" />);
+
+    await chooseInPanel(panelFileInputs()[1], image("a.png"));
+
+    expect(screen.getByRole("alert", { hidden: true }).textContent).toBe("썸네일 거절");
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("이미지를 올리는 동안 발행하면 막아 자리표시자가 글에 저장되지 않고, 끝나면 발행할 수 있다", async () => {
+    const upload = Promise.withResolvers<Response>();
+    fetchMock.mockReturnValue(upload.promise);
+    vi.mocked(savePost).mockResolvedValue({ success: true, data: { slug: "post-1", type: "diary" } });
+    render(<PostEditor type="diary" initial={INITIAL} />);
+
+    await pasteIntoBody(image("a.png"));
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "발행하기" }));
+    });
+
+    expect(savePost).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert", { hidden: true }).textContent).toContain("올리는 중");
+
+    await act(async () => upload.resolve(uploaded("post-images-private:a")));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "발행하기" }));
+    });
+
+    expect(savePost).toHaveBeenCalledWith(expect.objectContaining({ content: expect.stringContaining("![](post-images-private:a)") }));
   });
 });
 
