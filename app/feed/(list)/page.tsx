@@ -2,7 +2,7 @@ import { CircleAlert } from "lucide-react";
 import { ButtonLink, Card, CardBody } from "@/app/_components/ui";
 import MarkdownContent from "@/app/_components/MarkdownContent";
 import { FeedCard } from "@/app/feed/FeedCard";
-import { toExcerpt } from "@/lib/markdown";
+import { feedCardContent } from "@/app/feed/feedCardContent";
 import { getPreviewViewer } from "@/lib/server/admin";
 import { getPublicPosts } from "@/lib/server/publicPosts";
 
@@ -29,15 +29,20 @@ export default async function FeedPage() {
 
       <div className="space-y-7">
         {posts.length ? (
-          posts.map((post) => (
-            <FeedCard
-              key={post.id}
-              post={post}
-              isAdmin={isAdmin}
-              excerpt={toExcerpt(post.content, 1000)}
-              body={<MarkdownContent content={post.content} compact />}
-            />
-          ))
+          posts.map((post) => {
+            const { imageKeys, content, excerpt, hasMore } = feedCardContent(post);
+            return (
+              <FeedCard
+                key={post.id}
+                post={post}
+                isAdmin={isAdmin}
+                imageKeys={imageKeys}
+                excerpt={excerpt}
+                hasMore={hasMore}
+                body={<MarkdownContent content={content} compact />}
+              />
+            );
+          })
         ) : (
           <Card>
             <CardBody className="text-center py-12">

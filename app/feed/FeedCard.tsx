@@ -7,18 +7,22 @@ import { cn, formatPostDate } from "@/lib/utils";
 import type { Post } from "@/lib/types";
 import { Card, CardBody } from "@/app/_components/ui";
 import PostActionMenu from "@/app/_components/PostActionMenu";
-import { coverKeyOf, coverSrcFromImageKey } from "@/lib/image";
+import { coverSrcFromImageKey, isImageProxySrc } from "@/lib/image";
 
 // 요약과 본문은 서버에서 만들어 넘긴다. 클라이언트 컴포넌트가 렌더러를 import하면 공개 피드 번들에 markdown-it·KaTeX가 실린다.
 export function FeedCard({
   post,
   isAdmin,
+  imageKeys,
   excerpt,
+  hasMore,
   body,
 }: {
   post: Post;
   isAdmin: boolean;
+  imageKeys: string[];
   excerpt: string;
+  hasMore: boolean;
   body: ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -31,10 +35,6 @@ export function FeedCard({
     setIsSaved(nextSaved);
     if (nextSaved) setShowSaveToast(true);
   };
-
-  const coverKey = coverKeyOf(post);
-  const coverSrc = coverKey ? coverSrcFromImageKey(coverKey) : null;
-  const shouldShowMore = excerpt.length > 140;
 
   return (
     <Card className="relative overflow-hidden transition hover:shadow-lg">
@@ -64,15 +64,28 @@ export function FeedCard({
       </div>
 
       {/* Image area */}
-      {coverSrc ? (
-        <div className="relative aspect-square w-full bg-surface-2">
-          <Image
-            src={coverSrc}
-            alt=""
-            fill
-            sizes="(min-width: 768px) 600px, 100vw"
-            className="object-cover"
-          />
+      {imageKeys.length ? (
+        <div className="grid grid-cols-2 gap-0.5">
+          {imageKeys.map((key, index) => {
+            // 홀수 장이면 첫 장을 넓게 둬 마지막 줄에 빈 칸이 남지 않는다. 한 장이면 정사각 표지 그대로다.
+            const wide = index === 0 && imageKeys.length % 2 === 1;
+            const src = coverSrcFromImageKey(key);
+            return (
+              <div
+                key={key}
+                className={cn("relative aspect-square bg-surface-2", wide && "col-span-2")}
+              >
+                <Image
+                  src={src}
+                  alt=""
+                  fill
+                  sizes={wide ? "(min-width: 768px) 600px, 100vw" : "(min-width: 768px) 300px, 50vw"}
+                  className="object-cover"
+                  unoptimized={isImageProxySrc(src)}
+                />
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="aspect-square w-full bg-linear-to-br from-surface-2 via-surface to-surface-2 flex items-center justify-center">
@@ -154,13 +167,18 @@ export function FeedCard({
             </div>
           ) : (
             <div className="relative group/content">
-              <p className="line-clamp-2 text-[14px] leading-normal text-foreground font-normal">
+              <p
+                className={cn(
+                  "wrap-break-word text-[14px] leading-normal text-foreground font-normal",
+                  hasMore && "line-clamp-2"
+                )}
+              >
                 <span className="font-bold mr-2 text-foreground border-none bg-transparent p-0">
                   오웬
                 </span>
                 {excerpt}
               </p>
-              {shouldShowMore ? (
+              {hasMore ? (
                 <button
                   type="button"
                   onClick={() => setExpanded(true)}
