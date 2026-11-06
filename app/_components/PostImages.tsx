@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { coverSrcFromImageKey } from "@/lib/image";
+import { coverSrcFromImageKey, isImageProxySrc } from "@/lib/image";
 
 export default function PostImages({ imageKeys }: { imageKeys?: string[] }) {
   if (!imageKeys?.length) return null;
@@ -17,6 +17,7 @@ export default function PostImages({ imageKeys }: { imageKeys?: string[] }) {
               height={600}
               className="h-auto w-full object-contain"
               sizes="(min-width: 640px) 50vw, 100vw"
+              unoptimized={isImageProxySrc(src)}
             />
           </div>
         );

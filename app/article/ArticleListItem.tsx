@@ -4,7 +4,7 @@ import { MessageCircleMore } from "lucide-react";
 import VisibilityIcon from "@/app/_components/VisibilityIcon";
 import type { Post } from "@/lib/types";
 import { toExcerpt } from "@/lib/markdown";
-import { coverKeyOf, coverSrcFromImageKey } from "@/lib/image";
+import { coverKeyOf, coverSrcFromImageKey, isImageProxySrc } from "@/lib/image";
 import { formatPostDate } from "@/lib/utils";
 
 // 아티클 목록과 홈 최신 아티클이 함께 쓰는 게시판형 한 줄. 부모는 `ul.divide-y`다.
@@ -41,7 +41,7 @@ export default function ArticleListItem({
             {toExcerpt(post.content)}
           </p>
           <div className="mt-3 flex items-center gap-3 text-xs text-muted">
-            <time dateTime={post.createdAt} className="font-medium text-muted/60">
+            <time dateTime={post.createdAt} className="font-medium text-muted">
               {formatPostDate(post.createdAt)}
             </time>
             {(post.commentCount ?? 0) > 0 && (
@@ -62,6 +62,7 @@ export default function ArticleListItem({
               sizes="(min-width: 640px) 160px, 96px"
               className="object-cover transition duration-300 group-hover:scale-[1.03]"
               priority={priority}
+              unoptimized={isImageProxySrc(coverSrc)}
             />
           </div>
         ) : null}

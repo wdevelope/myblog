@@ -6,6 +6,7 @@ import {
   imageKeysOf,
   imageKeysUnusedBy,
   imagePathsInBucket,
+  isImageProxySrc,
   replaceImageBucket,
   storageObjectPath,
 } from "@/lib/image";
@@ -40,6 +41,16 @@ describe("이미지 키 → 화면 주소", () => {
 
   it("버킷:경로 형식이 아닌 값은 그대로 쓴다", () => {
     expect(coverSrcFromImageKey("/logo.png")).toBe("/logo.png");
+  });
+});
+
+describe("isImageProxySrc", () => {
+  it("서버 프록시 주소만 고른다", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", SUPABASE_URL);
+
+    expect(isImageProxySrc(coverSrcFromImageKey("post-images-private:2026-01-01/a.png"))).toBe(true);
+    expect(isImageProxySrc(coverSrcFromImageKey("post-images-public:2026-01-01/a.png"))).toBe(false);
+    expect(isImageProxySrc("/logo.png")).toBe(false);
   });
 });
 

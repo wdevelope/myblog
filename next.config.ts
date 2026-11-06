@@ -7,9 +7,11 @@ const supabaseHostname = supabaseUrl ? new URL(supabaseUrl).hostname : null;
 
 const nextConfig: NextConfig = {
   images: {
+    // 앱이 next/image에 넘기는 주소 모양으로만 좁힌다. 쿼리가 붙는 /api/images는 unoptimized로 변환기를 타지 않는다.
     localPatterns: [
       {
         pathname: "/**",
+        search: "",
       },
     ],
     remotePatterns: [
@@ -18,14 +20,11 @@ const nextConfig: NextConfig = {
           {
             protocol: "https" as const,
             hostname: supabaseHostname,
+            pathname: "/storage/v1/object/public/**",
+            search: "",
           },
         ]
         : []),
-      // Fallback or additional pattern if env var is missing during build
-      {
-        protocol: "https" as const,
-        hostname: "*.supabase.co",
-      },
     ],
   },
 };

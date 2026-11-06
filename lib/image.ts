@@ -86,6 +86,11 @@ export function coverSrcFromImageKey(key: string) {
   )}&path=${encodeURIComponent(objectPath)}`;
 }
 
+// next/image 변환기는 쿠키 없이 원본을 가져가서 관리자만 열리는 이 주소를 받지 못한다. 고르면 unoptimized로 브라우저가 직접 받는다.
+export function isImageProxySrc(src: string) {
+  return src.startsWith("/api/images");
+}
+
 // 목록·카드의 표지 규칙: 썸네일이 없으면 첫 첨부 이미지.
 export function coverKeyOf(post: { thumbnailImageKey?: string | null; imageKeys?: string[] }) {
   return post.thumbnailImageKey?.trim() || post.imageKeys?.[0] || null;
