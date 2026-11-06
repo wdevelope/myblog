@@ -1,11 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { disableAdminMode } from "@/lib/adminMode";
+import LogoutButton from "@/app/_components/LogoutButton";
 import { useSessionUser } from "@/app/_components/useSessionUser";
-import { toast } from "sonner";
 import { buttonClass } from "@/app/_components/ui";
 
 interface AuthButtonProps {
@@ -17,28 +14,10 @@ export default function AuthButton({
     loginClassName = buttonClass(),
     logoutClassName = "h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-surface-2",
 }: AuthButtonProps) {
-    const router = useRouter();
     const { user, loading } = useSessionUser();
 
-    async function onLogout() {
-        const promise = (async () => {
-            const supabase = createSupabaseBrowserClient();
-            await supabase.auth.signOut();
-            await disableAdminMode();
-            router.replace("/login");
-            router.refresh();
-            return "로그아웃 완료";
-        })();
-
-        toast.promise(promise, {
-            loading: "로그아웃 중...",
-            success: (data) => data,
-            error: "로그아웃에 실패했어요.",
-        });
-    }
-
     // 로딩 중에는 로그인 버튼 표시 (SSR과 일치시켜 hydration mismatch 방지)
-    if (loading) {
+    if (loading || !user) {
         return (
             <Link href="/login" className={loginClassName}>
                 로그인
@@ -46,21 +25,5 @@ export default function AuthButton({
         );
     }
 
-    if (user) {
-        return (
-            <button
-                type="button"
-                onClick={() => void onLogout()}
-                className={logoutClassName}
-            >
-                로그아웃
-            </button>
-        );
-    }
-
-    return (
-        <Link href="/login" className={loginClassName}>
-            로그인
-        </Link>
-    );
+    return <LogoutButton className={logoutClassName} />;
 }
