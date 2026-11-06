@@ -14,6 +14,26 @@ const md = new MarkdownIt({ html: false, linkify: true, breaks: true })
   .use(markdownItIns)
   .use(markdownItKatex, { throwOnError: false });
 
+// 기본값은 두 글자 국가 도메인을 모두 받아 `README.md`·`main.py` 같은 파일 이름이 가짜 링크가 된다. `https://`까지 적은 주소에는 이 목록을 쓰지 않는다.
+md.linkify.tlds(["com", "net", "org", "kr"]);
+
+// 호스트 끝 라벨이 `com입니다`처럼 영문·숫자에 한글이 이어지는 주소는 없으므로 조사가 붙은 것이다. 경로·검색어의 한글은
+// 진짜 주소(`/wiki/BTS의_음반`)와 구분되지 않아 끊지 않는다. 끝 라벨만 보는 것은 `ab한글.com` 같은 한글 도메인을 지키려는 것이다.
+const HOST_WITH_KOREAN_TAIL = /^(?:[a-z]+:)?\/\/[^\s/?#]*[a-z\d](?=\p{sc=Hangul}[^./?#]*(?:[/?#]|$))/iu;
+
+const normalizeLinkMatch = md.linkify.normalize.bind(md.linkify);
+
+md.linkify.normalize = (match) => {
+  const host = HOST_WITH_KOREAN_TAIL.exec(match.raw)?.[0];
+  if (host) {
+    // markdown-it의 두 링크 규칙이 url과 text·lastIndex를 나눠 읽으므로 같이 줄인다.
+    match.url = host;
+    match.text = host;
+    match.lastIndex = match.index + host.length;
+  }
+  normalizeLinkMatch(match);
+};
+
 const IMAGE_KEY = new RegExp(`^(?:${PUBLIC_IMAGE_BUCKET}|${PRIVATE_IMAGE_BUCKET}):`);
 
 const renderToken: RendererRule = (tokens, idx, options, _env, self) =>

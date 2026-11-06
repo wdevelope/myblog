@@ -125,6 +125,60 @@ describe("마크다운 렌더링", () => {
   });
 });
 
+describe("자동 링크", () => {
+  const link = (url: string) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+
+  it("주소 바로 뒤에 붙은 조사는 링크에서 빼고 글자로 남긴다", () => {
+    expect(renderMarkdown("주소는 https://a.com입니다.")).toBe(`<p>주소는 ${link("https://a.com")}입니다.</p>\n`);
+    expect(renderMarkdown("https://a.com에서 확인")).toBe(`<p>${link("https://a.com")}에서 확인</p>\n`);
+    expect(renderMarkdown("https://www.a.co.kr입니다")).toBe(`<p>${link("https://www.a.co.kr")}입니다</p>\n`);
+    expect(renderMarkdown("https://foo.io입니다")).toBe(`<p>${link("https://foo.io")}입니다</p>\n`);
+    expect(renderMarkdown("**https://a.com입니다**")).toBe(`<p><strong>${link("https://a.com")}입니다</strong></p>\n`);
+  });
+
+  it("`//`로 시작하는 주소도 조사를 뗀다", () => {
+    expect(renderMarkdown("//a.com입니다")).toBe('<p><a href="//a.com">//a.com</a>입니다</p>\n');
+  });
+
+  it("도메인이 아닌 주소 끝의 조사도 뗀다", () => {
+    expect(renderMarkdown("http://localhost입니다")).toBe(`<p>${link("http://localhost")}입니다</p>\n`);
+  });
+
+  it("경로·검색어의 한글과 한글 도메인은 주소의 일부로 둔다", () => {
+    expect(renderMarkdown("https://ko.wikipedia.org/wiki/한글")).toContain(
+      'href="https://ko.wikipedia.org/wiki/%ED%95%9C%EA%B8%80"',
+    );
+    expect(renderMarkdown("https://ko.wikipedia.org/wiki/BTS의_음반")).toContain(
+      'href="https://ko.wikipedia.org/wiki/BTS%EC%9D%98_%EC%9D%8C%EB%B0%98"',
+    );
+    expect(renderMarkdown("https://a.com?q=한글")).toContain('href="https://a.com?q=%ED%95%9C%EA%B8%80"');
+    expect(renderMarkdown("https://한글.com")).toContain('href="https://xn--bj0bj06e.com"');
+    expect(renderMarkdown("https://www.ab한글.com")).toContain('href="https://www.xn--ab-f12i831k.com"');
+  });
+
+  it("한글 도메인 뒤의 조사도 뗀다", () => {
+    expect(renderMarkdown("https://한글.com입니다")).toContain('>https://한글.com</a>입니다');
+  });
+
+  it("파일 이름처럼 생긴 글자는 링크로 만들지 않는다", () => {
+    for (const name of ["README.md 파일", "main.py", "docs.rs", "a.sh", "foo.io"]) {
+      expect(renderMarkdown(name)).not.toContain("<a ");
+    }
+  });
+
+  it("주소를 다 적으면 국가 도메인도 링크로 만든다", () => {
+    expect(renderMarkdown("https://docs.rs")).toContain(link("https://docs.rs"));
+  });
+
+  it("정상 주소는 그대로 링크로 만든다", () => {
+    expect(renderMarkdown("https://a.com/path?q=1")).toContain('href="https://a.com/path?q=1"');
+    expect(renderMarkdown("www.example.co.kr")).toContain('href="http://www.example.co.kr"');
+    expect(renderMarkdown("example.co.kr")).toContain('href="http://example.co.kr"');
+    expect(renderMarkdown("naver.com")).toContain('href="http://naver.com"');
+    expect(renderMarkdown("me@a.com")).toContain('href="mailto:me@a.com"');
+  });
+});
+
 describe("빈 줄 간격", () => {
   const gap = (rows: number) => `style="margin-top:calc(var(--md-line) * ${rows})"`;
 
