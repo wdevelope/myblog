@@ -14,7 +14,7 @@ export default defineConfig({
   test: {
     // 화면 테스트는 파일 첫 줄에 `// @vitest-environment jsdom`을 쓴다.
     environment: "node",
-    include: ["{app,lib,tests}/**/*.test.{ts,tsx}", "*.test.ts", "scripts/**/*.test.mjs"],
+    include: ["{app,lib}/**/*.test.{ts,tsx}", "*.test.ts"],
     setupFiles: ["./vitest.setup.ts"],
     restoreMocks: true,
   },

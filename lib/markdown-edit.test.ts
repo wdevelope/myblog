@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  applyEdit,
   insertBlock,
   insertLink,
   setHeading,
   toggleInline,
   toggleLinePrefix,
+  type TextEdit,
   type TextSelection,
 } from "@/lib/markdown-edit";
 
@@ -23,6 +23,15 @@ function sel(marked: string): TextSelection {
 function show({ value, start, end }: TextSelection): string {
   if (start === end) return `${value.slice(0, start)}|${value.slice(start)}`;
   return `${value.slice(0, start)}[${value.slice(start, end)}]${value.slice(end)}`;
+}
+
+// 에디터는 CodeMirror 트랜잭션으로 반영하므로 결과를 글자로 보려면 여기서 직접 적용한다.
+function applyEdit({ value }: TextSelection, edit: TextEdit): TextSelection {
+  return {
+    value: value.slice(0, edit.from) + edit.insert + value.slice(edit.to),
+    start: edit.selectionStart,
+    end: edit.selectionEnd,
+  };
 }
 
 const run = (marked: string, edit: (s: TextSelection) => ReturnType<typeof toggleInline>) =>

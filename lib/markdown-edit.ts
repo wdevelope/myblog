@@ -10,14 +10,6 @@ export type TextEdit = {
   selectionEnd: number;
 };
 
-export function applyEdit({ value }: TextSelection, edit: TextEdit): TextSelection {
-  return {
-    value: value.slice(0, edit.from) + edit.insert + value.slice(edit.to),
-    start: edit.selectionStart,
-    end: edit.selectionEnd,
-  };
-}
-
 export function toggleInline({ value, start, end }: TextSelection, marker: string): TextEdit {
   const size = marker.length;
   const selected = value.slice(start, end);
