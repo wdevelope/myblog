@@ -107,7 +107,7 @@ describe("글 에디터 임시저장 알림", () => {
 
 describe("글 에디터 임시저장 보존", () => {
   const EDIT_KEY = "draft:post:edit:p1";
-  const NEW_DIARY_KEY = "draft:post:new:diary";
+  const NEW_DIARY_KEY = "draft:post:new:diary:2026-11-04";
   const INITIAL = { id: "p1", slug: "post-1", title: "제목", content: "서버 본문", visibility: "public" as const, categorySlug: "개발" };
   const DRAFT = { title: "제목", content: "고치던 초안", categorySlug: "개발" };
 
@@ -178,8 +178,8 @@ describe("글 에디터 임시저장 보존", () => {
   });
 
   it("날짜를 고른 새 다이어리를 열기만 해서는 쓰던 일기를 빈 글로 덮어쓰지 않는다", () => {
-    saveDraft(NEW_DIARY_KEY, { type: "diary", title: "봄날", content: "쓰던 일기", createdAtYmd: "2026-11-03" });
-    render(<PostEditor type="diary" createdAtYmd="2026-11-04" />);
+    saveDraft(NEW_DIARY_KEY, { type: "diary", title: "봄날", content: "쓰던 일기", createdAtYmd: "2026-11-04" });
+    render(<PostEditor type="diary" createdAtYmd="2026-11-04" draftDate="2026-11-04" />);
 
     waitForAutoSave();
 
@@ -187,7 +187,7 @@ describe("글 에디터 임시저장 보존", () => {
   });
 
   it("날짜만 있고 쓴 내용이 없는 다이어리는 공개 범위를 바꿔도 임시저장하지 않는다", () => {
-    render(<PostEditor type="diary" defaultVisibility="private" createdAtYmd="2026-11-04" />);
+    render(<PostEditor type="diary" defaultVisibility="private" createdAtYmd="2026-11-04" draftDate="2026-11-04" />);
 
     fireEvent.click(screen.getByRole("button", { name: "발행" }));
     fireEvent.click(screen.getByRole("button", { name: "공개" }));
@@ -211,9 +211,116 @@ describe("글 에디터 임시저장 보존", () => {
   });
 });
 
+describe("다이어리 날짜별 임시저장", () => {
+  const OLD_KEY = "draft:post:new:diary";
+  const keyOf = (ymd: string) => `${OLD_KEY}:${ymd}`;
+
+  function renderDiary(ymd: string, createdAtYmd: string | undefined = ymd) {
+    return render(
+      <PostEditor
+        type="diary"
+        defaultVisibility="private"
+        defaultTitle={`${ymd}의 기록`}
+        createdAtYmd={createdAtYmd}
+        draftDate={ymd}
+      />,
+    );
+  }
+
+  function typeTitle(title: string) {
+    fireEvent.change(screen.getByPlaceholderText("제목을 입력하세요."), { target: { value: title } });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+  }
+
+  function storedTitle(key: string) {
+    return JSON.parse(localStorage.getItem(key) ?? "{}").title;
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.mocked(savePost).mockReset();
+  });
+
+  it("다른 날짜 화면에는 그 날짜의 초안만 보여 날짜가 어긋난 글을 불러올 수 없다", () => {
+    saveDraft(keyOf("2026-11-03"), { type: "diary", title: "11월 3일의 일기", content: "쓰던 일기" });
+
+    renderDiary("2026-11-05");
+
+    expect(screen.queryByText(DRAFT_NOTICE)).toBeNull();
+  });
+
+  it("날짜마다 칸이 따로라 다른 날짜에 써도 먼저 쓴 초안이 덮이지 않는다", () => {
+    renderDiary("2026-11-03");
+    typeTitle("봄날");
+    cleanup();
+
+    renderDiary("2026-11-05");
+    typeTitle("여름날");
+
+    expect(storedTitle(keyOf("2026-11-03"))).toBe("봄날");
+    expect(storedTitle(keyOf("2026-11-05"))).toBe("여름날");
+  });
+
+  it("날짜를 고르지 않은 화면은 오늘 칸을 써서 어제 초안을 불러올 수 없다", () => {
+    saveDraft(keyOf("2026-11-04"), { type: "diary", title: "어제의 일기", content: "쓰던 일기" });
+
+    renderDiary("2026-11-05", undefined);
+
+    expect(screen.queryByText(DRAFT_NOTICE)).toBeNull();
+  });
+
+  it("같은 날짜를 다시 열어 불러오면 제목과 날짜가 맞게 발행하고 그 날짜 칸을 비운다", async () => {
+    vi.mocked(savePost).mockResolvedValue({ success: true, data: { slug: "post-1", type: "diary" } });
+    saveDraft(keyOf("2026-11-03"), {
+      type: "diary",
+      title: "2026년 11월 3일의 기록",
+      content: "쓰던 일기",
+      visibility: "private",
+      createdAtYmd: "2026-11-03",
+    });
+    renderDiary("2026-11-03");
+
+    fireEvent.click(screen.getByRole("button", { name: "불러오기" }));
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "발행하기" }));
+    });
+
+    expect(savePost).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "2026년 11월 3일의 기록", createdAtYmd: "2026-11-03" }),
+    );
+    expect(localStorage.getItem(keyOf("2026-11-03"))).toBeNull();
+  });
+
+  it("날짜별 칸 이전의 초안은 그 초안의 날짜 칸으로 옮겨 알림으로 찾을 수 있다", () => {
+    saveDraft(OLD_KEY, { type: "diary", title: "옛 일기", content: "쓰던 일기", createdAtYmd: "2026-11-03" });
+
+    renderDiary("2026-11-03");
+
+    expect(screen.getByText(DRAFT_NOTICE)).toBeTruthy();
+    expect(localStorage.getItem(OLD_KEY)).toBeNull();
+    expect(storedTitle(keyOf("2026-11-03"))).toBe("옛 일기");
+  });
+
+  it("날짜 없이 쓴 옛 초안은 마지막으로 저장한 한국 날짜의 칸으로 옮긴다", () => {
+    saveDraft(OLD_KEY, { type: "diary", title: "옛 일기", content: "쓰던 일기", updatedAt: "2026-11-03T16:00:00.000Z" });
+
+    renderDiary("2026-11-05");
+
+    expect(screen.queryByText(DRAFT_NOTICE)).toBeNull();
+    expect(storedTitle(keyOf("2026-11-04"))).toBe("옛 일기");
+  });
+});
+
 describe("글 에디터 기본 제목", () => {
   const DATE_TITLE = "2026년 11월 4일의 기록";
-  const DIARY_DRAFT_KEY = "draft:post:new:diary";
+  const DIARY_DRAFT_KEY = "draft:post:new:diary:2026-11-04";
 
   function titleInput() {
     return screen.getByPlaceholderText("제목을 입력하세요.") as HTMLInputElement;
@@ -231,7 +338,7 @@ describe("글 에디터 기본 제목", () => {
 
   it("기본 제목만 있으면 쓴 내용이 없으므로 임시저장하지 않는다", () => {
     vi.useFakeTimers();
-    render(<PostEditor type="diary" defaultTitle={DATE_TITLE} />);
+    render(<PostEditor type="diary" defaultTitle={DATE_TITLE} draftDate="2026-11-04" />);
 
     act(() => {
       vi.advanceTimersByTime(1000);
@@ -242,7 +349,7 @@ describe("글 에디터 기본 제목", () => {
 
   it("기본 제목을 고치면 임시저장한다", () => {
     vi.useFakeTimers();
-    render(<PostEditor type="diary" defaultTitle={DATE_TITLE} />);
+    render(<PostEditor type="diary" defaultTitle={DATE_TITLE} draftDate="2026-11-04" />);
 
     fireEvent.change(titleInput(), { target: { value: "봄날" } });
     act(() => {

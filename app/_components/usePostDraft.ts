@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PostType, Visibility } from "@/lib/types";
+import { formatPostDate } from "@/lib/utils";
 
 export type PostDraft = {
   version: 1;
@@ -39,6 +40,17 @@ function differsFrom(saved: PostDraft, current: PostDraft) {
     saved.createdAtYmd !== current.createdAtYmd ||
     JSON.stringify(saved.imageKeys) !== JSON.stringify(current.imageKeys)
   );
+}
+
+const OLD_DIARY_DRAFT_KEY = "draft:post:new:diary";
+
+// 새 다이어리 초안은 날짜별 칸에 둔다. 칸 하나를 같이 쓰던 때의 초안은 그 날짜 칸으로 옮겨야 알림으로 찾을 수 있다.
+function moveOldDiaryDraft() {
+  const raw = localStorage.getItem(OLD_DIARY_DRAFT_KEY);
+  if (!raw) return;
+  const { createdAtYmd, updatedAt } = JSON.parse(raw) as PostDraft;
+  localStorage.setItem(`${OLD_DIARY_DRAFT_KEY}:${createdAtYmd ?? formatPostDate(updatedAt)}`, raw);
+  localStorage.removeItem(OLD_DIARY_DRAFT_KEY);
 }
 
 // 글 에디터의 임시저장. 입력이 멈추면 저장하고, 처음 그릴 때 지금 내용과 다른 임시저장 글을 pendingDraft로 알린다.
@@ -82,6 +94,7 @@ export function usePostDraft({
     if (typeof window === "undefined") return null;
 
     try {
+      if (type === "diary") moveOldDiaryDraft();
       const raw = localStorage.getItem(draftKey);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as PostDraft;

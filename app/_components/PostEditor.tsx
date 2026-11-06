@@ -19,6 +19,7 @@ export default function PostEditor({
   categories = [],
   initial,
   createdAtYmd,
+  draftDate,
   deleteSlug,
   deleteRedirectTo,
 }: {
@@ -37,6 +38,8 @@ export default function PostEditor({
     thumbnailImageKey?: string | null;
   };
   createdAtYmd?: string;
+  // 새 다이어리는 날짜마다 임시저장 칸이 따로다. 칸을 같이 쓰면 다른 날짜의 초안을 불러와 제목과 날짜가 어긋난다.
+  draftDate?: string;
   deleteSlug?: string;
   deleteRedirectTo?: string;
 }) {
@@ -64,7 +67,7 @@ export default function PostEditor({
 
   const draftKey = initial?.id
     ? `draft:post:edit:${initial.id}`
-    : `draft:post:new:${type}`;
+    : `draft:post:new:${type}${draftDate ? `:${draftDate}` : ""}`;
 
   const removeImageKey = useCallback(
     (key: string) => {

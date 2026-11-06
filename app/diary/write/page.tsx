@@ -23,14 +23,15 @@ export default async function DiaryWritePage({ searchParams }: Props) {
   const sp = (await searchParams) ?? {};
   const dateParam = typeof sp.date === "string" ? sp.date : null;
   const createdAtYmd = dateParam && isYmd(dateParam) ? dateParam : undefined;
-  const today = formatPostDate(new Date().toISOString());
+  const diaryDate = createdAtYmd ?? formatPostDate(new Date().toISOString());
 
   return (
     <PostEditor
       type="diary"
       defaultVisibility="private"
-      defaultTitle={toDiaryTitle(createdAtYmd ?? today)}
+      defaultTitle={toDiaryTitle(diaryDate)}
       createdAtYmd={createdAtYmd}
+      draftDate={diaryDate}
     />
   );
 }
