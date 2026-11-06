@@ -59,7 +59,7 @@ export default function NicknameField({
           id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary/60 sm:text-sm"
+          className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary sm:text-sm"
           placeholder="한글·영문·숫자·_ 2~12자"
           autoComplete="nickname"
         />

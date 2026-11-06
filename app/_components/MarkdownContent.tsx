@@ -16,7 +16,7 @@ export default function MarkdownContent({
   return (
     <div
       className={cn(
-        "markdown-body prose max-w-none wrap-break-word dark:prose-invert",
+        "markdown-body prose max-w-none wrap-break-word",
         compact && "markdown-compact",
         className
       )}

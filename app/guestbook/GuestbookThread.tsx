@@ -105,7 +105,7 @@ function GuestbookComposer({
         maxLength={GUESTBOOK_CONTENT_MAX}
         disabled={isPending}
         placeholder={placeholder}
-        className="w-full resize-y rounded-2xl border border-border bg-transparent px-4 py-3 text-base text-foreground outline-none transition placeholder:text-muted focus:border-primary/60 disabled:opacity-60 sm:text-sm"
+        className="w-full resize-y rounded-2xl border border-border bg-transparent px-4 py-3 text-base text-foreground outline-none transition placeholder:text-muted focus:border-primary disabled:opacity-60 sm:text-sm"
       />
       {error ? <p role="alert" className="text-xs text-danger">{error}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -255,7 +255,7 @@ export default function GuestbookThread({
                 <button
                   type="button"
                   onClick={() => handleDelete(entry)}
-                  className="font-semibold text-danger/80 transition hover:text-danger"
+                  className="font-semibold text-danger transition hover:opacity-90"
                 >
                   삭제
                 </button>

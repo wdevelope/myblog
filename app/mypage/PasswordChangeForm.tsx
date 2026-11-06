@@ -7,7 +7,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/app/_components/ui";
 
 const inputClassName =
-  "h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary/60 sm:text-sm";
+  "h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary sm:text-sm";
 
 // 로그인 폼과 같은 규칙(8자 이상·확인 입력)이다. 그 밖의 규칙은 Supabase Auth가 판정한다.
 export default function PasswordChangeForm() {

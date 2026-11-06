@@ -32,7 +32,7 @@ export default async function SearchPage({ searchParams }: Props) {
             maxLength={SEARCH_QUERY_MAX_LENGTH}
             enterKeyHint="search"
             placeholder="아티클 제목·본문 검색"
-            className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-base text-foreground placeholder:text-muted outline-none transition focus:border-primary/60 sm:text-sm"
+            className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-base text-foreground placeholder:text-muted outline-none transition focus:border-primary sm:text-sm"
           />
         </label>
         <Button

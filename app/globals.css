@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* 문서에 적은 클래스 이름까지 운영 CSS에 들어가지 않게 한다. */
+@source not "../docs";
+
 /* 기본 dark:는 OS 설정을 따른다. 테마 버튼이 html에 붙이는 .dark를 따르게 한다. */
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -12,9 +15,7 @@
   --surface: #ffffff;
   --surface-2: #f1f5f9;
   --border: rgba(15, 23, 42, 0.08);
-  --muted: #64748b;
-
-  --muted: #64748b;
+  --muted: #5b6b82;
 
   --success: #047857;
   --warning: #b45309;
@@ -54,8 +55,6 @@
   --surface: #111827;
   --surface-2: #1f2937;
   --border: rgba(255, 255, 255, 0.1);
-  --muted: #94a3b8;
-
   --muted: #94a3b8;
 
   --success: #34d399;
@@ -107,27 +106,6 @@ input[type="reset"]:not(:disabled),
   --tw-prose-pre-bg: var(--code-bg) !important;
   --tw-prose-th-borders: var(--border) !important;
   --tw-prose-td-borders: var(--border) !important;
-}
-
-.dark .prose-invert,
-.dark .prose,
-.prose-invert {
-  --tw-prose-invert-body: var(--foreground) !important;
-  --tw-prose-invert-headings: var(--foreground) !important;
-  --tw-prose-invert-lead: var(--muted) !important;
-  --tw-prose-invert-links: var(--primary) !important;
-  --tw-prose-invert-bold: var(--foreground) !important;
-  --tw-prose-invert-counters: var(--muted) !important;
-  --tw-prose-invert-bullets: var(--muted) !important;
-  --tw-prose-invert-hr: var(--border) !important;
-  --tw-prose-invert-quotes: var(--foreground) !important;
-  --tw-prose-invert-quote-borders: var(--border) !important;
-  --tw-prose-invert-captions: var(--muted) !important;
-  --tw-prose-invert-code: var(--foreground) !important;
-  --tw-prose-invert-pre-code: var(--code-fg) !important;
-  --tw-prose-invert-pre-bg: var(--code-bg) !important;
-  --tw-prose-invert-th-borders: var(--border) !important;
-  --tw-prose-invert-td-borders: var(--border) !important;
 }
 
 /* 본문 규격. 글 화면(.markdown-body)과 작성 칸(.markdown-editor)이 같은 값을 쓴다. 한쪽만 고치면 두 화면이 어긋난다.

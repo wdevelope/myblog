@@ -50,7 +50,7 @@ export function Badge({
 }
 
 const BUTTON_VARIANTS = {
-  primary: "bg-primary text-white shadow-lg shadow-primary/20 hover:brightness-110",
+  primary: "bg-primary text-background shadow-lg shadow-primary/20 hover:brightness-110",
   secondary: "border border-border bg-surface text-foreground hover:bg-surface-2",
 };
 

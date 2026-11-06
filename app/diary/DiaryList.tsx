@@ -48,7 +48,7 @@ export default function DiaryList({
                   <div className="flex items-start gap-5">
                     {/* Prominent Date Display */}
                     <div className="flex flex-col items-center justify-center min-w-14 transition-colors group-hover:text-primary">
-                      <span className="text-xs font-semibold text-muted/60">
+                      <span className="text-xs font-semibold text-muted">
                         {date.month}월
                       </span>
                       <span className="text-2xl font-black text-foreground/80">

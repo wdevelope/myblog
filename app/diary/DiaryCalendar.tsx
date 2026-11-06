@@ -134,7 +134,7 @@ export default function DiaryCalendar({
                 className={cn(
                   "flex h-12 items-center justify-center rounded-xl text-sm font-bold transition",
                   isCurrentMonth
-                    ? "bg-primary text-white shadow-lg shadow-primary/25"
+                    ? "bg-primary text-background shadow-lg shadow-primary/25"
                     : "bg-surface text-foreground hover:bg-surface-2",
                 )}
               >

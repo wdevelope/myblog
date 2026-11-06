@@ -86,7 +86,7 @@ export default async function ArticleIndex({
       <aside className="hidden lg:block lg:col-span-2 lg:col-start-1 lg:sticky lg:top-24 xl:col-span-2 xl:col-start-1">
         <div className="space-y-6">
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-xs font-black uppercase tracking-wider text-muted/60">
+            <h3 className="text-xs font-black uppercase tracking-wider text-muted">
               전체 카테고리
             </h3>
             {isAdmin ? <CategorySettingsModal /> : null}
@@ -107,8 +107,8 @@ export default async function ArticleIndex({
                 className={cn(
                   "inline-flex items-center justify-center min-w-7 h-5 px-1.5 rounded-lg text-[10px] font-black transition-colors",
                   selectedCategory
-                    ? "text-muted/40 group-hover:text-muted/60"
-                    : "text-primary/60",
+                    ? "text-muted group-hover:text-foreground"
+                    : "text-primary",
                 )}
               >
                 {sidebarTotalCount}
@@ -138,8 +138,8 @@ export default async function ArticleIndex({
                     className={cn(
                       "inline-flex items-center justify-center min-w-7 h-5 px-1.5 rounded-lg text-[10px] font-black transition-colors",
                       isActive
-                        ? "text-primary/60"
-                        : "text-muted/40 group-hover:text-muted/60",
+                        ? "text-primary"
+                        : "text-muted group-hover:text-foreground",
                     )}
                   >
                     {categoryCounts[category.slug] ?? 0}

@@ -75,7 +75,7 @@ export default function MobileNav() {
                     maxLength={SEARCH_QUERY_MAX_LENGTH}
                     enterKeyHint="search"
                     placeholder="아티클 검색…"
-                    className="h-11 w-full rounded-xl border border-border bg-surface-2 pl-9 pr-3 text-base text-foreground placeholder:text-muted outline-none transition focus:border-primary/60 sm:text-sm"
+                    className="h-11 w-full rounded-xl border border-border bg-surface-2 pl-9 pr-3 text-base text-foreground placeholder:text-muted outline-none transition focus:border-primary sm:text-sm"
                   />
                 </div>
               </label>
