@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { authErrorMessage } from "@/lib/authError";
@@ -42,28 +42,26 @@ export default function LoginForm() {
   );
   const [error, setError] = useState<string | null>(searchParams.get("error") ? LINK_FAILED : null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [isPending] = useTransition();
+  const [pending, setPending] = useState(false);
 
   const canSubmit = useMemo(
     () =>
+      !pending &&
       email.trim().length > 0 &&
       password.length >= 8 &&
       (mode === "login" ||
         (password === confirmPassword && verifiedNickname === nickname.trim())),
-    [confirmPassword, email, mode, nickname, password, verifiedNickname]
+    [confirmPassword, email, mode, nickname, password, pending, verifiedNickname]
   );
 
-  async function submit() {
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!canSubmit) return;
     setError(null);
     setNotice(null);
     const supabase = createSupabaseBrowserClient();
 
     const trimmedEmail = email.trim();
-    if (!trimmedEmail) return;
-    if (mode === "signup" && password !== confirmPassword) {
-      setError("비밀번호가 일치하지 않습니다.");
-      return;
-    }
 
     const promise = (async () => {
       const result = await (mode === "login"
@@ -124,6 +122,15 @@ export default function LoginForm() {
       success: (data) => data,
       error: (err: Error) => err.message,
     });
+
+    setPending(true);
+    try {
+      await promise;
+    } catch {
+      // 실패 문구는 toast.promise가 띄운다. 그대로 두면 처리되지 않은 거부로 남는다.
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -138,7 +145,7 @@ export default function LoginForm() {
           </p>
         </div>
 
-        <div className="space-y-5 px-7 py-6">
+        <form onSubmit={(e) => void submit(e)} className="space-y-5 px-7 py-6">
           <div className="flex gap-2">
             <button
               type="button"
@@ -173,9 +180,10 @@ export default function LoginForm() {
               이메일
             </span>
             <input
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary/60 sm:text-sm"
+              className="h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary sm:text-sm"
               placeholder="you@example.com"
               autoComplete="email"
             />
@@ -198,7 +206,7 @@ export default function LoginForm() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary/60 sm:text-sm"
+              className="h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary sm:text-sm"
               placeholder="8자 이상"
               autoComplete={
                 mode === "login" ? "current-password" : "new-password"
@@ -215,7 +223,7 @@ export default function LoginForm() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary/60 sm:text-sm"
+                className="h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary sm:text-sm"
                 placeholder="비밀번호를 다시 입력"
                 autoComplete="new-password"
               />
@@ -243,13 +251,13 @@ export default function LoginForm() {
           {notice ? <p className="text-sm text-success">{notice}</p> : null}
 
           <Button
-            onClick={submit}
-            disabled={!canSubmit || isPending}
+            type="submit"
+            disabled={!canSubmit}
             size="lg" className="w-full"
           >
             {mode === "login" ? "로그인" : "계정 만들기"}
           </Button>
-        </div>
+        </form>
       </div>
     </div>
   );

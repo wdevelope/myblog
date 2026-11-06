@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   refresh: vi.fn(),
   enableAdminMode: vi.fn(),
+  signIn: vi.fn(),
   signUp: vi.fn(),
   rpc: vi.fn(),
   signInError: null as { code?: string; message: string } | null,
@@ -20,10 +21,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/supabase/client", () => ({
   createSupabaseBrowserClient: () => ({
     auth: {
-      signInWithPassword: async () => ({
-        data: { user: mocks.user, session: { user: mocks.user } },
-        error: mocks.signInError,
-      }),
+      signInWithPassword: mocks.signIn,
       signUp: mocks.signUp,
     },
     rpc: mocks.rpc,
@@ -42,16 +40,33 @@ vi.mock("sonner", () => ({
   toast: { promise: vi.fn((promise: Promise<unknown>) => void promise.catch(() => {})) },
 }));
 
-function submitLogin() {
+function fillLogin() {
   fireEvent.change(screen.getByPlaceholderText("you@example.com"), {
     target: { value: "owner@example.com" },
   });
   fireEvent.change(screen.getByPlaceholderText("8자 이상"), {
     target: { value: "password123" },
   });
+}
+
+function submitLogin() {
+  fillLogin();
   // 첫 번째 "로그인"은 모드 탭이고 마지막이 제출 버튼이다.
   const buttons = screen.getAllByRole("button", { name: "로그인" });
   fireEvent.click(buttons[buttons.length - 1]);
+}
+
+function formOf(input: HTMLElement) {
+  const form = input.closest("form");
+  if (!form) throw new Error("입력칸을 감싼 form이 없다");
+  return form;
+}
+
+// jsdom은 Enter로 폼을 제출하지 않는다. 브라우저처럼 폼의 첫 제출 버튼을 누른다.
+function pressEnter(input: HTMLElement) {
+  const button = formOf(input).querySelector<HTMLButtonElement>('button[type="submit"]');
+  if (!button) throw new Error("제출 버튼이 없다");
+  fireEvent.click(button);
 }
 
 function fillSignup() {
@@ -75,6 +90,10 @@ beforeEach(() => {
   mocks.signInError = null;
   mocks.search = new URLSearchParams();
   mocks.enableAdminMode.mockResolvedValue(true);
+  mocks.signIn.mockImplementation(async () => ({
+    data: { user: mocks.user, session: { user: mocks.user } },
+    error: mocks.signInError,
+  }));
   mocks.rpc.mockResolvedValue({ data: "ok", error: null });
 });
 
@@ -111,6 +130,87 @@ describe("로그인 폼", () => {
 
     await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/"));
     expect(mocks.refresh).toHaveBeenCalled();
+  });
+});
+
+describe("폼 제출", () => {
+  it("비밀번호 칸에서 Enter를 누르면 로그인한다", async () => {
+    mocks.user = { id: "user-1", app_metadata: {} };
+    render(<LoginForm />);
+    fillLogin();
+
+    pressEnter(screen.getByPlaceholderText("8자 이상"));
+
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/"));
+    expect(mocks.signIn).toHaveBeenCalledWith({ email: "owner@example.com", password: "password123" });
+  });
+
+  it("로그인이 끝나기 전에는 버튼을 막고 다시 제출해도 요청을 한 번만 보낸다", async () => {
+    let finish = () => {};
+    mocks.signIn.mockReturnValue(
+      new Promise((resolve) => {
+        finish = () => resolve({ data: { user: null, session: null }, error: null });
+      }),
+    );
+    render(<LoginForm />);
+    fillLogin();
+    const password = screen.getByPlaceholderText("8자 이상");
+
+    fireEvent.submit(formOf(password));
+    fireEvent.submit(formOf(password));
+
+    expect(mocks.signIn).toHaveBeenCalledTimes(1);
+    const buttons = screen.getAllByRole("button", { name: "로그인" });
+    const submitButton = buttons[buttons.length - 1];
+    expect(submitButton).toBeDisabled();
+
+    finish();
+    await waitFor(() => expect(submitButton).toBeEnabled());
+  });
+
+  it("입력이 모자라면 제출해도 요청을 보내지 않는다", () => {
+    render(<LoginForm />);
+
+    fireEvent.submit(formOf(screen.getByPlaceholderText("8자 이상")));
+
+    expect(mocks.signIn).not.toHaveBeenCalled();
+  });
+
+  it("로그인에 실패하면 버튼이 풀려 다시 제출할 수 있다", async () => {
+    mocks.signInError = { code: "invalid_credentials", message: "Invalid login credentials" };
+    render(<LoginForm />);
+    submitLogin();
+
+    await waitFor(() => expect(mocks.signIn).toHaveBeenCalledTimes(1));
+    const buttons = screen.getAllByRole("button", { name: "로그인" });
+    await waitFor(() => expect(buttons[buttons.length - 1]).toBeEnabled());
+
+    fireEvent.click(buttons[buttons.length - 1]);
+    await waitFor(() => expect(mocks.signIn).toHaveBeenCalledTimes(2));
+  });
+
+  it("가입 화면의 Enter는 중복확인이 아니라 계정 만들기를 누르고, 가입도 한 번만 보낸다", async () => {
+    let finish = () => {};
+    mocks.signUp.mockReturnValue(
+      new Promise((resolve) => {
+        finish = () => resolve({ data: { user: null, session: null }, error: null });
+      }),
+    );
+    render(<LoginForm />);
+    fillSignup();
+    fireEvent.click(screen.getByRole("button", { name: "중복확인" }));
+    const create = screen.getByRole("button", { name: "계정 만들기" });
+    await waitFor(() => expect(create).toBeEnabled());
+    mocks.rpc.mockClear();
+    const confirm = screen.getByPlaceholderText("비밀번호를 다시 입력");
+
+    pressEnter(confirm);
+    fireEvent.submit(formOf(confirm));
+
+    expect(mocks.signUp).toHaveBeenCalledTimes(1);
+    expect(mocks.rpc).not.toHaveBeenCalled();
+    finish();
+    await waitFor(() => expect(screen.getByText(/가입 확인 이메일을 보냈어요/)).toBeInTheDocument());
   });
 });
 
