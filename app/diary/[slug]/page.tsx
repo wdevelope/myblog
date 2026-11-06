@@ -1,7 +1,6 @@
 import { getPostForRoute } from "@/lib/server/posts";
 import PostImages from "@/app/_components/PostImages";
 import MarkdownContent from "@/app/_components/MarkdownContent";
-import BackButton from "@/app/_components/BackButton";
 import PostActionMenu from "@/app/_components/PostActionMenu";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -11,9 +10,9 @@ import { getPublicDiaryIndex } from "@/lib/server/publicPosts";
 
 export const revalidate = 86400; // REVALIDATE_PERIOD
 
-export async function generateStaticParams() {
-  const entries = await getPublicDiaryIndex();
-  return entries.map((entry) => ({ slug: entry.slug }));
+// 방문자에게는 어느 다이어리든 같은 안내 화면이라 미리 만들지 않고 첫 방문 때 만들어 캐시한다.
+export function generateStaticParams() {
+  return [];
 }
 
 export default async function DiaryEntryPage({
@@ -34,12 +33,12 @@ export default async function DiaryEntryPage({
   return (
     <article className="mx-auto max-w-4xl space-y-5">
       <div className="flex items-center justify-between gap-4">
-        <BackButton
-          fallbackHref="/diary"
+        <Link
+          href="/diary"
           className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-transparent px-3 text-sm font-bold text-foreground transition hover:border-primary/30"
         >
           ← 목록으로
-        </BackButton>
+        </Link>
       </div>
 
       <header className="space-y-6">

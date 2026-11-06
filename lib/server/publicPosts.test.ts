@@ -115,7 +115,7 @@ describe("공개 글 목록 조회", () => {
     });
   });
 
-  it("아티클 카테고리를 주면 카테고리 필터와 카테고리 캐시 태그를 더한다", async () => {
+  it("아티클 카테고리를 주면 카테고리 필터를 더하고 캐시는 아티클 태그로 묶는다", async () => {
     fetchMock.mockResolvedValue(jsonResponse([]));
 
     await getPublicPosts({ type: "blog", category: "dev" });
@@ -123,7 +123,7 @@ describe("공개 글 목록 조회", () => {
     const { url, init } = requestAt();
     expect(url.searchParams.get("category_slug")).toBe("eq.dev");
     expect(init).toMatchObject({
-      next: { tags: ["posts:public:blog", "posts:public:blog:category:dev"] },
+      next: { tags: ["posts:public:blog"] },
     });
   });
 
@@ -291,19 +291,16 @@ describe("revalidatePublicPosts", () => {
   });
 
   it("피드는 상세 화면이 없어 목록 경로와 피드 태그만 무효화한다", () => {
-    revalidatePublicPosts({ type: "feed", slugs: ["photo"], categories: ["dev"] });
+    revalidatePublicPosts({ type: "feed", slugs: ["photo"] });
 
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([["/"], ["/feed"]]);
     expect(vi.mocked(updateTag).mock.calls).toEqual([["posts:public:feed"]]);
   });
 
-  it("같은 카테고리·slug는 한 번만, 비어 있는 값은 건너뛴다", () => {
-    revalidatePublicPosts({ type: "blog", slugs: ["a", "a", null], categories: ["dev", "dev", undefined] });
+  it("같은 slug는 한 번만, 비어 있는 값은 건너뛴다", () => {
+    revalidatePublicPosts({ type: "blog", slugs: ["a", "a", null] });
 
-    expect(vi.mocked(updateTag).mock.calls).toEqual([
-      ["posts:public:blog"],
-      ["posts:public:blog:category:dev"],
-    ]);
+    expect(vi.mocked(updateTag).mock.calls).toEqual([["posts:public:blog"]]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([["/"], ["/article"], ["/article/a"]]);
   });
 });
@@ -355,18 +352,18 @@ describe("공개 카테고리 조회", () => {
 });
 
 describe("방문자용 다이어리 목록", () => {
-  it("본문 열을 고르지 않고 비공개 다이어리 제목은 가린다", async () => {
+  it("화면이 쓰는 다섯 열만 읽어 그대로 돌려주고 비공개 다이어리 제목은 가린다", async () => {
     mocks.serviceRows = [
-      { id: "d1", slug: "open", type: "diary", visibility: "public", title: "공개 일기", created_at: "2026-01-02T00:00:00Z", updated_at: null, thumbnail_image_key: null },
-      { id: "d2", slug: "secret", type: "diary", visibility: "private", title: "비밀 제목", created_at: "2026-01-01T00:00:00Z", updated_at: null, thumbnail_image_key: null },
+      { id: "d1", slug: "open", visibility: "public", title: "공개 일기", created_at: "2026-01-02T00:00:00Z" },
+      { id: "d2", slug: "secret", visibility: "private", title: "비밀 제목", created_at: "2026-01-01T00:00:00Z" },
     ];
 
     const posts = await getPublicDiaryIndex();
 
-    expect(mocks.serviceSelect).not.toContain("content");
-    expect(posts.map((p) => [p.slug, p.title, p.content])).toEqual([
-      ["open", "공개 일기", ""],
-      ["secret", "일기", ""],
+    expect(mocks.serviceSelect).toBe("id,slug,title,created_at,visibility");
+    expect(posts).toEqual([
+      { id: "d1", slug: "open", title: "공개 일기", createdAt: "2026-01-02T00:00:00Z", visibility: "public" },
+      { id: "d2", slug: "secret", title: "일기", createdAt: "2026-01-01T00:00:00Z", visibility: "private" },
     ]);
   });
 });

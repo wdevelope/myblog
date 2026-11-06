@@ -72,7 +72,7 @@ export function coverSrcFromImageKey(key: string) {
   const looksLikeSupabaseKey = Boolean(bucket && objectPath);
   if (!looksLikeSupabaseKey) return key;
 
-  // Force API proxy for consistency and reliability
+  // 공개 버킷은 Supabase 주소로 바로 보낸다. 그 밖의 버킷은 /api/images가 권한을 보고 내려준다.
   if (bucket === PUBLIC_IMAGE_BUCKET) {
     const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
     if (base) {

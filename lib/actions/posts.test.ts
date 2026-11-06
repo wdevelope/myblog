@@ -153,8 +153,8 @@ class RoutedQuery {
   upsert() { return this; }
   async maybeSingle() {
     if (this.table === "categories") return { data: { slug: "dev" }, error: null };
-    if (this.selected.startsWith("slug,category_slug")) {
-      return { data: { slug: "post-abc", category_slug: "old" }, error: null };
+    if (this.selected.startsWith("slug,content")) {
+      return { data: { slug: "post-abc" }, error: null };
     }
     return { data: { id: "post-1" }, error: null };
   }
@@ -162,15 +162,14 @@ class RoutedQuery {
 }
 
 describe("savePost 캐시 무효화", () => {
-  it("글 수정으로 카테고리가 바뀌면 옛 카테고리와 새 카테고리 목록 캐시를 모두 무효화한다", async () => {
+  it("카테고리 목록은 아티클 태그에 묶여 있어 글을 고치면 그 태그 하나로 무효화한다", async () => {
     signedIn(user({ app: { is_admin: true } }));
     mocks.createServiceClient.mockReturnValue({ from: (table: string) => new RoutedQuery(table) });
 
     const result = await savePost({ ...blogInput, id: "post-1", slug: "post-abc" });
 
     expect(result.success).toBe(true);
-    expect(updateTag).toHaveBeenCalledWith("posts:public:blog:category:old");
-    expect(updateTag).toHaveBeenCalledWith("posts:public:blog:category:dev");
+    expect(vi.mocked(updateTag).mock.calls).toEqual([["posts:public:blog"]]);
   });
 
   it("아티클은 없는 /blog 경로가 아니라 /article 목록과 상세를 무효화한다", async () => {
@@ -239,7 +238,7 @@ describe("savePost 저장 전 조회", () => {
           started.push(name);
           await release.promise;
           if (name === "category") return { data: { slug: "dev" }, error: null };
-          return { data: { slug: "post-abc", category_slug: "dev" }, error: null };
+          return { data: { slug: "post-abc" }, error: null };
         },
         single: async () => ({ data: savedRow, error: null }),
       };
@@ -325,7 +324,7 @@ function imageService(
           if (table === "categories") return { data: { slug: "dev" }, error: null };
           if (deleting) return { data: options.deleted ? { ...savedRow, ...options.deleted } : null, error: null };
           if (selected.includes("content")) {
-            return { data: options.previous ? { slug: "post-abc", category_slug: "dev", ...options.previous } : null, error: null };
+            return { data: options.previous ? { slug: "post-abc", ...options.previous } : null, error: null };
           }
           return { data: null, error: null };
         },
@@ -403,7 +402,7 @@ describe("savePost 저장 규칙", () => {
           if (table === "categories") {
             return { data: selected === "slug" ? (options.category ?? null) : { sort_order: 3 }, error: null };
           }
-          if (selected.startsWith("slug,category_slug")) return { data: options.previous ?? null, error: null };
+          if (selected.startsWith("slug,content")) return { data: options.previous ?? null, error: null };
           return { data: null, error: null };
         },
         single: async () => {
@@ -419,7 +418,7 @@ describe("savePost 저장 규칙", () => {
   }
 
   const dev = { slug: "dev" };
-  const previous = { slug: "post-abc", category_slug: "dev", content: "", image_keys: [], thumbnail_image_key: null };
+  const previous = { slug: "post-abc", content: "", image_keys: [], thumbnail_image_key: null };
 
   it("글을 고쳐도 처음 쓴 사람을 덮어쓰지 않는다", async () => {
     signedIn(user({ app: { is_admin: true } }));
@@ -507,7 +506,7 @@ describe("savePost 저장 규칙", () => {
         const select = query.select;
         query.select = (columns = "") => {
           const selected = select(columns);
-          if (columns.startsWith("slug,category_slug")) {
+          if (columns.startsWith("slug,content")) {
             query.maybeSingle = async () => ({ data: null, error: { message: "boom" } }) as never;
           }
           return selected;

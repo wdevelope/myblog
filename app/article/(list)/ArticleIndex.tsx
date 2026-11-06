@@ -46,13 +46,7 @@ export default async function ArticleIndex({
     sidebarTotalCount = total;
     posts = data;
     totalCount = count;
-
-    // 글에는 있는데 카테고리 행이 없는 이름도 관리자에게는 보여 정리할 수 있게 한다.
-    const existing = new Set(adminCategories.map((c) => c.slug));
-    const missing = Object.keys(categoryCounts)
-      .filter((slug) => !existing.has(slug))
-      .map((slug) => ({ slug, visibility: "public" as const, sortOrder: 1_000_000 }));
-    categories = [...adminCategories, ...missing];
+    categories = adminCategories;
   } else {
     // 개수·목록·카테고리는 서로 기다릴 필요가 없어 한 번에 요청한다.
     const [{ counts, total }, { data, count }, publicCategories] = await Promise.all([

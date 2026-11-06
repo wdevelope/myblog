@@ -26,14 +26,11 @@ function createQuery(result: QueryResult) {
 }
 
 const mocks = vi.hoisted(() => ({
-  requestHeaders: new Headers(),
   getUser: vi.fn(),
   tables: {} as Record<string, unknown>,
 }));
 
-vi.mock("next/headers", () => ({
-  headers: async () => mocks.requestHeaders,
-}));
+vi.mock("next/headers", () => ({ draftMode: vi.fn() }));
 
 // redirect·notFound는 실제로 렌더링을 끊으므로 예외로 흉내 낸다.
 vi.mock("next/navigation", () => ({
@@ -76,42 +73,6 @@ const privatePostRow = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  for (const key of [...mocks.requestHeaders.keys()]) {
-    mocks.requestHeaders.delete(key);
-  }
-});
-
-describe("관리자 판정에 따른 글 조회", () => {
-  it("세션 없이 위조한 관리자 헤더만 있으면 공개 글만 조회한다", async () => {
-    mocks.requestHeaders.set("x-user-id", "attacker");
-    mocks.requestHeaders.set("x-user-is-admin", "true");
-    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
-    const page = createQuery({ data: [], error: null });
-    const slugs = createQuery({ data: [], error: null, count: 0 });
-    mocks.tables.posts = [page, slugs];
-
-    await getArticleListDirectly({ category: "", page: 1, limit: 12 });
-
-    expect(page.calls).toContainEqual(["eq", "visibility", "public"]);
-    expect(slugs.calls).toContainEqual(["eq", "visibility", "public"]);
-  });
-
-  it("user_metadata.is_admin만 있는 사용자는 상세에서도 공개 글만 조회한다", async () => {
-    const user = {
-      id: "user-1",
-      aud: "authenticated",
-      created_at: "2026-01-01T00:00:00Z",
-      app_metadata: {},
-      user_metadata: { is_admin: true },
-    };
-    mocks.getUser.mockResolvedValue({ data: { user }, error: null });
-    const posts = createQuery({ data: null, error: null });
-    mocks.tables.posts = posts;
-
-    await getPostForRoute("blog", "secret");
-
-    expect(posts.calls).toContainEqual(["eq", "visibility", "public"]);
-  });
 });
 
 const adminUser = {
@@ -124,7 +85,6 @@ const adminUser = {
 
 describe("getPostForRoute", () => {
   it("경로의 글 타입과 slug로 조회해 다른 타입 글은 찾지 않는다", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
     const posts = createQuery({ data: null, error: null });
     mocks.tables.posts = posts;
 
@@ -135,14 +95,12 @@ describe("getPostForRoute", () => {
   });
 
   it("없는 글이면 예외 대신 null을 돌려준다", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
     mocks.tables.posts = createQuery({ data: null, error: null });
 
     await expect(getPostForRoute("blog", "missing")).resolves.toBeNull();
   });
 
   it("관리자는 공개 범위 필터 없이 비공개 글도 조회한다", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
     const posts = createQuery({ data: privatePostRow, error: null });
     mocks.tables.posts = posts;
 
@@ -187,7 +145,6 @@ describe("getDiaryIndexDirectly", () => {
   };
 
   it("목록에 쓰는 다섯 열만 읽고 본문 없이 그 필드만 돌려준다", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
     const posts = createQuery({ data: [diaryRow], error: null });
     mocks.tables.posts = posts;
 
@@ -206,51 +163,47 @@ describe("getDiaryIndexDirectly", () => {
       },
     ]);
   });
-
-  it("관리자가 아니면 공개 다이어리만 조회한다", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
-    const posts = createQuery({ data: [], error: null });
-    mocks.tables.posts = posts;
-
-    await getDiaryIndexDirectly();
-
-    expect(posts.calls).toContainEqual(["eq", "visibility", "public"]);
-  });
 });
 
 describe("getArticleListDirectly", () => {
-  const slugRows = [
-    { category_slug: "개발" },
-    { category_slug: "개발" },
-    { category_slug: "비밀노트" },
-    { category_slug: null },
-    { category_slug: "" },
+  // 카테고리 없는 글이 있어 전체 수가 카테고리별 개수의 합보다 크다.
+  const categoryRows = [
+    { slug: "개발", posts: [{ count: 2 }] },
+    { slug: "비밀노트", posts: [{ count: 1 }] },
+    { slug: "빈카테고리", posts: [{ count: 0 }] },
   ];
 
-  beforeEach(() => {
-    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
-  });
+  function arrange(page: QueryResult = { data: [], error: null }) {
+    const queries = {
+      page: createQuery(page),
+      total: createQuery({ data: null, error: null, count: 5 }),
+      categories: createQuery({ data: categoryRows, error: null }),
+    };
+    mocks.tables.posts = [queries.page, queries.total];
+    mocks.tables.categories = queries.categories;
+    return queries;
+  }
 
-  it("본문은 요청한 쪽의 글만 읽고 개수는 카테고리 이름으로 센다", async () => {
-    const page = createQuery({ data: [privatePostRow], error: null });
-    const slugs = createQuery({ data: slugRows, error: null, count: slugRows.length });
-    mocks.tables.posts = [page, slugs];
+  it("본문은 요청한 쪽의 글만 읽고 개수는 카테고리별로 센다", async () => {
+    const { page, total, categories } = arrange({ data: [privatePostRow], error: null });
 
     const result = await getArticleListDirectly({ category: "", page: 2, limit: 12 });
 
     expect(page.calls).toContainEqual(["range", 12, 23]);
     expect(page.calls).toContainEqual(["eq", "type", "blog"]);
     expect(page.calls).not.toContainEqual(["eq", "visibility", "public"]);
-    expect(slugs.calls).toContainEqual(["select", "category_slug", { count: "exact" }]);
+    expect(categories.calls).toContainEqual(["select", "slug,posts(count)"]);
+    expect(categories.calls).toContainEqual(["eq", "posts.type", "blog"]);
+    expect(total.calls).toContainEqual(["select", "id", { count: "exact", head: true }]);
+    expect(total.calls).toContainEqual(["eq", "type", "blog"]);
     expect(result.data.map((post) => post.slug)).toEqual(["secret"]);
     expect(result.count).toBe(5);
     expect(result.total).toBe(5);
-    expect(result.counts).toEqual({ 개발: 2, 비밀노트: 1 });
+    expect(result.counts).toEqual({ 개발: 2, 비밀노트: 1, 빈카테고리: 0 });
   });
 
   it("같은 시각의 글이 쪽 사이에서 겹치지 않게 순서를 끝까지 정한다", async () => {
-    const page = createQuery({ data: [], error: null });
-    mocks.tables.posts = [page, createQuery({ data: [], error: null, count: 0 })];
+    const { page } = arrange();
 
     await getArticleListDirectly({ category: "", page: 1, limit: 12 });
 
@@ -259,52 +212,44 @@ describe("getArticleListDirectly", () => {
   });
 
   it("카테고리를 고르면 글 조회에만 조건을 걸고 사이드바 개수는 전체로 센다", async () => {
-    const page = createQuery({ data: [], error: null });
-    const slugs = createQuery({ data: slugRows, error: null, count: slugRows.length });
-    mocks.tables.posts = [page, slugs];
+    const { page, total } = arrange();
 
     const result = await getArticleListDirectly({ category: "개발", page: 1, limit: 12 });
 
     expect(page.calls).toContainEqual(["eq", "category_slug", "개발"]);
-    expect(slugs.calls).not.toContainEqual(["eq", "category_slug", "개발"]);
+    expect(total.calls).not.toContainEqual(["eq", "category_slug", "개발"]);
     expect(result.count).toBe(2);
     expect(result.total).toBe(5);
   });
 
   it("글이 없는 카테고리의 개수는 0이다", async () => {
-    mocks.tables.posts = [
-      createQuery({ data: [], error: null }),
-      createQuery({ data: slugRows, error: null, count: slugRows.length }),
-    ];
+    arrange();
 
     const result = await getArticleListDirectly({ category: "빈카테고리", page: 1, limit: 12 });
 
     expect(result.count).toBe(0);
   });
 
-  it("응답 행 상한에 잘리면 전체 수에 닿을 때까지 이어서 읽는다", async () => {
-    const first = createQuery({ data: slugRows.slice(0, 2), error: null, count: 3 });
-    const second = createQuery({ data: slugRows.slice(2, 3), error: null, count: 3 });
-    mocks.tables.posts = [createQuery({ data: [], error: null }), first, second];
+  it.each([
+    ["쪽 글", "page"],
+    ["전체 수", "total"],
+    ["카테고리별 개수", "categories"],
+  ] as const)(
+    "%s 조회가 실패하면 빈 목록 대신 예외를 던진다",
+    async (_label, failing) => {
+      const queries = arrange();
+      const broken = createQuery({ data: null, error: { message: "boom" } });
+      mocks.tables.posts = [
+        failing === "page" ? broken : queries.page,
+        failing === "total" ? broken : queries.total,
+      ];
+      mocks.tables.categories = failing === "categories" ? broken : queries.categories;
 
-    const result = await getArticleListDirectly({ category: "", page: 1, limit: 12 });
-
-    expect(first.calls).toContainEqual(["range", 0, 999]);
-    expect(second.calls).toContainEqual(["range", 2, 1001]);
-    expect(result.total).toBe(3);
-    expect(result.counts).toEqual({ 개발: 2, 비밀노트: 1 });
-  });
-
-  it("조회가 실패하면 빈 목록 대신 예외를 던진다", async () => {
-    mocks.tables.posts = [
-      createQuery({ data: null, error: { message: "boom" } }),
-      createQuery({ data: [], error: null, count: 0 }),
-    ];
-
-    await expect(getArticleListDirectly({ category: "", page: 1, limit: 12 })).rejects.toThrow(
-      "DB Error: boom"
-    );
-  });
+      await expect(getArticleListDirectly({ category: "", page: 1, limit: 12 })).rejects.toThrow(
+        "DB Error: boom"
+      );
+    }
+  );
 });
 
 describe("getArticleWithCommentsDirectly", () => {
@@ -320,7 +265,6 @@ describe("getArticleWithCommentsDirectly", () => {
   };
 
   it("글과 댓글을 한 번의 조회로 읽고 댓글 표를 따로 읽지 않는다", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
     const posts = createQuery({
       data: { ...privatePostRow, comment_list: [commentRow] },
       error: null,
@@ -357,7 +301,6 @@ describe("getArticleWithCommentsDirectly", () => {
   });
 
   it("댓글이 없는 글은 빈 목록을 돌려준다", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
     mocks.tables.posts = createQuery({
       data: { ...privatePostRow, comment_list: [] },
       error: null,
@@ -370,20 +313,9 @@ describe("getArticleWithCommentsDirectly", () => {
   });
 
   it("없는 글이나 다른 타입 글이면 null을 돌려준다", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: adminUser }, error: null });
     mocks.tables.posts = createQuery({ data: null, error: null });
 
     await expect(getArticleWithCommentsDirectly("missing")).resolves.toBeNull();
-  });
-
-  it("관리자가 아니면 공개 글만 조회한다", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
-    const posts = createQuery({ data: null, error: null });
-    mocks.tables.posts = posts;
-
-    await getArticleWithCommentsDirectly("secret");
-
-    expect(posts.calls).toContainEqual(["eq", "visibility", "public"]);
   });
 });
 

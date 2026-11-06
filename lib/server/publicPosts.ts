@@ -1,7 +1,7 @@
 import "server-only";
 
 import { revalidatePath, unstable_cache, updateTag } from "next/cache";
-import type { Comment, Post, PostType } from "@/lib/types";
+import type { Comment, DiaryIndexEntry, Post, PostType } from "@/lib/types";
 import { postHref } from "@/lib/constants";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
@@ -44,25 +44,15 @@ export function publicPostsTag(type: PostType) {
   return `posts:public:${type}`;
 }
 
-export function publicBlogCategoryTag(categorySlug: string) {
-  return `posts:public:blog:category:${categorySlug}`;
-}
-
-// 쓰기 액션이 공개 캐시를 무효화하는 유일한 길. 글을 고치면 slug·카테고리가 바뀔 수 있어
+// 쓰기 액션이 공개 캐시를 무효화하는 유일한 길. 글을 고치면 slug가 바뀔 수 있어
 // 바뀌기 전·후 값을 모두 받는다.
 // updateTag는 서버 액션에서만 부를 수 있다. revalidateTag(tag, profile)는 낡음 표시라
 // 쓴 직후 첫 방문자가 이전 목록을 받는다(로드맵 16절).
 export function revalidatePublicPosts(params: {
   type: PostType;
   slugs?: (string | null | undefined)[];
-  categories?: (string | null | undefined)[];
 }) {
   updateTag(publicPostsTag(params.type));
-  if (params.type === "blog") {
-    for (const category of new Set(params.categories)) {
-      if (category) updateTag(publicBlogCategoryTag(category));
-    }
-  }
 
   // 목록 페이지는 (home)·(list) route group 안에 있어 type을 주면 태그가 맞지 않는다. 주소로 무효화한다.
   revalidatePath("/");
@@ -79,11 +69,6 @@ export async function getPublicPosts(params: {
   page?: number;
   limit?: number;
 }): Promise<{ data: Post[]; count: number }> {
-  const tags = [publicPostsTag(params.type)];
-  if (params.type === "blog" && params.category) {
-    tags.push(publicBlogCategoryTag(params.category));
-  }
-
   const search = new URLSearchParams();
   search.set("select", POST_COLUMNS);
   search.set("type", `eq.${params.type}`);
@@ -100,7 +85,7 @@ export async function getPublicPosts(params: {
     }
   }
 
-  const response = await fetchPublicRest("posts", search, tags, { count: true });
+  const response = await fetchPublicRest("posts", search, [publicPostsTag(params.type)], { count: true });
 
   // 글 수보다 큰 쪽 번호는 PostgREST가 416으로 답한다. 호출부가 빈 목록으로 404를 판단한다.
   if (response.status === 416) {
@@ -124,7 +109,7 @@ function countFromContentRange(contentRange: string | null) {
 }
 
 export async function getPublicPostCounts(
-  type: Exclude<PostType, "blog"> | "blog"
+  type: PostType
 ): Promise<{ counts: Record<string, number>; total: number }> {
   // 효율적인 카운팅: categories를 조회하면서 그에 속한 public posts 개수를 세어옵니다.
   // PostgREST: categories?select=slug,posts(count)&posts.type=eq.blog&posts.visibility=eq.public
@@ -209,6 +194,7 @@ export async function getPublicCategories(): Promise<{ slug: string; sortOrder: 
 
 // 다이어리는 RLS가 anon에게 모두 숨기고 본문은 관리자 전용이다(CLAUDE.md 제품 규칙).
 // 방문자 목록은 제목만 보이고 모두에게 같으므로, service role로 본문 없이 읽어 쿠키 없이 캐시한다.
+// 이 값은 페이지 소스에 그대로 실리므로 비공개 다이어리의 수정 시각 같은 값이 나가지 않게 화면이 쓰는 열만 읽는다.
 // unstable_cache는 호출할 때 감싼다. 모듈을 불러오기만 하는 곳(액션 등)이 캐시 구현에 묶이지 않게 한다.
 export function getPublicDiaryIndex() {
   return unstable_cache(loadDiaryIndex, ["public-diary-index"], {
@@ -217,11 +203,11 @@ export function getPublicDiaryIndex() {
   })();
 }
 
-async function loadDiaryIndex(): Promise<Post[]> {
+async function loadDiaryIndex(): Promise<DiaryIndexEntry[]> {
   const service = createSupabaseServiceClient();
   const { data, error } = await service
     .from("posts")
-    .select("id,slug,type,visibility,title,created_at,updated_at,thumbnail_image_key")
+    .select("id,slug,title,created_at,visibility")
     .eq("type", "diary")
     .order("created_at", { ascending: false });
 
@@ -230,16 +216,8 @@ async function loadDiaryIndex(): Promise<Post[]> {
   return (data ?? []).map((row) => ({
     id: row.id,
     slug: row.slug,
-    type: "diary",
-    visibility: row.visibility,
     title: row.visibility === "private" ? "일기" : row.title,
-    content: "",
-    categorySlug: null,
     createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    imageKeys: [],
-    thumbnailImageKey: row.thumbnail_image_key,
-    viewCount: 0,
-    commentCount: 0,
+    visibility: row.visibility,
   }));
 }

@@ -102,12 +102,12 @@ export async function savePost(rawInput: SavePostInput): Promise<SavePostResult>
   const service = createSupabaseServiceClient();
 
   // 저장 앞의 조회는 서로의 결과가 필요 없다. 차례로 기다리면 저장마다 DB 왕복이 하나 더 붙는다.
-  // 수정으로 slug·카테고리가 바뀌면 이전 값의 공개 캐시도 무효화해야 하고, 새 버전에서 뺀 이미지는 저장 뒤에 지운다.
+  // 수정으로 slug가 바뀌면 이전 값의 공개 캐시도 무효화해야 하고, 새 버전에서 뺀 이미지는 저장 뒤에 지운다.
   const [previousLookup, categoryLookup] = await Promise.all([
     input.id
       ? service
           .from("posts")
-          .select("slug,category_slug,content,image_keys,thumbnail_image_key,updated_at")
+          .select("slug,content,image_keys,thumbnail_image_key,updated_at")
           .eq("id", input.id)
           .maybeSingle()
       : { data: null, error: null },
@@ -178,7 +178,7 @@ export async function savePost(rawInput: SavePostInput): Promise<SavePostResult>
         },
         { onConflict: "id" }
       )
-      .select("slug,type,category_slug")
+      .select("slug,type")
       .single();
 
   let result = await upsertPost(input.id ? input.baseSlug : randomSlug(input.baseSlug));
@@ -196,7 +196,6 @@ export async function savePost(rawInput: SavePostInput): Promise<SavePostResult>
   revalidatePublicPosts({
     type: saved.type,
     slugs: [previous?.slug, saved.slug],
-    categories: [previous?.category_slug, saved.category_slug],
   });
 
   if (previous) {
@@ -293,7 +292,7 @@ export async function deletePost(rawSlug: unknown): Promise<DeletePostResult> {
     .from("posts")
     .delete()
     .eq("slug", slug)
-    .select("type,category_slug,content,image_keys,thumbnail_image_key")
+    .select("type,content,image_keys,thumbnail_image_key")
     .maybeSingle();
 
   if (error) return dbFailure("글 삭제", error);
@@ -304,7 +303,6 @@ export async function deletePost(rawSlug: unknown): Promise<DeletePostResult> {
   revalidatePublicPosts({
     type: deleted.type,
     slugs: [slug],
-    categories: [deleted.category_slug],
   });
 
   // 비공개 글을 지워도 그 이미지가 공개 버킷에 남아 주소로 열리는 일이 없게, 행을 지운 뒤 파일도 지운다.

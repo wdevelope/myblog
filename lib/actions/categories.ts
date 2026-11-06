@@ -61,8 +61,6 @@ const updateCategorySchema = z.object({
   visibility: z.enum(["public", "private"]).optional(),
 });
 
-export type UpdateCategoryInput = z.input<typeof updateCategorySchema>;
-
 export type UpdateCategoryResult =
   | { success: true; slug: string }
   | { success: false; error: string };
@@ -94,7 +92,7 @@ export async function updateCategory(
   if (error) return dbFailure("카테고리 수정", error);
   if (!updated) return { success: false, error: CATEGORY_NOT_FOUND };
 
-  revalidatePublicPosts({ type: "blog", categories: [current.data, updated.slug] });
+  revalidatePublicPosts({ type: "blog" });
 
   return { success: true, slug: updated.slug };
 }
@@ -130,7 +128,7 @@ export async function deleteCategory(
   if (error) return dbFailure("카테고리 삭제", error);
   if (outcome !== "deleted") return { success: false, error: DELETE_CATEGORY_ERRORS[outcome] };
 
-  revalidatePublicPosts({ type: "blog", categories: [target.data, destination.data] });
+  revalidatePublicPosts({ type: "blog" });
 
   return { success: true };
 }

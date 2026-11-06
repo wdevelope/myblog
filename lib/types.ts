@@ -17,6 +17,9 @@ export type Post = {
   commentCount: number;
 };
 
+// 다이어리 목록 화면이 쓰는 값. 클라이언트 컴포넌트로 넘어가 페이지에 그대로 실린다.
+export type DiaryIndexEntry = Pick<Post, "id" | "slug" | "title" | "createdAt" | "visibility">;
+
 export type Category = {
   slug: string;
   visibility: Visibility;
