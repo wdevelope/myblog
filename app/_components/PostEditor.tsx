@@ -40,6 +40,7 @@ export default function PostEditor({
     categorySlug?: string | null;
     imageKeys?: string[];
     thumbnailImageKey?: string | null;
+    updatedAt: string;
   };
   createdAtYmd?: string;
   // 새 다이어리는 날짜마다 임시저장 칸이 따로다. 칸을 같이 쓰면 다른 날짜의 초안을 불러와 제목과 날짜가 어긋난다.
@@ -86,6 +87,7 @@ export default function PostEditor({
     type,
     defaultTitle,
     createdAtYmd,
+    baseUpdatedAt: initial?.updatedAt,
     fields: { title, content, visibility, categorySlug, imageKeys, thumbnailImageKey },
   });
 
@@ -168,6 +170,7 @@ export default function PostEditor({
     startTransition(async () => {
       const result = await savePost({
         id: initial?.id,
+        baseUpdatedAt: initial?.updatedAt,
         slug: initial?.slug,
         type,
         visibility: type === "feed" ? "public" : visibility,
@@ -244,9 +247,15 @@ export default function PostEditor({
                     임시저장된 글이 있습니다
                   </p>
                   <p className="text-xs text-muted">
-                    {new Date(pendingDraft.updatedAt).toLocaleTimeString()}에
+                    {new Date(pendingDraft.updatedAt).toLocaleString()}에
                     저장됨
                   </p>
+                  {pendingDraft.baseUpdatedAt !== initial?.updatedAt ? (
+                    <p className="text-xs font-medium text-warning">
+                      이 초안을 쓴 뒤 글이 바뀌었을 수 있어요. 불러와서 발행하면
+                      그 수정이 사라져요.
+                    </p>
+                  ) : null}
                 </div>
               </div>
               <div className="flex gap-2 justify-end">

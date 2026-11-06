@@ -28,6 +28,8 @@ vi.mock("@/lib/adminMode", () => ({
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), promise: vi.fn() } }));
 
 const DRAFT_NOTICE = "임시저장된 글이 있습니다";
+const OUTDATED_NOTICE = /불러와서 발행하면 그 수정이 사라져요/;
+const OPENED_AT = "2026-11-06T01:00:00.000000+00:00";
 
 // jsdom은 <dialog>의 showModal·close를 구현하지 않는다. 브라우저처럼 open 속성을 바꾸고 close 이벤트를 보낸다.
 beforeAll(() => {
@@ -81,7 +83,7 @@ describe("글 에디터 임시저장 알림", () => {
     render(
       <PostEditor
         type="blog"
-        initial={{ id: "p1", slug: "post-1", title: "제목", content: "본문", visibility: "public", categorySlug: "개발" }}
+        initial={{ id: "p1", slug: "post-1", title: "제목", content: "본문", visibility: "public", categorySlug: "개발", updatedAt: OPENED_AT }}
       />,
     );
 
@@ -107,12 +109,69 @@ describe("글 에디터 임시저장 알림", () => {
     expect(recoverableErrors).toEqual([]);
     expect(screen.getByText(DRAFT_NOTICE)).toBeTruthy();
   });
+
+  it("며칠 전 초안을 방금 쓴 것으로 착각하지 않게 저장한 날짜까지 보인다", () => {
+    saveDraft("draft:post:new:blog", { updatedAt: "2026-10-22T00:00:00.000Z" });
+    render(<PostEditor type="blog" />);
+
+    expect(screen.getByText(/2026.*에\s*저장됨/)).toBeTruthy();
+  });
+});
+
+describe("글 에디터 오래된 임시저장", () => {
+  const EDIT_KEY = "draft:post:edit:p1";
+  const INITIAL = { id: "p1", slug: "post-1", title: "제목", content: "서버 본문", visibility: "public" as const, categorySlug: "개발", updatedAt: OPENED_AT };
+  const DRAFT = { title: "제목", content: "고치던 초안", categorySlug: "개발" };
+
+  it("초안을 쓰던 때보다 글이 새로우면 불러오기 전에 그 수정이 사라진다고 알린다", () => {
+    saveDraft(EDIT_KEY, { ...DRAFT, baseUpdatedAt: "2026-11-05T01:00:00.000000+00:00" });
+    render(<PostEditor type="blog" initial={INITIAL} />);
+
+    expect(screen.getByText(OUTDATED_NOTICE)).toBeTruthy();
+  });
+
+  it("수정일을 남기지 않던 때의 초안은 글이 바뀌었는지 알 수 없어 같이 알린다", () => {
+    saveDraft(EDIT_KEY, DRAFT);
+    render(<PostEditor type="blog" initial={INITIAL} />);
+
+    expect(screen.getByText(OUTDATED_NOTICE)).toBeTruthy();
+  });
+
+  it("초안을 쓴 뒤 글이 그대로면 경고 없이 알린다", () => {
+    saveDraft(EDIT_KEY, { ...DRAFT, baseUpdatedAt: OPENED_AT });
+    render(<PostEditor type="blog" initial={INITIAL} />);
+
+    expect(screen.getByText(DRAFT_NOTICE)).toBeTruthy();
+    expect(screen.queryByText(OUTDATED_NOTICE)).toBeNull();
+  });
+
+  it("경고를 보고 불러오면 덮어쓰기로 알고 고른 것이라 지금 글의 수정일로 발행한다", async () => {
+    vi.mocked(savePost).mockResolvedValue({ success: false, error: "저장 실패 이유" });
+    saveDraft(EDIT_KEY, { ...DRAFT, baseUpdatedAt: "2026-11-05T01:00:00.000000+00:00" });
+    render(<PostEditor type="blog" initial={INITIAL} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "불러오기" }));
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "발행하기" }));
+    });
+
+    expect(vi.mocked(savePost).mock.calls[0][0]).toMatchObject({ content: "고치던 초안", baseUpdatedAt: OPENED_AT });
+    vi.mocked(savePost).mockReset();
+  });
+
+  it("새 글의 초안은 덮을 글이 없어 경고하지 않는다", () => {
+    saveDraft("draft:post:new:blog");
+    render(<PostEditor type="blog" />);
+
+    expect(screen.queryByText(OUTDATED_NOTICE)).toBeNull();
+  });
 });
 
 describe("글 에디터 임시저장 보존", () => {
   const EDIT_KEY = "draft:post:edit:p1";
   const NEW_DIARY_KEY = "draft:post:new:diary:2026-11-04";
-  const INITIAL = { id: "p1", slug: "post-1", title: "제목", content: "서버 본문", visibility: "public" as const, categorySlug: "개발" };
+  const INITIAL = { id: "p1", slug: "post-1", title: "제목", content: "서버 본문", visibility: "public" as const, categorySlug: "개발", updatedAt: OPENED_AT };
   const DRAFT = { title: "제목", content: "고치던 초안", categorySlug: "개발" };
 
   function waitForAutoSave() {
@@ -179,6 +238,15 @@ describe("글 에디터 임시저장 보존", () => {
     waitForAutoSave();
 
     expect(JSON.parse(localStorage.getItem(EDIT_KEY) ?? "{}").title).toBe("새 제목");
+  });
+
+  it("임시저장에 글을 연 때의 수정일을 남겨 나중에 글이 바뀌었는지 알 수 있다", () => {
+    render(<PostEditor type="blog" initial={INITIAL} />);
+
+    fireEvent.change(screen.getByPlaceholderText("제목을 입력하세요."), { target: { value: "고친 제목" } });
+    waitForAutoSave();
+
+    expect(JSON.parse(localStorage.getItem(EDIT_KEY) ?? "{}").baseUpdatedAt).toBe(OPENED_AT);
   });
 
   it("날짜를 고른 새 다이어리를 열기만 해서는 쓰던 일기를 빈 글로 덮어쓰지 않는다", () => {
@@ -323,7 +391,7 @@ describe("다이어리 날짜별 임시저장", () => {
 });
 
 describe("글 에디터 이미지 업로드", () => {
-  const INITIAL = { id: "p1", slug: "post-1", title: "제목", content: "본문", visibility: "private" as const };
+  const INITIAL = { id: "p1", slug: "post-1", title: "제목", content: "본문", visibility: "private" as const, updatedAt: OPENED_AT };
   const fetchMock = vi.fn<typeof fetch>();
 
   function image(name: string, bytes = 3) {
@@ -576,7 +644,7 @@ describe("글 에디터 카테고리", () => {
       <PostEditor
         type="blog"
         categories={["개발"]}
-        initial={{ id: "1", slug: "a", title: "t", content: "c", visibility: "public", categorySlug: "옛카테고리" }}
+        initial={{ id: "1", slug: "a", title: "t", content: "c", visibility: "public", categorySlug: "옛카테고리", updatedAt: OPENED_AT }}
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "발행" }));
@@ -594,6 +662,7 @@ describe("글 에디터 발행", () => {
     title: "제목",
     content: "본문",
     visibility: "private" as const,
+    updatedAt: OPENED_AT,
   };
 
   function openPanelAndGetPublishButton() {
@@ -640,6 +709,17 @@ describe("글 에디터 발행", () => {
     expect(router.push).toHaveBeenCalledTimes(1);
     expect(router.refresh).not.toHaveBeenCalled();
     expect(enableAdminMode).not.toHaveBeenCalled();
+  });
+
+  it("글을 연 때의 수정일을 같이 보내 서버가 그 뒤의 수정을 덮어쓰지 않게 한다", async () => {
+    vi.mocked(savePost).mockResolvedValue({ success: false, error: "저장 실패 이유" });
+    const publish = openPanelAndGetPublishButton();
+
+    await act(async () => {
+      fireEvent.click(publish);
+    });
+
+    expect(vi.mocked(savePost).mock.calls[0][0].baseUpdatedAt).toBe(OPENED_AT);
   });
 
   it("저장이 실패하면 이유를 보이고 다시 누를 수 있다", async () => {

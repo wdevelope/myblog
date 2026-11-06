@@ -12,6 +12,8 @@ export type PostDraft = {
   imageKeys: string[];
   thumbnailImageKey: string;
   createdAtYmd?: string;
+  // 이 초안을 쓰던 화면이 연 글의 수정일. 지금 글과 다르면 그 사이 다른 곳에서 고친 내용이 초안에 없다.
+  baseUpdatedAt?: string;
   updatedAt: string;
 };
 
@@ -59,12 +61,14 @@ export function usePostDraft({
   type,
   defaultTitle,
   createdAtYmd,
+  baseUpdatedAt,
   fields,
 }: {
   draftKey: string;
   type: PostType;
   defaultTitle: string;
   createdAtYmd?: string;
+  baseUpdatedAt?: string;
   fields: DraftFields;
 }) {
   const { title, content, visibility, categorySlug, imageKeys, thumbnailImageKey } = fields;
@@ -80,9 +84,10 @@ export function usePostDraft({
       imageKeys,
       thumbnailImageKey,
       createdAtYmd,
+      baseUpdatedAt,
       updatedAt: new Date().toISOString(),
     }),
-    [categorySlug, content, createdAtYmd, imageKeys, thumbnailImageKey, title, type, visibility],
+    [baseUpdatedAt, categorySlug, content, createdAtYmd, imageKeys, thumbnailImageKey, title, type, visibility],
   );
 
   // 화면이 처음 채운 값(서버 본문·기본 제목)은 쓴 내용이 아니다. 이 값으로 저장하면 아직 불러오지 않은 임시저장 글을 덮는다.

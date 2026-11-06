@@ -27,6 +27,7 @@ export default async function DiaryEditPage({ params }: Props) {
         title: post.title,
         content: post.content,
         visibility: post.visibility,
+        updatedAt: post.updatedAt,
         imageKeys: post.imageKeys ?? [],
       }}
       deleteSlug={post.slug}

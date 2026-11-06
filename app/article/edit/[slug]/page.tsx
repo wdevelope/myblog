@@ -30,6 +30,7 @@ export default async function ArticleEditPage({ params }: Props) {
         title: post.title,
         content: post.content,
         visibility: post.visibility,
+        updatedAt: post.updatedAt,
         categorySlug: post.categorySlug ?? null,
         imageKeys: post.imageKeys ?? [],
         thumbnailImageKey: post.thumbnailImageKey ?? null,

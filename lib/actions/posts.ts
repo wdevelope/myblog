@@ -3,7 +3,7 @@
 import { draftMode } from "next/headers";
 import { z } from "zod";
 import type { PostType } from "@/lib/types";
-import { ADMIN_REQUIRED } from "@/lib/constants";
+import { ADMIN_REQUIRED, POST_CHANGED_ELSEWHERE } from "@/lib/constants";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assertAdmin } from "@/lib/server/admin";
 import { ensureCategory } from "@/lib/server/categories";
@@ -31,6 +31,7 @@ function randomSlug(base: string) {
 const savePostSchema = z
   .object({
     id: z.string().min(1).optional(),
+    baseUpdatedAt: z.string().optional(),
     slug: z.string().optional(),
     type: z.enum(["blog", "feed", "diary"], { error: "잘못된 요청이에요." }),
     visibility: z.enum(["public", "private"]).optional(),
@@ -67,6 +68,7 @@ const savePostSchema = z
 
     return {
       id: input.id,
+      baseUpdatedAt: input.baseUpdatedAt,
       baseSlug: (input.id ? input.slug?.trim() : null) || "post",
       type: input.type,
       visibility,
@@ -105,7 +107,7 @@ export async function savePost(rawInput: SavePostInput): Promise<SavePostResult>
     input.id
       ? service
           .from("posts")
-          .select("slug,category_slug,content,image_keys,thumbnail_image_key")
+          .select("slug,category_slug,content,image_keys,thumbnail_image_key,updated_at")
           .eq("id", input.id)
           .maybeSingle()
       : { data: null, error: null },
@@ -118,6 +120,12 @@ export async function savePost(rawInput: SavePostInput): Promise<SavePostResult>
   if (previousLookup.error) return dbFailure("글 저장 전 이전 글 조회", previousLookup.error);
   if (categoryLookup.error) return dbFailure("글 저장 전 카테고리 조회", categoryLookup.error);
   const previous = previousLookup.data;
+
+  // 화면을 연 뒤 글이 바뀌었으면 옛 내용으로 덮어쓰게 되고, 그 사이 넣은 사진은 안 쓰는 파일로 보여 지워진다.
+  // 글이 지워졌을 때도 멈춘다. 그대로 저장하면 사진이 지워진 글이 다시 생긴다.
+  if (input.id && previous?.updated_at !== input.baseUpdatedAt) {
+    return { success: false, error: POST_CHANGED_ELSEWHERE };
+  }
 
   if (input.categorySlug && !categoryLookup.data) {
     const ensured = await ensureCategory(service, input.categorySlug);

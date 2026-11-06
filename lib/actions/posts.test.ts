@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { revalidatePath, updateTag } from "next/cache";
 import { savePost, deletePost } from "@/lib/actions/posts";
-import { ADMIN_REQUIRED } from "@/lib/constants";
+import { ADMIN_REQUIRED, POST_CHANGED_ELSEWHERE } from "@/lib/constants";
 import { DB_FAILURE_MESSAGE } from "@/lib/server/dbFailure";
 
 type QueryResult = { data: unknown; error: { message: string } | null };
@@ -273,7 +273,7 @@ describe("savePost 저장 전 조회", () => {
   });
 });
 
-type ImageRow = { content: string; image_keys: string[] | null; thumbnail_image_key: string | null };
+type ImageRow = { content: string; image_keys: string[] | null; thumbnail_image_key: string | null; updated_at?: string };
 
 // Storage 이동·삭제와 글 저장·삭제를 한 기록에 남겨 순서를 본다. failMoves는 실패시킬 `버킷:경로`(옮기기 전 위치)다.
 // previous는 수정 전 글, deleted는 deletePost가 지운 행, usedBy는 "다른 글이 쓰는지" 조회가 돌려줄 글이다.
@@ -781,5 +781,55 @@ describe("savePost 수정 때 뺀 이미지 정리", () => {
 
     expect(result.success).toBe(true);
     expect(console.error).toHaveBeenCalled();
+  });
+});
+
+describe("savePost 오래된 화면", () => {
+  const OPENED_AT = "2026-11-06T01:00:00.000000+00:00";
+  const CHANGED_AT = "2026-11-06T02:00:00.000000+00:00";
+  const photo = "post-images-public:2026-01-03/a.png";
+  const privatePhoto = "post-images-private:2026-01-03/a.png";
+  const edit = { ...blogInput, id: "post-1", slug: "post-abc", content: "옛 본문", baseUpdatedAt: OPENED_AT };
+
+  beforeEach(() => {
+    signedIn(user({ app: { is_admin: true } }));
+  });
+
+  it("글을 연 뒤 다른 곳에서 고쳤으면 덮어쓰지 않고 그쪽에서 넣은 사진도 지우지 않는다", async () => {
+    const { log } = imageService({
+      previous: { content: `![](${photo})`, image_keys: [], thumbnail_image_key: null, updated_at: CHANGED_AT },
+    });
+
+    expect(await savePost(edit)).toEqual({ success: false, error: POST_CHANGED_ELSEWHERE });
+    expect(log).toEqual([]);
+    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(mocks.enableDraftMode).not.toHaveBeenCalled();
+  });
+
+  it("다른 곳에서 비공개로 바꾼 글을 옛 화면이 공개로 되돌리지 않는다", async () => {
+    const { log } = imageService({
+      previous: { content: `![](${privatePhoto})`, image_keys: [], thumbnail_image_key: null, updated_at: CHANGED_AT },
+    });
+
+    const result = await savePost({ ...edit, visibility: "public", content: `![](${privatePhoto})` });
+
+    expect(result).toEqual({ success: false, error: POST_CHANGED_ELSEWHERE });
+    expect(log).toEqual([]);
+  });
+
+  it("글을 연 뒤 다른 곳에서 지웠으면 옛 화면이 다시 만들지 않는다", async () => {
+    const { log } = imageService();
+
+    expect(await savePost(edit)).toEqual({ success: false, error: POST_CHANGED_ELSEWHERE });
+    expect(log).toEqual([]);
+  });
+
+  it("글을 연 뒤 바뀌지 않았으면 저장한다", async () => {
+    const { log } = imageService({
+      previous: { content: "", image_keys: [], thumbnail_image_key: null, updated_at: OPENED_AT },
+    });
+
+    expect((await savePost(edit)).success).toBe(true);
+    expect(log).toEqual(["upsert"]);
   });
 });
