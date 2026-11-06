@@ -9,7 +9,7 @@ import { useSessionUser } from "@/app/_components/useSessionUser";
 import UserAvatar from "@/app/_components/UserAvatar";
 import { formatPostDate, userDisplayName } from "@/lib/utils";
 import { avatarSrc } from "@/lib/avatar";
-import { ACTION_FAILED } from "@/lib/constants";
+import { ACTION_FAILED, COMMENT_CONTENT_MAX } from "@/lib/constants";
 import { resetUserProfile } from "@/lib/actions/profile";
 import {
   createComment as createCommentAction,
@@ -62,6 +62,7 @@ function CommentComposer({
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={3}
+        maxLength={COMMENT_CONTENT_MAX}
         disabled={disabled || isPending}
         className="w-full rounded-2xl border border-border bg-transparent px-4 py-3 text-base text-foreground outline-none transition focus:border-primary/60 disabled:opacity-60 sm:text-xs"
         placeholder={placeholder}

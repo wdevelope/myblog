@@ -2,7 +2,7 @@
 
 import { after } from "next/server";
 import { z } from "zod";
-import { LOGIN_REQUIRED } from "@/lib/constants";
+import { COMMENT_CONTENT_MAX, LOGIN_REQUIRED } from "@/lib/constants";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/server/admin";
 import { COMMENT_COLUMNS, mapComment } from "@/lib/server/commentRow";
@@ -17,7 +17,11 @@ const PARENT_NOT_FOUND = "답글을 달 댓글을 찾지 못했어요.";
 
 const createCommentSchema = z.object({
   postSlug: z.string({ error: POST_NOT_FOUND }).trim().min(1, POST_NOT_FOUND),
-  content: z.string({ error: "내용을 입력해주세요." }).trim().min(1, "내용을 입력해주세요."),
+  content: z
+    .string({ error: "내용을 입력해주세요." })
+    .trim()
+    .min(1, "내용을 입력해주세요.")
+    .max(COMMENT_CONTENT_MAX, `댓글은 ${COMMENT_CONTENT_MAX}자까지 쓸 수 있어요.`),
   parentId: z.string().trim().optional(),
 });
 

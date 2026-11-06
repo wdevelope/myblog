@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import CommentsThread from "@/app/_components/CommentsThread";
 import { createComment, deleteComment } from "@/lib/actions/comments";
 import { resetUserProfile } from "@/lib/actions/profile";
-import { ACTION_FAILED } from "@/lib/constants";
+import { ACTION_FAILED, COMMENT_CONTENT_MAX } from "@/lib/constants";
 import type { Comment } from "@/lib/types";
 
 const mocks = vi.hoisted(() => ({
@@ -66,6 +66,17 @@ describe("댓글 영역(정적 페이지 안의 클라이언트 말단)", () => 
 
     expect(await screen.findByPlaceholderText("댓글을 작성해주세요")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "삭제" })).toHaveLength(1);
+  });
+
+  it("입력칸이 댓글 길이 상한을 넘는 입력을 받지 않는다", async () => {
+    mocks.session = { user: { id: "u1" } };
+
+    render(<CommentsThread postSlug="hello" comments={comments} isAdmin={false} />);
+
+    expect(await screen.findByPlaceholderText("댓글을 작성해주세요")).toHaveAttribute(
+      "maxlength",
+      String(COMMENT_CONTENT_MAX),
+    );
   });
 
   it("날짜는 한국 시간 기준 절대 날짜라 정적 HTML과 브라우저 렌더 결과가 같다", () => {

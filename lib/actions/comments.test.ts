@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { revalidatePath, updateTag } from "next/cache";
 import { createComment, deleteComment } from "@/lib/actions/comments";
-import { LOGIN_REQUIRED } from "@/lib/constants";
+import { COMMENT_CONTENT_MAX, LOGIN_REQUIRED } from "@/lib/constants";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -111,6 +111,16 @@ describe("댓글 입력", () => {
     expect(await createComment({ postSlug: "hello", content: "   " })).toEqual({
       success: false,
       error: "내용을 입력해주세요.",
+    });
+    expect(mocks.writes).toEqual([]);
+  });
+
+  it("길이 상한을 넘으면 쓰지 않는다", async () => {
+    mocks.tables.posts = { id: "post-1", type: "blog", visibility: "public", slug: "hello", title: "안녕" };
+
+    expect(await createComment({ postSlug: "hello", content: "가".repeat(COMMENT_CONTENT_MAX + 1) })).toEqual({
+      success: false,
+      error: `댓글은 ${COMMENT_CONTENT_MAX}자까지 쓸 수 있어요.`,
     });
     expect(mocks.writes).toEqual([]);
   });

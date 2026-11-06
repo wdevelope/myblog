@@ -4,6 +4,9 @@ import type { PostType } from "@/lib/types";
 // sitemap·robots·메타데이터의 기준 주소.
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.w-owen.com";
 
+// DB 제약(20261106010000_comment_rules_and_updated_at.sql)과 같다.
+export const COMMENT_CONTENT_MAX = 1000;
+
 // 서버 액션의 error는 화면이 그대로 보이는 문구다. 화면이 분기하는 conflict·in_use만 코드로 남긴다.
 export const LOGIN_REQUIRED = "로그인이 필요해요. 다시 로그인해 주세요.";
 export const ADMIN_REQUIRED = "관리자만 할 수 있어요. 다시 로그인해 주세요.";
