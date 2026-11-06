@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PostType, Visibility } from "@/lib/types";
 
 export type PostDraft = {
@@ -26,7 +26,6 @@ function hasMeaningfulDraft(draft: PostDraft, defaultTitle: string) {
   if (draft.content.trim()) return true;
   if (draft.imageKeys.length > 0) return true;
   if (draft.type === "blog" && draft.thumbnailImageKey.trim()) return true;
-  if (draft.type === "diary" && draft.createdAtYmd?.trim()) return true;
   return false;
 }
 
@@ -74,6 +73,10 @@ export function usePostDraft({
     [categorySlug, content, createdAtYmd, imageKeys, thumbnailImageKey, title, type, visibility],
   );
 
+  // 화면이 처음 채운 값(서버 본문·기본 제목)은 쓴 내용이 아니다. 이 값으로 저장하면 아직 불러오지 않은 임시저장 글을 덮는다.
+  const [openedDraft] = useState(buildDraft);
+  const autoSaveTimer = useRef<number | undefined>(undefined);
+
   // localStorage는 브라우저에만 있어, 알림은 hydration 뒤(hydrated)에만 그린다.
   const [pendingDraft, setPendingDraft] = useState<PostDraft | null>(() => {
     if (typeof window === "undefined") return null;
@@ -94,14 +97,16 @@ export function usePostDraft({
   const saveDraft = useCallback(() => {
     try {
       const draft = buildDraft();
-      if (!hasMeaningfulDraft(draft, defaultTitle)) return;
+      if (!hasMeaningfulDraft(draft, defaultTitle) || !differsFrom(openedDraft, draft)) return;
       localStorage.setItem(draftKey, JSON.stringify(draft));
     } catch {
       // ignore
     }
-  }, [buildDraft, defaultTitle, draftKey]);
+  }, [buildDraft, defaultTitle, draftKey, openedDraft]);
 
   const clearDraft = useCallback(() => {
+    // 기다리던 자동 저장이 돌면 발행으로 지운 글이 임시저장으로 되살아난다.
+    window.clearTimeout(autoSaveTimer.current);
     try {
       localStorage.removeItem(draftKey);
     } catch {
@@ -113,8 +118,8 @@ export function usePostDraft({
   const dismissDraft = useCallback(() => setPendingDraft(null), []);
 
   useEffect(() => {
-    const timer = window.setTimeout(saveDraft, 800);
-    return () => window.clearTimeout(timer);
+    autoSaveTimer.current = window.setTimeout(saveDraft, 800);
+    return () => window.clearTimeout(autoSaveTimer.current);
   }, [saveDraft]);
 
   return { pendingDraft, saveDraft, clearDraft, dismissDraft };

@@ -3,7 +3,7 @@ import { act } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import PostEditor from "@/app/_components/PostEditor";
 import { savePost } from "@/lib/actions/posts";
 import { enableAdminMode } from "@/lib/adminMode";
@@ -102,6 +102,112 @@ describe("글 에디터 임시저장 알림", () => {
 
     expect(recoverableErrors).toEqual([]);
     expect(screen.getByText(DRAFT_NOTICE)).toBeTruthy();
+  });
+});
+
+describe("글 에디터 임시저장 보존", () => {
+  const EDIT_KEY = "draft:post:edit:p1";
+  const NEW_DIARY_KEY = "draft:post:new:diary";
+  const INITIAL = { id: "p1", slug: "post-1", title: "제목", content: "서버 본문", visibility: "public" as const, categorySlug: "개발" };
+  const DRAFT = { title: "제목", content: "고치던 초안", categorySlug: "개발" };
+
+  function waitForAutoSave() {
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+  }
+
+  function storedContent(key: string) {
+    return JSON.parse(localStorage.getItem(key) ?? "{}").content;
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.mocked(savePost).mockReset();
+  });
+
+  it("수정 화면을 열어 두기만 해서는 임시저장 글을 덮어쓰지 않는다", () => {
+    saveDraft(EDIT_KEY, DRAFT);
+    render(<PostEditor type="blog" initial={INITIAL} />);
+
+    waitForAutoSave();
+
+    expect(storedContent(EDIT_KEY)).toBe("고치던 초안");
+  });
+
+  it("닫기를 눌러도 임시저장 글이 남아 다시 열면 알림이 뜬다", () => {
+    saveDraft(EDIT_KEY, DRAFT);
+    render(<PostEditor type="blog" initial={INITIAL} />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "닫기" })[0]);
+    waitForAutoSave();
+    cleanup();
+    render(<PostEditor type="blog" initial={INITIAL} />);
+
+    expect(screen.getByText(DRAFT_NOTICE)).toBeTruthy();
+  });
+
+  it("상단 저장을 눌러도 바꾼 내용이 없으면 임시저장 글을 덮어쓰지 않는다", () => {
+    saveDraft(EDIT_KEY, DRAFT);
+    render(<PostEditor type="blog" initial={INITIAL} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+
+    expect(storedContent(EDIT_KEY)).toBe("고치던 초안");
+  });
+
+  it("수정 화면을 열기만 하면 본문 사본을 남기지 않는다", () => {
+    render(<PostEditor type="blog" initial={INITIAL} />);
+
+    waitForAutoSave();
+
+    expect(localStorage.getItem(EDIT_KEY)).toBeNull();
+  });
+
+  it("수정 화면에서 글을 고치면 임시저장한다", () => {
+    render(<PostEditor type="blog" initial={INITIAL} />);
+
+    fireEvent.change(screen.getByPlaceholderText("제목을 입력하세요."), { target: { value: "새 제목" } });
+    waitForAutoSave();
+
+    expect(JSON.parse(localStorage.getItem(EDIT_KEY) ?? "{}").title).toBe("새 제목");
+  });
+
+  it("날짜를 고른 새 다이어리를 열기만 해서는 쓰던 일기를 빈 글로 덮어쓰지 않는다", () => {
+    saveDraft(NEW_DIARY_KEY, { type: "diary", title: "봄날", content: "쓰던 일기", createdAtYmd: "2026-11-03" });
+    render(<PostEditor type="diary" createdAtYmd="2026-11-04" />);
+
+    waitForAutoSave();
+
+    expect(storedContent(NEW_DIARY_KEY)).toBe("쓰던 일기");
+  });
+
+  it("날짜만 있고 쓴 내용이 없는 다이어리는 공개 범위를 바꿔도 임시저장하지 않는다", () => {
+    render(<PostEditor type="diary" defaultVisibility="private" createdAtYmd="2026-11-04" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+    fireEvent.click(screen.getByRole("button", { name: "공개" }));
+    waitForAutoSave();
+
+    expect(localStorage.getItem(NEW_DIARY_KEY)).toBeNull();
+  });
+
+  it("발행이 끝나면 기다리던 자동 저장이 지운 임시저장 글을 되살리지 않는다", async () => {
+    vi.mocked(savePost).mockResolvedValue({ success: true, data: { slug: "post-1", type: "blog" } });
+    render(<PostEditor type="blog" initial={INITIAL} />);
+
+    fireEvent.change(screen.getByPlaceholderText("제목을 입력하세요."), { target: { value: "새 제목" } });
+    fireEvent.click(screen.getByRole("button", { name: "발행" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "발행하기" }));
+    });
+    waitForAutoSave();
+
+    expect(localStorage.getItem(EDIT_KEY)).toBeNull();
   });
 });
 
