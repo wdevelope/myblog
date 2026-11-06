@@ -246,15 +246,15 @@ export default function PostSettingsPanel({
                   )}
                 </div>
               )}
+            </div>
 
+            <div className="p-4 border-t border-border mt-auto flex flex-col gap-2">
+              {/* 스크롤 영역 안에 두면 창이 낮을 때 발행을 눌러도 이유가 화면 밖에 있다. */}
               {error && (
                 <div role="alert" className="p-3 rounded-xl bg-danger/10 text-danger text-sm font-medium">
                   {error}
                 </div>
               )}
-            </div>
-
-            <div className="p-4 border-t border-border mt-auto flex flex-col gap-2">
               <button
                 type="button"
                 onClick={onSubmit}
