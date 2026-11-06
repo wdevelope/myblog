@@ -12,7 +12,7 @@
 - [x] 2. 관리자 판정 보안 수정과 인증 관문 정리 — `getViewer`·`assertAdmin`, `proxy.ts`, 같은 출처 리다이렉트, GET `/logout` 제거, 회귀 테스트 38개(2026-10-21). 배포 전 확인 완료, 그 과정에서 찾은 보안 11은 마이그레이션으로 막음(2026-10-22, 2절)
 - [x] 3. 리전 정렬 — 함수 리전 `icn1` 고정, 운영 동적 응답의 `x-vercel-id`가 `icn1::icn1`(2026-11-04, 3절)
 - [x] 4. 기반 정리와 테스트 안전망 — `getPostForRoute`·`loadPostForEdit`, `revalidatePublicPosts`, `formatPostDate`(KST)·`coverKeyOf`, `postHref`·`SITE_URL`, 로딩 route group, 행 매핑 분리(2026-10-22, 테스트 파일 15개·82개)
-- [x] 5. ISR 복구와 일시정지 방지 — 공개 화면 전부 정적·ISR(`next start`에서 HIT, TTFB 2~5ms), 관리자는 draft mode, `/article` 경로 기반, 댓글 공개, 일시정지 방지 Cron(2026-10-22). 배포 뒤 확인과 `CRON_SECRET` 설정이 남았다(5절)
+- [x] 5. ISR 복구와 일시정지 방지 — 공개 화면 전부 정적·ISR(`next start`에서 HIT, TTFB 2~5ms), 관리자는 draft mode, `/article` 경로 기반, 댓글 공개, 일시정지 방지 Cron(2026-10-22). 배포 뒤 확인이 남았다. `CRON_SECRET`은 설정해 호출을 확인했다(2026-11-06, 5절)
 - [x] 6. DB 타입과 쓰기 액션 정리 — 생성 타입 연결, zod 입력 검증, DB 오류 원문 제거, `savePost`·`ensureCategory`, 카테고리 삭제·순서 변경 DB 함수. 운영 DB 적용과 배포 완료(2026-11-05, 6절)
 - [x] 7. UI 통일과 큰 컴포넌트 분할 — 아이콘·버튼·색 토큰·내비 통일, `PostEditor`·`DiaryIndexClient`·`CommentsThread` 분할, framer-motion·react-icons 제거, 다크 모드·접근성, 발행 중복 저장과 다이어리 시간대 수정(2026-11-05, 7절). 실제 발행·삭제 확인이 남았다
 - [x] 8. 에디터 교체와 본문 보안 (CKEditor → 마크다운) — 마크다운 렌더러·원문 편집 에디터, 기존 글 135개 변환, 비공개 이미지 `private, no-store`·SVG 차단, CKEditor 제거(2026-10-22)
@@ -102,7 +102,8 @@
   - 공개 조회: `getPublicPost`·`getPublicCategories`·`getPublicComments`·`getPublicDiaryIndex`(service role로 본문 없이 읽어 `unstable_cache`), 재생성 주기 86400초. 관리자 화면: `/api/admin-mode`, `getPreviewViewer`, `lib/adminMode`(탭 세션마다 다시 켬).
   - 댓글: 조회 정책을 anon까지 넓힌 마이그레이션(`20261022020000_comments_public_read.sql`, 운영 DB 적용), 댓글 쓰기·삭제가 상세·목록을 무효화. `getComments` 액션과 `getPostsDirectly`의 방문자 다이어리 분기는 지웠다.
   - `/article`: `ArticleIndex` 하나를 네 경로가 쓰고, 옛 `?category=`·`?page=` 주소는 `proxy.ts`가 308로 보낸다(`next.config` redirects는 한글 쿼리에서 500). 범위 밖 쪽 번호의 PostgREST 416은 빈 목록으로 처리한다.
-- 남은 일: Vercel 환경변수 `CRON_SECRET` 설정(사용자). 2026-11-05 확인 때도 Vercel 목록에 없다. 일시정지 방지 호출은 값이 없으면 401로 끝나고, 11월 4일 17:50~19:30 UTC 운영 DB 로그에도 그 조회가 없다. 배포 뒤 `x-vercel-cache: HIT`·TTFB 측정(3단계와 함께). 관리자 로그인 → 비공개 글·관리 버튼이 보이는지, 로그아웃 → 방문자 화면인지 브라우저 확인(관리자 비밀번호가 필요해 사용자가 한다).
+- `CRON_SECRET`: 사용자가 2026-11-05 Vercel에 넣고 재배포했다. 그전에는 값이 없어 일시정지 방지 호출이 401로 끝났고, 11월 4일 17:50~19:30 UTC 운영 DB 로그에도 그 조회가 없다. 11월 5일 18:36:59 UTC 로그에 `categories?select=slug&limit=1` 200이 찍혀 동작을 확인했다(2026-11-06).
+- 남은 일: 배포 뒤 `x-vercel-cache: HIT`·TTFB 측정(3단계와 함께). 관리자 로그인 → 비공개 글·관리 버튼이 보이는지, 로그아웃 → 방문자 화면인지 브라우저 확인(관리자 비밀번호가 필요해 사용자가 한다).
 - 알려진 한계: (목록 `loading.tsx`는 23절에서 지웠다) `(list)`의 `loading.tsx` 스트리밍 때문에 목록 경로 안의 `notFound()`는 200 + `noindex` 404 화면(soft 404), `permanentRedirect()`는 meta refresh가 된다. 다이어리 목록은 `useSearchParams` 때문에 정적 HTML에 스켈레톤만 있고 브라우저에서 그린다.
 - 일시정지 방지: ISR이 살면 DB 요청이 줄어 무료 플랜의 7일 무활동 일시정지 위험이 커진다. Vercel Cron(Hobby는 하루 1회)으로 공개 조회 함수를 부르는 라우트 핸들러를 두고 `CRON_SECRET`으로 막는다.
 
