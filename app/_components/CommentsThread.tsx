@@ -9,6 +9,7 @@ import { useSessionUser } from "@/app/_components/useSessionUser";
 import UserAvatar from "@/app/_components/UserAvatar";
 import { formatPostDate, userDisplayName } from "@/lib/utils";
 import { avatarSrc } from "@/lib/avatar";
+import { ACTION_FAILED } from "@/lib/constants";
 import { resetUserProfile } from "@/lib/actions/profile";
 import {
   createComment as createCommentAction,
@@ -126,7 +127,7 @@ export default function CommentsThread({
       postSlug,
       content,
       parentId: parentId ?? undefined,
-    });
+    }).catch(() => ACTION_FAILED);
 
     if (!result.success) {
       throw new Error(result.error ?? "댓글 등록에 실패했어요.");
@@ -141,7 +142,7 @@ export default function CommentsThread({
       return;
     }
 
-    const result = await deleteCommentAction(commentId);
+    const result = await deleteCommentAction(commentId).catch(() => ACTION_FAILED);
     if (!result.success) {
       toast.error(result.error ?? "댓글 삭제에 실패했어요.");
       return;
@@ -165,7 +166,7 @@ export default function CommentsThread({
       return;
     }
 
-    const result = await resetUserProfile(comment.authorId);
+    const result = await resetUserProfile(comment.authorId).catch(() => ACTION_FAILED);
     if (!result.success) {
       toast.error(result.error ?? "프로필을 되돌리지 못했어요.");
       return;

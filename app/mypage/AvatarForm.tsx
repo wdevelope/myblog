@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { notifyProfileChanged } from "@/app/_components/useMyProfile";
 import { toAvatarJpeg } from "@/app/mypage/toAvatarJpeg";
 import { removeAvatar, updateAvatar } from "@/lib/actions/profile";
+import { ACTION_FAILED } from "@/lib/constants";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { AVATAR_BUCKET } from "@/lib/avatar";
 import { buttonClass } from "@/app/_components/ui";
@@ -48,7 +49,7 @@ export default function AvatarForm({ userId, hasAvatar }: { userId: string; hasA
         return;
       }
 
-      const result = await updateAvatar(path);
+      const result = await updateAvatar(path).catch(() => ACTION_FAILED);
       if (!result.success) {
         toast.error(result.error);
         return;
@@ -60,7 +61,7 @@ export default function AvatarForm({ userId, hasAvatar }: { userId: string; hasA
   function onRemove() {
     if (!confirm("프로필 사진을 지울까요?")) return;
     startTransition(async () => {
-      const result = await removeAvatar();
+      const result = await removeAvatar().catch(() => ACTION_FAILED);
       if (!result.success) {
         toast.error(result.error);
         return;

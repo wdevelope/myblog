@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { postHref } from "@/lib/constants";
+import { ACTION_FAILED, postHref } from "@/lib/constants";
 import { deleteComment } from "@/lib/actions/comments";
 import { formatPostDate } from "@/lib/utils";
 import type { MyComment } from "@/lib/types";
@@ -16,7 +16,7 @@ export default function MyCommentList({ comments }: { comments: MyComment[] }) {
       return;
     }
 
-    const result = await deleteComment(commentId);
+    const result = await deleteComment(commentId).catch(() => ACTION_FAILED);
     if (!result.success) {
       toast.error(result.error ?? "댓글 삭제에 실패했어요.");
       return;

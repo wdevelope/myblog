@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { toast } from "sonner";
 import CommentsThread from "@/app/_components/CommentsThread";
-import { deleteComment } from "@/lib/actions/comments";
+import { createComment, deleteComment } from "@/lib/actions/comments";
+import { resetUserProfile } from "@/lib/actions/profile";
+import { ACTION_FAILED } from "@/lib/constants";
 import type { Comment } from "@/lib/types";
 
 const mocks = vi.hoisted(() => ({
@@ -124,5 +126,43 @@ describe("댓글 영역(정적 페이지 안의 클라이언트 말단)", () => 
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("지울 수 없어요"));
     expect(alert).not.toHaveBeenCalled();
+  });
+});
+
+describe("댓글 요청이 끊겼을 때", () => {
+  beforeEach(() => {
+    vi.mocked(toast.error).mockClear();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+  });
+
+  it("등록이 끊기면 내부 오류 문구 대신 안내를 보이고 쓰던 글을 남긴다", async () => {
+    mocks.session = { user: { id: "u1" } };
+    vi.mocked(createComment).mockRejectedValue(new Error('Server Action "abc" was not found on the server.'));
+    render(<CommentsThread postSlug="post-1" comments={comments} />);
+
+    fireEvent.change(await screen.findByPlaceholderText("댓글을 작성해주세요"), { target: { value: "쓰던 댓글" } });
+    fireEvent.click(screen.getByRole("button", { name: "등록" }));
+
+    expect(await screen.findByText(ACTION_FAILED.error)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("댓글을 작성해주세요")).toHaveValue("쓰던 댓글");
+  });
+
+  it("삭제가 끊기면 토스트로 알린다", async () => {
+    vi.mocked(deleteComment).mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<CommentsThread postSlug="post-1" comments={comments} isAdmin />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "삭제" })[0]);
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(ACTION_FAILED.error));
+  });
+
+  it("프로필 초기화가 끊기면 토스트로 알린다", async () => {
+    vi.mocked(resetUserProfile).mockRejectedValue(new TypeError("Failed to fetch"));
+    const withProfile = [{ ...comments[0], authorNickname: "손님" }];
+    render(<CommentsThread postSlug="post-1" comments={withProfile} isAdmin />);
+
+    fireEvent.click(screen.getByRole("button", { name: "프로필 초기화" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(ACTION_FAILED.error));
   });
 });

@@ -10,6 +10,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { createGuestbookEntry, deleteGuestbookEntry } from "@/lib/actions/guestbook";
 import { resetUserProfile } from "@/lib/actions/profile";
 import { avatarSrc } from "@/lib/avatar";
+import { ACTION_FAILED } from "@/lib/constants";
 import { GUESTBOOK_CONTENT_MAX, type GuestbookEntry } from "@/lib/guestbook";
 import { formatPostDate, userDisplayName } from "@/lib/utils";
 import { Button, ButtonLink } from "@/app/_components/ui";
@@ -172,7 +173,7 @@ export default function GuestbookThread({
   }
 
   async function submit(content: string, isSecret: boolean, parentId?: string) {
-    const result = await createGuestbookEntry({ content, isSecret, parentId });
+    const result = await createGuestbookEntry({ content, isSecret, parentId }).catch(() => ACTION_FAILED);
     if (!result.success) return result.error;
     setReplyTo(null);
     router.refresh();
@@ -183,7 +184,7 @@ export default function GuestbookThread({
     if (!confirm("정말 이 글을 삭제하시겠습니까?\n답글이 있는 경우 함께 삭제됩니다.")) {
       return;
     }
-    const result = await deleteGuestbookEntry(entry.id);
+    const result = await deleteGuestbookEntry(entry.id).catch(() => ACTION_FAILED);
     if (!result.success) {
       toast.error(result.error);
       return;
@@ -200,7 +201,7 @@ export default function GuestbookThread({
     if (!confirm(`${displayName(entry)}의 닉네임과 프로필 사진을 기본값으로 되돌릴까요?`)) {
       return;
     }
-    const result = await resetUserProfile(entry.authorId);
+    const result = await resetUserProfile(entry.authorId).catch(() => ACTION_FAILED);
     if (!result.success) {
       toast.error(result.error ?? "프로필을 되돌리지 못했어요.");
       return;

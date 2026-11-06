@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { deleteAccount } from "@/lib/actions/account";
+import { ACTION_FAILED } from "@/lib/constants";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function DeleteAccountButton() {
@@ -16,7 +17,7 @@ export default function DeleteAccountButton() {
     }
 
     startTransition(async () => {
-      const result = await deleteAccount();
+      const result = await deleteAccount().catch(() => ACTION_FAILED);
       if (!result.success) {
         toast.error(result.error);
         return;

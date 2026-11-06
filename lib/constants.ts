@@ -4,6 +4,13 @@ import type { PostType } from "@/lib/types";
 // sitemap·robots·메타데이터의 기준 주소.
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.w-owen.com";
 
+// 서버 액션은 실패를 값으로 돌려주지만, 연결이 끊기거나 배포로 액션이 바뀌면 예외가 된다.
+// transition 안의 예외는 화면 전체를 오류 화면으로 바꿔 쓰던 내용을 지우므로 호출하는 곳에서 이 값으로 바꾼다.
+export const ACTION_FAILED = {
+  success: false,
+  error: "요청을 보내지 못했어요. 새로고침한 뒤 다시 시도해 주세요.",
+} as const;
+
 // 루트 레이아웃과 홈이 같이 쓴다. 하위 페이지가 alternates·openGraph를 정하면 상위 값이 통째로 덮여 홈이 다시 넣는다.
 export const RSS_ALTERNATE_TYPES = {
   "application/rss+xml": [{ url: "/rss.xml", title: "개발자 오웬" }],

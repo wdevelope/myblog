@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import NicknameField from "@/app/_components/NicknameField";
 import { notifyProfileChanged } from "@/app/_components/useMyProfile";
 import { updateNickname } from "@/lib/actions/profile";
+import { ACTION_FAILED } from "@/lib/constants";
 import { Button } from "@/app/_components/ui";
 
 export default function NicknameForm({ current }: { current: string | null }) {
@@ -21,7 +22,7 @@ export default function NicknameForm({ current }: { current: string | null }) {
     e.preventDefault();
     if (!canSave) return;
     startTransition(async () => {
-      const result = await updateNickname(trimmed);
+      const result = await updateNickname(trimmed).catch(() => ACTION_FAILED);
       if (!result.success) {
         toast.error(result.error);
         return;

@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { toast } from "sonner";
 import GuestbookThread from "@/app/guestbook/GuestbookThread";
+import { createGuestbookEntry, deleteGuestbookEntry } from "@/lib/actions/guestbook";
+import { resetUserProfile } from "@/lib/actions/profile";
+import { ACTION_FAILED } from "@/lib/constants";
 import type { GuestbookEntry } from "@/lib/guestbook";
 
 const mocks = vi.hoisted(() => ({
@@ -38,6 +42,8 @@ vi.mock("@/lib/actions/profile", () => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 
 function entry(overrides: Partial<GuestbookEntry> & Pick<GuestbookEntry, "id">): GuestbookEntry {
   return {
@@ -137,5 +143,42 @@ describe("방명록 목록(정적 페이지 안의 클라이언트 말단)", () 
     render(<GuestbookThread entries={[]} />);
 
     expect(screen.getByText("아직 남겨진 글이 없어요. 첫 글을 남겨 주세요.")).toBeInTheDocument();
+  });
+});
+
+describe("방명록 요청이 끊겼을 때", () => {
+  beforeEach(() => {
+    vi.mocked(toast.error).mockClear();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+  });
+
+  it("등록이 끊겨도 화면이 유지되고 이유를 보이며 쓰던 글을 남긴다", async () => {
+    mocks.session = { user: { id: "u1" } };
+    vi.mocked(createGuestbookEntry).mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<GuestbookThread entries={entries} />);
+
+    fireEvent.change(await screen.findByLabelText("방명록 내용"), { target: { value: "쓰던 글" } });
+    fireEvent.click(screen.getByRole("button", { name: "등록" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(ACTION_FAILED.error);
+    expect(screen.getByLabelText("방명록 내용")).toHaveValue("쓰던 글");
+  });
+
+  it("삭제가 끊기면 토스트로 알린다", async () => {
+    vi.mocked(deleteGuestbookEntry).mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<GuestbookThread entries={entries} isAdmin />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "삭제" })[0]);
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(ACTION_FAILED.error));
+  });
+
+  it("프로필 초기화가 끊기면 토스트로 알린다", async () => {
+    vi.mocked(resetUserProfile).mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<GuestbookThread entries={entries} isAdmin />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "프로필 초기화" })[0]);
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(ACTION_FAILED.error));
   });
 });
