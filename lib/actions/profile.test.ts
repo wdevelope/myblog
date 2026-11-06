@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { removeAvatar, resetUserProfile, updateAvatar, updateNickname } from "@/lib/actions/profile";
+import { ADMIN_REQUIRED, LOGIN_REQUIRED } from "@/lib/constants";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 import { revalidateGuestbook } from "@/lib/server/guestbook";
 
@@ -84,7 +85,7 @@ describe("닉네임 바꾸기", () => {
   it("로그인하지 않으면 저장하지 않는다", async () => {
     mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
 
-    expect(await updateNickname("테스트회원")).toEqual({ success: false, error: "unauthorized" });
+    expect(await updateNickname("테스트회원")).toEqual({ success: false, error: LOGIN_REQUIRED });
     expect(mocks.calls).toEqual([]);
   });
 
@@ -189,7 +190,7 @@ const TARGET = "8353737f-5798-4b26-83b8-64cb7ab94240";
 
 describe("관리자 되돌리기", () => {
   it("관리자가 아니면 아무것도 바꾸지 않는다", async () => {
-    expect(await resetUserProfile(TARGET)).toEqual({ success: false, error: "forbidden" });
+    expect(await resetUserProfile(TARGET)).toEqual({ success: false, error: ADMIN_REQUIRED });
     expect(mocks.serviceCalls).toEqual([]);
   });
 

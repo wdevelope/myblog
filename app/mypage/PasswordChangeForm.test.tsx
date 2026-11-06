@@ -42,7 +42,7 @@ describe("비밀번호 변경", () => {
     expect(screen.getByText("비밀번호가 일치하지 않습니다.")).toBeInTheDocument();
   });
 
-  it("바꾸면 입력을 비우고, Auth 오류는 그대로 보인다", async () => {
+  it("바꾸면 입력을 비우고, Auth 오류는 한국어로 보인다", async () => {
     mocks.updateUser.mockResolvedValueOnce({ data: {}, error: null });
     render(<PasswordChangeForm />);
 
@@ -54,13 +54,11 @@ describe("비밀번호 변경", () => {
 
     mocks.updateUser.mockResolvedValueOnce({
       data: {},
-      error: { message: "New password should be different from the old password." },
+      error: { code: "same_password", message: "New password should be different from the old password." },
     });
     fill("password123", "password123");
     fireEvent.click(screen.getByRole("button", { name: "비밀번호 변경" }));
 
-    expect(
-      await screen.findByText("New password should be different from the old password."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("지금 쓰는 비밀번호와 다른 비밀번호를 입력해 주세요.")).toBeInTheDocument();
   });
 });

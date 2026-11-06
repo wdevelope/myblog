@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { revalidatePath, updateTag } from "next/cache";
 import { savePost, deletePost } from "@/lib/actions/posts";
+import { ADMIN_REQUIRED } from "@/lib/constants";
 import { DB_FAILURE_MESSAGE } from "@/lib/server/dbFailure";
 
 type QueryResult = { data: unknown; error: { message: string } | null };
@@ -108,7 +109,7 @@ describe("savePost 권한", () => {
     mocks.requestHeaders.set("x-user-is-admin", "true");
     signedIn(null);
 
-    expect(await savePost(blogInput)).toEqual({ success: false, error: "unauthorized" });
+    expect(await savePost(blogInput)).toEqual({ success: false, error: ADMIN_REQUIRED });
     expect(mocks.writes).toEqual([]);
     expect(mocks.createServiceClient).not.toHaveBeenCalled();
   });
@@ -116,7 +117,7 @@ describe("savePost 권한", () => {
   it("user_metadata.is_admin만 있는 사용자는 저장하지 못한다", async () => {
     signedIn(user({ user: { is_admin: true } }));
 
-    expect(await savePost(blogInput)).toEqual({ success: false, error: "unauthorized" });
+    expect(await savePost(blogInput)).toEqual({ success: false, error: ADMIN_REQUIRED });
     expect(mocks.writes).toEqual([]);
   });
 });
@@ -125,7 +126,7 @@ describe("deletePost 권한", () => {
   it("관리자가 아니면 삭제하지 않고 실패를 돌려준다", async () => {
     signedIn(user());
 
-    expect(await deletePost("post-abc")).toEqual({ success: false, error: "unauthorized" });
+    expect(await deletePost("post-abc")).toEqual({ success: false, error: ADMIN_REQUIRED });
     expect(mocks.writes).toEqual([]);
   });
 

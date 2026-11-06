@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ADMIN_REQUIRED } from "@/lib/constants";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assertAdmin } from "@/lib/server/admin";
 import { isImageBucket, PRIVATE_IMAGE_BUCKET, PUBLIC_IMAGE_BUCKET, storageObjectPath } from "@/lib/image";
@@ -59,7 +60,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   if (!(await assertAdmin())) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: ADMIN_REQUIRED }, { status: 401 });
   }
 
   const form = await request.formData();

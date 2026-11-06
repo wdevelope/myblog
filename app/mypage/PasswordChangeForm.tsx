@@ -2,13 +2,14 @@
 
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
+import { authErrorMessage } from "@/lib/authError";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/app/_components/ui";
 
 const inputClassName =
   "h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-primary/60 sm:text-sm";
 
-// 로그인 폼과 같은 규칙(8자 이상·확인 입력)이다. 그 밖의 규칙은 Supabase Auth가 판정하고 오류 문구를 그대로 보인다.
+// 로그인 폼과 같은 규칙(8자 이상·확인 입력)이다. 그 밖의 규칙은 Supabase Auth가 판정한다.
 export default function PasswordChangeForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -26,7 +27,7 @@ export default function PasswordChangeForm() {
     const { error } = await createSupabaseBrowserClient().auth.updateUser({ password });
     setPending(false);
     if (error) {
-      setError(error.message);
+      setError(authErrorMessage(error.code));
       return;
     }
     setPassword("");

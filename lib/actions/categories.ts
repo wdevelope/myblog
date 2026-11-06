@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { ADMIN_REQUIRED } from "@/lib/constants";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assertAdmin, getViewer } from "@/lib/server/admin";
@@ -44,7 +45,7 @@ export type CreateCategoryResult =
   | { success: false; error: string };
 
 export async function createCategory(slug: unknown): Promise<CreateCategoryResult> {
-  if (!(await assertAdmin())) return { success: false, error: "unauthorized" };
+  if (!(await assertAdmin())) return { success: false, error: ADMIN_REQUIRED };
 
   const ensured = await ensureCategory(createSupabaseServiceClient(), slug);
   if (!ensured.success) return ensured;
@@ -70,7 +71,7 @@ export async function updateCategory(
   oldSlug: unknown,
   input: unknown
 ): Promise<UpdateCategoryResult> {
-  if (!(await assertAdmin())) return { success: false, error: "unauthorized" };
+  if (!(await assertAdmin())) return { success: false, error: ADMIN_REQUIRED };
 
   const current = categoryNameSchema.safeParse(oldSlug);
   if (!current.success) return { success: false, error: CATEGORY_NOT_FOUND };
@@ -91,7 +92,7 @@ export async function updateCategory(
 
   if (error?.code === "23505") return { success: false, error: "conflict" };
   if (error) return dbFailure("카테고리 수정", error);
-  if (!updated) return { success: false, error: "not_found" };
+  if (!updated) return { success: false, error: CATEGORY_NOT_FOUND };
 
   revalidatePublicPosts({ type: "blog", categories: [current.data, updated.slug] });
 
@@ -104,7 +105,7 @@ export type DeleteCategoryResult =
 
 const DELETE_CATEGORY_ERRORS: Record<string, string> = {
   in_use: "in_use",
-  not_found: "not_found",
+  not_found: CATEGORY_NOT_FOUND,
   move_target_invalid: "이동할 카테고리를 다시 선택해주세요.",
 };
 
@@ -112,7 +113,7 @@ export async function deleteCategory(
   slug: unknown,
   moveTo?: unknown
 ): Promise<DeleteCategoryResult> {
-  if (!(await assertAdmin())) return { success: false, error: "unauthorized" };
+  if (!(await assertAdmin())) return { success: false, error: ADMIN_REQUIRED };
 
   const target = categoryNameSchema.safeParse(slug);
   if (!target.success) return { success: false, error: CATEGORY_NOT_FOUND };
@@ -144,7 +145,7 @@ export async function reorderCategory(
   slug: unknown,
   direction: unknown
 ): Promise<ReorderCategoryResult> {
-  if (!(await assertAdmin())) return { success: false, error: "unauthorized" };
+  if (!(await assertAdmin())) return { success: false, error: ADMIN_REQUIRED };
 
   const target = categoryNameSchema.safeParse(slug);
   const move = reorderDirectionSchema.safeParse(direction);
@@ -158,7 +159,7 @@ export async function reorderCategory(
   });
 
   if (error) return dbFailure("카테고리 순서 변경", error);
-  if (outcome === "not_found") return { success: false, error: "not_found" };
+  if (outcome === "not_found") return { success: false, error: CATEGORY_NOT_FOUND };
   if (outcome === "moved") revalidatePublicPosts({ type: "blog" });
 
   return { success: true };

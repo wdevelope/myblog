@@ -2,6 +2,7 @@
 
 import { after } from "next/server";
 import { z } from "zod";
+import { LOGIN_REQUIRED } from "@/lib/constants";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/server/admin";
 import { COMMENT_COLUMNS, mapComment } from "@/lib/server/commentRow";
@@ -10,8 +11,12 @@ import { notifyNewComment } from "@/lib/server/notify";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 import type { Comment } from "@/lib/types";
 
+const POST_NOT_FOUND = "글을 찾지 못했어요.";
+const COMMENT_NOT_FOUND = "댓글을 찾지 못했어요.";
+const PARENT_NOT_FOUND = "답글을 달 댓글을 찾지 못했어요.";
+
 const createCommentSchema = z.object({
-  postSlug: z.string({ error: "postSlug is required" }).trim().min(1, "postSlug is required"),
+  postSlug: z.string({ error: POST_NOT_FOUND }).trim().min(1, POST_NOT_FOUND),
   content: z.string({ error: "내용을 입력해주세요." }).trim().min(1, "내용을 입력해주세요."),
   parentId: z.string().trim().optional(),
 });
@@ -28,7 +33,7 @@ export async function createComment(
   const supabase = await createSupabaseServerClient();
   const { user, isAdmin } = await getViewer();
   if (!user) {
-    return { success: false, error: "unauthorized" };
+    return { success: false, error: LOGIN_REQUIRED };
   }
 
   const parsed = createCommentSchema.safeParse(rawInput);
@@ -45,14 +50,15 @@ export async function createComment(
 
   if (postError) return dbFailure("댓글 대상 글 조회", postError);
   if (!post) {
-    return { success: false, error: "not_found" };
+    return { success: false, error: POST_NOT_FOUND };
   }
   if (post.type === "diary") {
-    return { success: false, error: "diary does not support comments" };
+    return { success: false, error: "다이어리에는 댓글을 쓸 수 없어요." };
   }
 
+  // 없는 글과 같은 문구라야 비공개 글이 있는지 드러나지 않는다.
   if (post.visibility === "private" && !isAdmin) {
-    return { success: false, error: "forbidden" };
+    return { success: false, error: POST_NOT_FOUND };
   }
 
   const parentId = input.parentId || null;
@@ -65,13 +71,13 @@ export async function createComment(
 
     if (parentError) return dbFailure("답글 대상 댓글 조회", parentError);
     if (!parent) {
-      return { success: false, error: "parent comment not found" };
+      return { success: false, error: PARENT_NOT_FOUND };
     }
     if (parent.post_id !== post.id) {
-      return { success: false, error: "invalid parent comment" };
+      return { success: false, error: PARENT_NOT_FOUND };
     }
     if (parent.parent_id) {
-      return { success: false, error: "nested replies are not supported" };
+      return { success: false, error: "답글에는 답글을 달 수 없어요." };
     }
   }
 
@@ -116,14 +122,14 @@ export async function deleteComment(
 ): Promise<DeleteCommentResult> {
   const parsed = z.string().min(1).safeParse(rawCommentId);
   if (!parsed.success) {
-    return { success: false, error: "commentId is required" };
+    return { success: false, error: COMMENT_NOT_FOUND };
   }
   const commentId = parsed.data;
 
   const supabase = await createSupabaseServerClient();
   const { user, isAdmin } = await getViewer();
   if (!user) {
-    return { success: false, error: "unauthorized" };
+    return { success: false, error: LOGIN_REQUIRED };
   }
 
   // 1. 댓글 정보 조회 (권한 확인용)
@@ -135,12 +141,12 @@ export async function deleteComment(
 
   if (fetchError) return dbFailure("삭제할 댓글 조회", fetchError);
   if (!comment) {
-    return { success: false, error: "not_found" };
+    return { success: false, error: COMMENT_NOT_FOUND };
   }
 
   // 2. 권한 검사: 작성자 본인이거나 관리자여야 함
   if (comment.author_id !== user.id && !isAdmin) {
-    return { success: false, error: "forbidden" };
+    return { success: false, error: "본인 댓글만 지울 수 있어요." };
   }
 
   // 3. 삭제 수행 (대댓글은 DB 레벨에서 cascade delete됨)

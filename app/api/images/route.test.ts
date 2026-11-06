@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET, POST } from "@/app/api/images/route";
+import { ADMIN_REQUIRED } from "@/lib/constants";
 
 const mocks = vi.hoisted(() => ({
   requestHeaders: new Headers(),
@@ -156,6 +157,7 @@ describe("POST /api/images 권한", () => {
     const res = await POST(new Request(`${ORIGIN}/api/images`, { method: "POST", body: form }));
 
     expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: ADMIN_REQUIRED });
     expect(mocks.upload).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { deleteAccount } from "@/lib/actions/account";
+import { LOGIN_REQUIRED } from "@/lib/constants";
 import { revalidatePublicPosts } from "@/lib/server/publicPosts";
 import { revalidateGuestbook } from "@/lib/server/guestbook";
 
@@ -62,7 +63,7 @@ describe("회원 탈퇴", () => {
   it("로그인하지 않으면 아무것도 지우지 않는다", async () => {
     mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
 
-    expect(await deleteAccount()).toEqual({ success: false, error: "unauthorized" });
+    expect(await deleteAccount()).toEqual({ success: false, error: LOGIN_REQUIRED });
     expect(mocks.deleteUser).not.toHaveBeenCalled();
   });
 

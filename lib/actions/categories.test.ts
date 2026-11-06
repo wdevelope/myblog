@@ -7,6 +7,7 @@ import {
   reorderCategory,
   updateCategory,
 } from "@/lib/actions/categories";
+import { ADMIN_REQUIRED } from "@/lib/constants";
 import { DB_FAILURE_MESSAGE } from "@/lib/server/dbFailure";
 
 type QueryResult = { data: unknown; error: null };
@@ -96,7 +97,7 @@ describe("카테고리 액션 권한", () => {
     mocks.requestHeaders.set("x-user-is-admin", "true");
     signedIn(null);
 
-    expect(await createCategory("hack")).toEqual({ success: false, error: "unauthorized" });
+    expect(await createCategory("hack")).toEqual({ success: false, error: ADMIN_REQUIRED });
     expect(mocks.writes).toEqual([]);
     expect(mocks.createServiceClient).not.toHaveBeenCalled();
   });
@@ -104,7 +105,7 @@ describe("카테고리 액션 권한", () => {
   it("user_metadata.is_admin만 있는 사용자는 카테고리를 지우지 못한다", async () => {
     signedIn(userMetadataAdmin);
 
-    expect(await deleteCategory("dev")).toEqual({ success: false, error: "unauthorized" });
+    expect(await deleteCategory("dev")).toEqual({ success: false, error: ADMIN_REQUIRED });
     expect(mocks.writes).toEqual([]);
   });
 
@@ -215,7 +216,7 @@ describe("카테고리 쓰기", () => {
 
   it.each([
     ["in_use", "in_use"],
-    ["not_found", "not_found"],
+    ["not_found", "카테고리를 확인해주세요."],
     ["move_target_invalid", "이동할 카테고리를 다시 선택해주세요."],
   ])("삭제 결과 %s는 실패로 돌려주고 캐시를 비우지 않는다", async (outcome, error) => {
     service({ rpc: { data: outcome, error: null } });
@@ -236,10 +237,10 @@ describe("카테고리 쓰기", () => {
     expect(revalidatePath).toHaveBeenCalled();
   });
 
-  it("없는 카테고리의 순서를 바꾸면 not_found다", async () => {
+  it("없는 카테고리의 순서를 바꾸면 확인하라고 알린다", async () => {
     service({ rpc: { data: "not_found", error: null } });
 
-    expect(await reorderCategory("없음", "up")).toEqual({ success: false, error: "not_found" });
+    expect(await reorderCategory("없음", "up")).toEqual({ success: false, error: "카테고리를 확인해주세요." });
   });
 
   it("잘못된 방향은 DB를 부르지 않는다", async () => {

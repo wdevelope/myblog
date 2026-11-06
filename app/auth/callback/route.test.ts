@@ -32,4 +32,12 @@ describe("GET /auth/callback 리다이렉트", () => {
 
     expect(res.headers.get("location")).toBe(`${ORIGIN}/article/foo?x=1`);
   });
+
+  it("코드 교환이 실패하면 Supabase 원문을 주소에 싣지 않고 고정 코드만 넘긴다", async () => {
+    mocks.exchangeCodeForSession.mockResolvedValue({ error: { message: "invalid flow state, no valid flow state found" } });
+
+    const res = await GET(new Request(`${ORIGIN}/auth/callback?code=abc`));
+
+    expect(res.headers.get("location")).toBe(`${ORIGIN}/login?error=callback_failed`);
+  });
 });

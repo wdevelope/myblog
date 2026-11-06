@@ -1,5 +1,6 @@
 "use server";
 
+import { LOGIN_REQUIRED } from "@/lib/constants";
 import { getViewer } from "@/lib/server/admin";
 import { getCommentedPosts, listAvatarPaths, revalidateCommentedPosts } from "@/lib/server/account";
 import { dbFailure } from "@/lib/server/dbFailure";
@@ -15,7 +16,7 @@ export type DeleteAccountResult =
 export async function deleteAccount(): Promise<DeleteAccountResult> {
   const { user, isAdmin } = await getViewer();
   if (!user) {
-    return { success: false, error: "unauthorized" };
+    return { success: false, error: LOGIN_REQUIRED };
   }
   // 관리 계정을 잃지 않게 관리자는 탈퇴하지 않는다.
   if (isAdmin) {

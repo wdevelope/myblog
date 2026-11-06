@@ -3,6 +3,7 @@
 import { draftMode } from "next/headers";
 import { z } from "zod";
 import type { PostType } from "@/lib/types";
+import { ADMIN_REQUIRED } from "@/lib/constants";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assertAdmin } from "@/lib/server/admin";
 import { ensureCategory } from "@/lib/server/categories";
@@ -31,7 +32,7 @@ const savePostSchema = z
   .object({
     id: z.string().min(1).optional(),
     slug: z.string().optional(),
-    type: z.enum(["blog", "feed", "diary"], { error: "type must be one of: blog, feed, diary" }),
+    type: z.enum(["blog", "feed", "diary"], { error: "잘못된 요청이에요." }),
     visibility: z.enum(["public", "private"]).optional(),
     title: z.string().optional(),
     content: z
@@ -40,7 +41,7 @@ const savePostSchema = z
     categorySlug: z.string().nullish(),
     imageKeys: z.array(z.string()).optional(),
     thumbnailImageKey: z.string().nullish(),
-    createdAtYmd: z.iso.date({ error: "createdAtYmd 형식이 올바르지 않아요. (YYYY-MM-DD)" }).optional(),
+    createdAtYmd: z.iso.date({ error: "날짜 형식이 올바르지 않아요." }).optional(),
   })
   .transform((input, ctx) => {
     const reject = (message: string) => {
@@ -50,7 +51,7 @@ const savePostSchema = z
 
     // 피드는 항상 공개다. 타입마다 쓰지 않는 값은 여기서 버려 뒤에서는 타입을 다시 보지 않는다.
     const visibility = input.type === "feed" ? "public" : input.visibility;
-    if (!visibility) return reject("visibility must be public|private");
+    if (!visibility) return reject("공개 범위를 골라 주세요.");
 
     const categorySlug = input.type === "blog" ? input.categorySlug?.trim() || null : null;
     if (input.type === "blog" && !categorySlug) return reject("아티클은 카테고리가 필요해요.");
@@ -60,8 +61,8 @@ const savePostSchema = z
     if (!title) return reject("제목을 입력해주세요.");
 
     if (input.createdAtYmd) {
-      if (input.type !== "diary") return reject("createdAtYmd는 다이어리에만 사용할 수 있어요.");
-      if (input.id) return reject("createdAtYmd는 신규 다이어리 작성에서만 사용할 수 있어요.");
+      if (input.type !== "diary") return reject("날짜는 다이어리에서만 정할 수 있어요.");
+      if (input.id) return reject("날짜는 새 다이어리를 쓸 때만 정할 수 있어요.");
     }
 
     return {
@@ -89,7 +90,7 @@ export type SavePostResult =
 // 새 글과 수정을 한 upsert로 저장한다. id가 있으면 그 글을 고친다.
 export async function savePost(rawInput: SavePostInput): Promise<SavePostResult> {
   const user = await assertAdmin();
-  if (!user) return { success: false, error: "unauthorized" };
+  if (!user) return { success: false, error: ADMIN_REQUIRED };
 
   const parsed = savePostSchema.safeParse(rawInput);
   if (!parsed.success) {
@@ -273,10 +274,10 @@ export type DeletePostResult =
   | { success: false; error: string };
 
 export async function deletePost(rawSlug: unknown): Promise<DeletePostResult> {
-  if (!(await assertAdmin())) return { success: false, error: "unauthorized" };
+  if (!(await assertAdmin())) return { success: false, error: ADMIN_REQUIRED };
 
   const parsed = z.string().min(1).safeParse(rawSlug);
-  if (!parsed.success) return { success: false, error: "not_found" };
+  if (!parsed.success) return { success: false, error: "글을 찾지 못했어요." };
   const slug = parsed.data;
 
   const service = createSupabaseServiceClient();
@@ -289,7 +290,7 @@ export async function deletePost(rawSlug: unknown): Promise<DeletePostResult> {
 
   if (error) return dbFailure("글 삭제", error);
   if (!deleted) {
-    return { success: false, error: "not_found" };
+    return { success: false, error: "글을 찾지 못했어요." };
   }
 
   revalidatePublicPosts({

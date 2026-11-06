@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { revalidatePath, updateTag } from "next/cache";
 import { createComment, deleteComment } from "@/lib/actions/comments";
+import { LOGIN_REQUIRED } from "@/lib/constants";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -76,7 +77,7 @@ describe("댓글 액션 권한", () => {
   it("user_metadata.is_admin만 있는 사용자는 남의 댓글을 지우지 못한다", async () => {
     mocks.tables.comments = { author_id: "someone-else", post_id: "post-1" };
 
-    expect(await deleteComment("comment-1")).toEqual({ success: false, error: "forbidden" });
+    expect(await deleteComment("comment-1")).toEqual({ success: false, error: "본인 댓글만 지울 수 있어요." });
     expect(mocks.writes).toEqual([]);
   });
 
@@ -85,7 +86,7 @@ describe("댓글 액션 권한", () => {
 
     expect(await createComment({ postSlug: "secret", content: "댓글" })).toEqual({
       success: false,
-      error: "forbidden",
+      error: "글을 찾지 못했어요.",
     });
     expect(mocks.writes).toEqual([]);
   });
@@ -97,7 +98,7 @@ describe("댓글 액션 권한", () => {
 
     expect(await createComment({ postSlug: "secret", content: "댓글" })).toEqual({
       success: false,
-      error: "unauthorized",
+      error: LOGIN_REQUIRED,
     });
     expect(mocks.writes).toEqual([]);
   });
@@ -118,7 +119,7 @@ describe("댓글 입력", () => {
     const input = { postSlug: "hello", content: { evil: true } } as never;
 
     expect(await createComment(input)).toEqual({ success: false, error: "내용을 입력해주세요." });
-    expect(await deleteComment(1)).toEqual({ success: false, error: "commentId is required" });
+    expect(await deleteComment(1)).toEqual({ success: false, error: "댓글을 찾지 못했어요." });
     expect(mocks.writes).toEqual([]);
   });
 });
@@ -258,5 +259,30 @@ describe("새 댓글 메일 알림", () => {
     await runAfterTasks();
 
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("댓글 실패 문구", () => {
+  const PUBLIC_POST = { id: "post-1", type: "blog", visibility: "public", slug: "hello", title: "안녕" };
+
+  it("다이어리에는 댓글을 쓸 수 없다고 알린다", async () => {
+    mocks.tables.posts = { ...PUBLIC_POST, type: "diary" };
+
+    expect(await createComment({ postSlug: "hello", content: "댓글" })).toEqual({
+      success: false,
+      error: "다이어리에는 댓글을 쓸 수 없어요.",
+    });
+  });
+
+  it.each([
+    ["사라진 댓글", null, "답글을 달 댓글을 찾지 못했어요."],
+    ["다른 글의 댓글", { id: "c1", post_id: "other", parent_id: null }, "답글을 달 댓글을 찾지 못했어요."],
+    ["답글", { id: "c2", post_id: "post-1", parent_id: "c1" }, "답글에는 답글을 달 수 없어요."],
+  ])("%s에 답글을 달면 이유를 알린다", async (_name, parent, error) => {
+    mocks.tables.posts = PUBLIC_POST;
+    mocks.tables.comments = parent;
+
+    expect(await createComment({ postSlug: "hello", content: "답글", parentId: "c9" })).toEqual({ success: false, error });
+    expect(mocks.writes).toEqual([]);
   });
 });

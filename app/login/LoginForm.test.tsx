@@ -13,6 +13,8 @@ const mocks = vi.hoisted(() => ({
   enableAdminMode: vi.fn(),
   signUp: vi.fn(),
   rpc: vi.fn(),
+  signInError: null as { code?: string; message: string } | null,
+  search: new URLSearchParams(),
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
@@ -20,7 +22,7 @@ vi.mock("@/lib/supabase/client", () => ({
     auth: {
       signInWithPassword: async () => ({
         data: { user: mocks.user, session: { user: mocks.user } },
-        error: null,
+        error: mocks.signInError,
       }),
       signUp: mocks.signUp,
     },
@@ -30,7 +32,7 @@ vi.mock("@/lib/supabase/client", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mocks.search,
 }));
 
 vi.mock("@/lib/adminMode", () => ({ enableAdminMode: mocks.enableAdminMode }));
@@ -70,6 +72,8 @@ function fillSignup() {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.user = null;
+  mocks.signInError = null;
+  mocks.search = new URLSearchParams();
   mocks.enableAdminMode.mockResolvedValue(true);
   mocks.rpc.mockResolvedValue({ data: "ok", error: null });
 });
@@ -107,6 +111,28 @@ describe("로그인 폼", () => {
 
     await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/"));
     expect(mocks.refresh).toHaveBeenCalled();
+  });
+});
+
+describe("로그인 실패 문구", () => {
+  it("비밀번호가 틀리면 Supabase 영어 문구 대신 한국어로 알린다", async () => {
+    mocks.signInError = { code: "invalid_credentials", message: "Invalid login credentials" };
+    render(<LoginForm />);
+
+    submitLogin();
+
+    await waitFor(() => expect(toast.promise).toHaveBeenCalled());
+    const promise = vi.mocked(toast.promise).mock.lastCall?.[0] as Promise<unknown>;
+    await expect(promise).rejects.toThrow("이메일이나 비밀번호가 맞지 않아요.");
+  });
+
+  it("메일 링크 처리에 실패해 돌아오면 고정 문구를 보이고 주소의 값은 그대로 보이지 않는다", () => {
+    mocks.search = new URLSearchParams("error=<b>임의의 문구</b>");
+
+    render(<LoginForm />);
+
+    expect(screen.getByText("링크를 확인하지 못했어요. 이메일과 비밀번호로 로그인해 보세요.")).toBeInTheDocument();
+    expect(screen.queryByText(/임의의 문구/)).not.toBeInTheDocument();
   });
 });
 

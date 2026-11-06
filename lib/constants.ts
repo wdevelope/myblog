@@ -4,6 +4,10 @@ import type { PostType } from "@/lib/types";
 // sitemap·robots·메타데이터의 기준 주소.
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.w-owen.com";
 
+// 서버 액션의 error는 화면이 그대로 보이는 문구다. 화면이 분기하는 conflict·in_use만 코드로 남긴다.
+export const LOGIN_REQUIRED = "로그인이 필요해요. 다시 로그인해 주세요.";
+export const ADMIN_REQUIRED = "관리자만 할 수 있어요. 다시 로그인해 주세요.";
+
 // 서버 액션은 실패를 값으로 돌려주지만, 연결이 끊기거나 배포로 액션이 바뀌면 예외가 된다.
 // transition 안의 예외는 화면 전체를 오류 화면으로 바꿔 쓰던 내용을 지우므로 호출하는 곳에서 이 값으로 바꾼다.
 export const ACTION_FAILED = {

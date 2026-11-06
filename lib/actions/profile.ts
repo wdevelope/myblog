@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { ADMIN_REQUIRED, LOGIN_REQUIRED } from "@/lib/constants";
 import { assertAdmin, getViewer } from "@/lib/server/admin";
 import { getCommentedPosts, listAvatarPaths, revalidateCommentedPosts } from "@/lib/server/account";
 import { dbFailure } from "@/lib/server/dbFailure";
@@ -35,7 +36,7 @@ async function refreshCommentedPosts(userId: string) {
 export async function updateNickname(input: unknown): Promise<ProfileResult> {
   const { user, isAdmin } = await getViewer();
   if (!user) {
-    return { success: false, error: "unauthorized" };
+    return { success: false, error: LOGIN_REQUIRED };
   }
   if (isAdmin) {
     return { success: false, error: ADMIN_PROFILE_FIXED };
@@ -67,7 +68,7 @@ export async function updateNickname(input: unknown): Promise<ProfileResult> {
 export async function updateAvatar(path: unknown): Promise<ProfileResult> {
   const { user, isAdmin } = await getViewer();
   if (!user) {
-    return { success: false, error: "unauthorized" };
+    return { success: false, error: LOGIN_REQUIRED };
   }
   if (isAdmin) {
     return { success: false, error: ADMIN_PROFILE_FIXED };
@@ -106,7 +107,7 @@ export async function updateAvatar(path: unknown): Promise<ProfileResult> {
 export async function removeAvatar(): Promise<ProfileResult> {
   const { user, isAdmin } = await getViewer();
   if (!user) {
-    return { success: false, error: "unauthorized" };
+    return { success: false, error: LOGIN_REQUIRED };
   }
   if (isAdmin) {
     return { success: false, error: ADMIN_PROFILE_FIXED };
@@ -133,7 +134,7 @@ export async function removeAvatar(): Promise<ProfileResult> {
 // 부적절한 닉네임·사진을 관리자가 댓글에서 바로 내린다(18절 결정 3). 남의 행·폴더라 관리자 판정 뒤 service role로 고친다.
 export async function resetUserProfile(userId: unknown): Promise<ProfileResult> {
   if (!(await assertAdmin())) {
-    return { success: false, error: "forbidden" };
+    return { success: false, error: ADMIN_REQUIRED };
   }
   const parsed = z.uuid().safeParse(userId);
   if (!parsed.success) {

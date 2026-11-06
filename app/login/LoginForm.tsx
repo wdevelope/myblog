@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { authErrorMessage } from "@/lib/authError";
 import { safeRedirectPath } from "@/lib/redirect";
 import { enableAdminMode } from "@/lib/adminMode";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,8 @@ const SAVED_EMAIL_KEY = "myblog:saved_email";
 // 가입 트리거(profiles)가 닉네임 제약에 걸리면 Auth가 원인 없이 이 문구만 돌려준다. 중복확인을 통과했으니 그 사이에
 // 다른 사람이 같은 닉네임으로 가입한 경우다(18절 결정 5).
 const SIGNUP_DB_ERROR = "Database error saving new user";
+// 인증 메일의 링크는 다른 브라우저에서 열면 세션 교환이 실패해도 메일 인증은 끝나 있어 로그인할 수 있다.
+const LINK_FAILED = "링크를 확인하지 못했어요. 이메일과 비밀번호로 로그인해 보세요.";
 
 function getRememberedEmail() {
   if (typeof window === "undefined") return { remember: false, email: "" };
@@ -37,7 +40,7 @@ export default function LoginForm() {
   const [rememberEmail, setRememberEmail] = useState(
     () => getRememberedEmail().remember
   );
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(searchParams.get("error") ? LINK_FAILED : null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending] = useTransition();
 
@@ -83,7 +86,7 @@ export default function LoginForm() {
           setVerifiedNickname(null);
           throw new Error("그 사이 다른 사람이 이 닉네임으로 가입했어요. 다른 닉네임으로 다시 시도해 주세요.");
         }
-        throw new Error(result.error.message);
+        throw new Error(authErrorMessage(result.error.code));
       }
 
       const hasSession = Boolean(result.data?.session);
