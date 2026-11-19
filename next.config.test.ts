@@ -26,6 +26,40 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
+async function headersFor(path: string) {
+  vi.resetModules();
+  const { default: config } = await import("./next.config");
+  const rules = (await config(PHASE_PRODUCTION_BUILD).headers?.()) ?? [];
+  const matched = rules.filter((rule) => new RegExp(`^${rule.source.replace("/:path*", "(?:/.*)?")}$`).test(path));
+  return new Map(matched.flatMap((rule) => rule.headers.map((h) => [h.key.toLowerCase(), h.value] as const)));
+}
+
+describe("보안 응답 헤더", () => {
+  it("모든 경로에서 다른 사이트가 iframe으로 띄우지 못하게 한다", async () => {
+    for (const path of ["/", "/mypage", "/api/images"]) {
+      const headers = await headersFor(path);
+      expect(headers.get("x-frame-options")).toBe("DENY");
+      expect(headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+    }
+  });
+
+  it("MIME 추측·리퍼러 전체 주소·플러그인·base 태그 바꾸기를 막는다", async () => {
+    const headers = await headersFor("/article/post-1");
+    expect(headers.get("x-content-type-options")).toBe("nosniff");
+    expect(headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
+    const csp = headers.get("content-security-policy") ?? "";
+    expect(csp).toContain("object-src 'none'");
+    expect(csp).toContain("base-uri 'self'");
+    expect(csp).toContain("form-action 'self'");
+  });
+
+  it("Next.js를 쓴다는 헤더를 내보내지 않는다", async () => {
+    vi.resetModules();
+    const { default: config } = await import("./next.config");
+    expect(config(PHASE_PRODUCTION_BUILD).poweredByHeader).toBe(false);
+  });
+});
+
 describe("이미지 변환 허용 범위", () => {
   it("화면이 쓰는 정적 이미지는 받는다", async () => {
     const { allowsLocal } = await imagePatterns();
