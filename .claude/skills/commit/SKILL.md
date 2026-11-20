@@ -12,6 +12,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git c
 2. 커밋 하나에 의도 하나(기능, 결함 수정, 설정, 리팩터링, 문서). 구현과 그 테스트는 같은 커밋에 넣는다.
 3. 커밋 전에 `npm run lint && npm run typecheck && npm test`가 통과해야 한다. 실패하면 고친 뒤 커밋한다.
 4. 사용자의 미커밋 변경 중 이번 작업과 무관한 것은 스테이징하지 않고 그대로 둔다.
+5. `--amend`·`--no-verify`(`-n`)는 쓰지 않는다. 사용자가 그 커밋을 짚어 요청할 때만 쓴다(`.claude/settings.json`의 `ask` 규칙이 그때도 확인을 받는다).
 
 ## 메시지 형식
 
