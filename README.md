@@ -36,7 +36,7 @@
 
 - 테스트(Vitest): 서버 액션·라우트 핸들러·공개 조회·에디터 순수 함수·화면 컴포넌트
 - CI에서 lint·타입 검사·테스트를 돌린다(빌드는 DB 접속이 필요해 Vercel 배포가 맡는다)
-- 큰 변경은 [로드맵](docs/plans/roadmap.md)에 계획과 결과를 남긴다. 에이전트 작업 규칙은 [CLAUDE.md](CLAUDE.md)에 있다.
+- 남은 일은 [작업 목록](docs/plans/00-작업목록.md)에 있고, 큰 변경은 [로드맵](docs/plans/roadmap.md)에 계획과 결과를 남긴다. 에이전트 작업 규칙은 [CLAUDE.md](CLAUDE.md)에 있다.
 
 ## 시작하기
 
