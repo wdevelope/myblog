@@ -8,9 +8,11 @@
       "Edit(**/.env)",
       "Edit(**/.env.local)",
       "Edit(**/.env.*.local)",
-      "Edit(**/.env.production)"
+      "Edit(**/.env.production)",
+      "Edit(.next/**)"
     ],
     "ask": [
+      "Edit(lib/supabase/database.types.ts)",
       "Bash(git commit *--amend*)",
       "Bash(git commit *--no-verify*)",
       "Bash(git commit -n*)",
