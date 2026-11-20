@@ -2,7 +2,7 @@
 
 import { after } from "next/server";
 import { z } from "zod";
-import { COMMENT_CONTENT_MAX, LOGIN_REQUIRED } from "@/lib/constants";
+import { COMMENT_CONTENT_MAX, LOGIN_REQUIRED, RATE_LIMITED, RATE_LIMITED_CODE } from "@/lib/constants";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/server/admin";
 import { COMMENT_COLUMNS, mapComment } from "@/lib/server/commentRow";
@@ -96,6 +96,7 @@ export async function createComment(
     .select(COMMENT_COLUMNS)
     .single();
 
+  if (error?.code === RATE_LIMITED_CODE) return { success: false, error: RATE_LIMITED };
   if (error) return dbFailure("댓글 저장", error);
 
   // 댓글은 정적 HTML에 들어 있으므로 그 글의 상세와 목록(댓글 수)을 다시 만든다.

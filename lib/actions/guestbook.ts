@@ -7,6 +7,7 @@ import { revalidateGuestbook } from "@/lib/server/guestbook";
 import { notifyNewGuestbookEntry } from "@/lib/server/notify";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { GUESTBOOK_CONTENT_MAX } from "@/lib/guestbook";
+import { RATE_LIMITED, RATE_LIMITED_CODE } from "@/lib/constants";
 
 export type GuestbookResult = { success: true } | { success: false; error: string };
 
@@ -49,6 +50,7 @@ export async function createGuestbookEntry(input: unknown): Promise<GuestbookRes
   });
 
   if (error) {
+    if (error.code === RATE_LIMITED_CODE) return { success: false, error: RATE_LIMITED };
     if (error.code === "42501") return { success: false, error: "이 글은 쓸 수 없어요." };
     if (error.code === "23503" && parentId) return { success: false, error: "답글을 달 글을 찾지 못했어요." };
     if (error.code === "23514") return { success: false, error: CONTENT_RULE };

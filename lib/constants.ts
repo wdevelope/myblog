@@ -9,6 +9,10 @@ export const COMMENT_CONTENT_MAX = 1000;
 
 // 서버 액션의 error는 화면이 그대로 보이는 문구다. 화면이 분기하는 conflict·in_use만 코드로 남긴다.
 export const LOGIN_REQUIRED = "로그인이 필요해요. 다시 로그인해 주세요.";
+
+// 댓글·방명록 쓰기 횟수 제한은 DB 트리거가 판정한다. PostgREST는 PT로 시작하는 코드의 숫자를 HTTP 상태로 쓴다.
+export const RATE_LIMITED_CODE = "PT429";
+export const RATE_LIMITED = "너무 자주 쓰고 있어요. 잠시 뒤에 다시 써 주세요.";
 export const ADMIN_REQUIRED = "관리자만 할 수 있어요. 다시 로그인해 주세요.";
 export const POST_CHANGED_ELSEWHERE =
   "다른 곳에서 이 글을 고치거나 지웠어요. 덮어쓰지 않게 저장을 멈췄어요. 새로고침하면 최신 글을 볼 수 있고, 쓰던 내용은 임시저장에 남아 있어요.";

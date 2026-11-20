@@ -10,7 +10,7 @@ vi.mock("next/cache", () => ({
   unstable_cache: (fn: () => unknown) => fn,
 }));
 
-type QueryResult = { data: unknown; error: null };
+type QueryResult = { data: unknown; error: { code: string; message: string } | null };
 
 // PostgREST 쿼리 체인을 흉내 내고 쓰기 메서드 호출을 기록한다.
 class FakeQuery {
@@ -20,10 +20,13 @@ class FakeQuery {
   ) {}
   select() { return this; }
   eq() { return this; }
-  insert() { this.writes.push("insert"); return this; }
+  private inserting = false;
+  insert() { this.writes.push("insert"); this.inserting = true; return this; }
   delete() { this.writes.push("delete"); return this; }
   async maybeSingle() { return this.result; }
-  async single() { return this.result; }
+  async single() {
+    return this.inserting && mocks.insertError ? { data: null, error: mocks.insertError } : this.result;
+  }
   then(resolve: (value: QueryResult) => unknown) {
     return Promise.resolve(this.result).then(resolve);
   }
@@ -35,6 +38,7 @@ const mocks = vi.hoisted(() => ({
   writes: [] as string[],
   tables: {} as Record<string, unknown>,
   afterTasks: [] as (() => unknown)[],
+  insertError: null as { code: string; message: string } | null,
 }));
 
 // 응답 뒤에 할 일은 모아 두고 테스트가 직접 돌린다.
@@ -70,6 +74,7 @@ beforeEach(() => {
     mocks.requestHeaders.delete(key);
   }
   mocks.tables = {};
+  mocks.insertError = null;
   mocks.getUser.mockResolvedValue({ data: { user: userMetadataAdmin }, error: null });
 });
 
@@ -294,5 +299,18 @@ describe("댓글 실패 문구", () => {
 
     expect(await createComment({ postSlug: "hello", content: "답글", parentId: "c9" })).toEqual({ success: false, error });
     expect(mocks.writes).toEqual([]);
+  });
+
+  it("DB가 쓰기 횟수 제한(PT429)으로 막으면 잠시 뒤 다시 쓰라고 알리고 무효화·알림을 하지 않는다", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: { id: "user-1", app_metadata: {}, user_metadata: {} } }, error: null });
+    mocks.tables.posts = PUBLIC_POST;
+    mocks.insertError = { code: "PT429", message: "rate limited" };
+
+    expect(await createComment({ postSlug: "hello", content: "또 댓글" })).toEqual({
+      success: false,
+      error: "너무 자주 쓰고 있어요. 잠시 뒤에 다시 써 주세요.",
+    });
+    expect(updateTag).not.toHaveBeenCalled();
+    expect(mocks.afterTasks).toEqual([]);
   });
 });

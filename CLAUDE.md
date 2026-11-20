@@ -50,6 +50,7 @@ npm run build                          # next build --webpack (Turbopack 제한�
 - 피드 카드: 상세 화면이 없어 카드가 글의 전부다. 서버의 `feedCardContent`가 첨부 전체(없으면 본문 첫 공개 이미지)를 카드에 올리고 그 사진을 화면에 넘기는 본문에서 뺀다. 두 줄 자르기와 `더 보기`는 요약에 안 담기는 내용이 있을 때만 켠다.
 - RSS(`/rss.xml`, `lib/rss.ts`): 최근 공개 아티클 30개의 요약. 루트 메타데이터 `alternates.types`로 모든 페이지 head에 알린다.
 - 댓글 메일 알림: `createComment`가 관리자 외 댓글·답글을 저장·무효화한 뒤 `after()`로 `lib/server/notify.ts`를 부른다. Resend HTTP API에 text 본문만 보내고(사용자 입력을 HTML에 넣지 않는다), `RESEND_API_KEY`·`COMMENT_NOTIFY_EMAIL`이 없으면 건너뛰며, 발송 실패는 댓글 쓰기를 실패로 돌리지 않는다. 새 방명록도 같은 모듈로 알리되 비밀글 내용은 메일에 싣지 않는다.
+- 쓰기 횟수 제한: 댓글(1분 5개·1시간 30개)·방명록(10분 3개·하루 10개)은 `before insert` 트리거(`check_comment_rate`·`check_guestbook_rate`, 관리자 제외)가 `PT429`로 막는다. PostgREST 직접 insert도 같은 길이라 서버 액션이 아니라 DB에 둔다. 액션은 `RATE_LIMITED_CODE`를 `RATE_LIMITED` 문구로 바꾼다. `/api/views`는 코드가 아니라 Vercel 방화벽 규칙으로 막는다(로드맵 28절).
 - 방명록(`/guestbook`, 정적·ISR, 태그 `guestbook`): 로그인 사용자가 쓰고, 답글은 관리자만 한 단계, 수정은 없고 본인·관리자가 지운다.
   - 비밀글 내용은 `guestbook_secret_contents`에만 둔다(`guestbook_entries.content`는 null). 관리자·작성자·(답글이면) 원글 작성자만 RLS로 읽고 anon은 권한이 없다. 공개 조회(`getPublicGuestbook`)에 이 표를 넣지 않는다.
   - 방문자 화면의 본인 비밀 내용은 `GuestbookThread`가 브라우저 세션으로 채우고, 관리자는 draft mode에서 `getGuestbookDirectly`로 받는다.

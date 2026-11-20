@@ -133,6 +133,17 @@ describe("방명록 쓰기", () => {
     expect(updateTag).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
   });
+
+  it("DB가 쓰기 횟수 제한(PT429)으로 막으면 잠시 뒤 다시 쓰라고 알리고 무효화·알림을 하지 않는다", async () => {
+    mocks.rpcResult = { data: null, error: { code: "PT429", message: "rate limited" } };
+
+    expect(await createGuestbookEntry({ content: "또 왔어요" })).toEqual({
+      success: false,
+      error: "너무 자주 쓰고 있어요. 잠시 뒤에 다시 써 주세요.",
+    });
+    expect(updateTag).not.toHaveBeenCalled();
+    expect(mocks.afterTasks).toEqual([]);
+  });
 });
 
 describe("방명록 삭제", () => {
