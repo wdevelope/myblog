@@ -9,8 +9,8 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git c
 ## 원칙
 
 1. `git add .`·`git add -A`를 쓰지 않는다. 파일 경로를 적어 의미 단위로 스테이징한다.
-2. 커밋 하나에 의도 하나(기능, 결함 수정, 설정, 리팩터링, 문서). 구현과 그 테스트는 같은 커밋에 넣는다.
-3. 커밋 전에 `npm run lint && npm run typecheck && npm test`가 통과해야 한다. 실패하면 고친 뒤 커밋한다.
+2. 커밋 하나에 의도 하나(기능, 결함 수정, 설정, 리팩터링, 문서). 구현과 그 테스트는 같은 커밋에 넣고, 그 작업으로 바뀐 로드맵·작업 목록·CLAUDE.md·`.claude/rules`도 같은 커밋에 넣는다.
+3. 커밋하는 코드는 `npm run lint && npm run typecheck && npm test`를 통과한 상태여야 한다. 실패하면 고친 뒤 커밋한다. 이번 대화에서 이미 통과했고 그 뒤 코드가 바뀌지 않았거나, 문서·`.claude`만 바뀌었으면 다시 돌리지 않는다.
 4. 사용자의 미커밋 변경 중 이번 작업과 무관한 것은 스테이징하지 않고 그대로 둔다.
 5. `--amend`·`--no-verify`(`-n`)는 쓰지 않는다. 사용자가 그 커밋을 짚어 요청할 때만 쓴다(`.claude/settings.json`의 `ask` 규칙이 그때도 확인을 받는다).
 
